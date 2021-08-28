@@ -113,7 +113,7 @@ var dashboardContent = `
 										<p>Initial processing required to execute all transactions may require non-negligible time and disk capacity required to store all past state may be non-insignificant. High end machines with SSD storage, modern CPUs and 8GB+ RAM are recommended.</p>
 										<br/>
 										<p>To run an archive node, download and start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 58}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=1024 --gethcommandline=--syncmode=full{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+											<pre>syscoind {{if eq .NetworkID 5800}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=1024 --gethcommandline=--syncmode=full{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
 										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
@@ -131,7 +131,7 @@ var dashboardContent = `
 										<p>Initial processing required to synchronize is more bandwidth intensive, but is light on the CPU and has significantly reduced disk requirements. Mid range machines with HDD storage, decent CPUs and 4GB+ RAM should be enough.</p>
 										<br/>
 										<p>To run a full node, download start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 58}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=512{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+											<pre>syscoind {{if eq .NetworkID 5800}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=512{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
 										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
@@ -152,7 +152,7 @@ var dashboardContent = `
 										<p>Initial processing required to synchronize is light, as it only verifies the validity of the headers; similarly required disk capacity is small, tallying around 500 bytes per header. Low end machines with arbitrary storage, weak CPUs and 512MB+ RAM should cope well.</p>
 										<br/>
 										<p>To run a light node, download start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 58}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+											<pre>syscoind {{if eq .NetworkID 5800}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
 										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
@@ -170,7 +170,7 @@ var dashboardContent = `
 										<p>Initial processing required to synchronize is light, as it only verifies the validity of the headers; similarly required disk capacity is small, tallying around 500 bytes per header. Embedded machines with arbitrary storage, low power CPUs and 128MB+ RAM may work.</p>
 										<br/>
 										<p>To run an embedded node, download and start syscoind with:
-											<pre>syscoind {{if eq .NetworkID 58}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=16 --gethcommandline=--ethash.cachesinmem=1 --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+											<pre>syscoind {{if eq .NetworkID 5800}}--testnet{{end}} --zmqpubnevm=tcp://127.0.0.1:1111 --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=16 --gethcommandline=--ethash.cachesinmem=1 --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
 										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>

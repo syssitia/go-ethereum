@@ -1666,7 +1666,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		SetDNSDiscoveryDefaults(cfg, params.SyscoinGenesisHash)
 	case ctx.GlobalBool(TanenbaumFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 58
+			cfg.NetworkId = 5800
 		}
 		cfg.Genesis = core.DefaultTanenbaumGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.TanenbaumGenesisHash)
