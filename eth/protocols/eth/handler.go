@@ -98,6 +98,8 @@ type Backend interface {
 type TxPool interface {
 	// Get retrieves the the transaction from the local txpool with the given hash.
 	Get(hash common.Hash) *types.Transaction
+	// SYSCOIN
+	GetChainConfig() *params.ChainConfig
 }
 
 // MakeProtocols constructs the P2P protocol definitions for `eth`.

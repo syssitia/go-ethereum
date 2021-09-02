@@ -248,6 +248,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.RinkebyChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
+	case ghash == params.SyscoinGenesisHash:
+		return params.SyscoinChainConfig
+	case ghash == params.TanenbaumGenesisHash:
+		return params.TanenbaumChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -394,6 +398,28 @@ func DefaultGoerliGenesisBlock() *Genesis {
 		GasLimit:   10485760,
 		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(goerliAllocData),
+	}
+}
+
+// SYSCOIN
+func DefaultSyscoinGenesisBlock() *Genesis {
+	// Full genesis: https://gist.github.com/holiman/c6ed9269dce28304ad176314caa75e97
+	return &Genesis{
+		Config:     params.SyscoinChainConfig,
+		Timestamp:  0x60d7aef6,
+		ExtraData:  hexutil.MustDecode("0x00"),
+		GasLimit:   0x47b760,
+		Difficulty: big.NewInt(1),
+	}
+}
+func DefaultTanenbaumGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.TanenbaumChainConfig,
+		Timestamp:  0x60d6aef5,
+		ExtraData:  hexutil.MustDecode("0x00"),
+		GasLimit:   0x47b760,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(tanenbaumAllocData),
 	}
 }
 

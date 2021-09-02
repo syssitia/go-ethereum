@@ -47,6 +47,8 @@ type Config struct {
 
 	State     *state.StateDB
 	GetHashFn func(n uint64) common.Hash
+	// SYSCOIN
+	ReadSYSHashFn func(n uint64) []byte
 }
 
 // sets defaults on the config
@@ -68,6 +70,8 @@ func setDefaults(cfg *Config) {
 			MuirGlacierBlock:    new(big.Int),
 			BerlinBlock:         new(big.Int),
 			LondonBlock:         new(big.Int),
+			// SYSCOIN
+			SyscoinBlock: new(big.Int),
 		}
 	}
 
@@ -92,6 +96,12 @@ func setDefaults(cfg *Config) {
 	if cfg.GetHashFn == nil {
 		cfg.GetHashFn = func(n uint64) common.Hash {
 			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
+		}
+	}
+	// SYSCOIN
+	if cfg.ReadSYSHashFn == nil {
+		cfg.ReadSYSHashFn = func(n uint64) []byte {
+			return []byte(new(big.Int).SetUint64(n).String())
 		}
 	}
 	if cfg.BaseFee == nil {

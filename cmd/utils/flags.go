@@ -147,6 +147,14 @@ var (
 		Name:  "goerli",
 		Usage: "Görli network: pre-configured proof-of-authority test network",
 	}
+	SyscoinFlag = cli.BoolFlag{
+		Name:  "syscoin",
+		Usage: "Syscoin network: pre-configured NEVM-based syscoin network.",
+	}
+	TanenbaumFlag = cli.BoolFlag{
+		Name:  "tanenbaum",
+		Usage: "Tanenbaum network: pre-configured NEVM-based Tanenbaum test network.",
+	}
 	RinkebyFlag = cli.BoolFlag{
 		Name:  "rinkeby",
 		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
@@ -463,6 +471,11 @@ var (
 	MinerNoVerifyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
 		Usage: "Disable remote sealing verification",
+	}
+	// SYSCOIN
+	NEVMPubFlag = cli.StringFlag{
+		Name:  "nevmpub",
+		Usage: "NEVM ZMQ REP Endpoint",
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -793,6 +806,12 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
 		}
+		if ctx.GlobalBool(SyscoinFlag.Name) {
+			return filepath.Join(path, "syscoin")
+		}
+		if ctx.GlobalBool(TanenbaumFlag.Name) {
+			return filepath.Join(path, "tanenbaum")
+		}
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -845,6 +864,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.RinkebyBootnodes
 	case ctx.GlobalBool(GoerliFlag.Name):
 		urls = params.GoerliBootnodes
+	case ctx.GlobalBool(SyscoinFlag.Name):
+		urls = params.SyscoinBootnodes
+	case ctx.GlobalBool(TanenbaumFlag.Name):
+		urls = params.TanenbaumBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1288,6 +1311,10 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	case ctx.GlobalBool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
+	case ctx.GlobalBool(SyscoinFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "syscoin")
+	case ctx.GlobalBool(TanenbaumFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "tanenbaum")
 	}
 }
 
@@ -1473,7 +1500,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, SyscoinFlag, TanenbaumFlag)
 	CheckExclusive(ctx, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	if ctx.GlobalString(GCModeFlag.Name) == "archive" && ctx.GlobalUint64(TxLookupLimitFlag.Name) != 0 {
@@ -1514,6 +1541,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 
 	log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
 	godebug.SetGCPercent(int(gogc))
+	// SYSCOIN
+	if ctx.GlobalIsSet(NEVMPubFlag.Name) {
+		cfg.NEVMPubEP = ctx.GlobalString(NEVMPubFlag.Name)
+	}
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1626,6 +1657,19 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
+	// SYSCOIN
+	case ctx.GlobalBool(SyscoinFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 57
+		}
+		cfg.Genesis = core.DefaultSyscoinGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.SyscoinGenesisHash)
+	case ctx.GlobalBool(TanenbaumFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 58
+		}
+		cfg.Genesis = core.DefaultTanenbaumGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.TanenbaumGenesisHash)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1846,6 +1890,10 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.GlobalBool(SyscoinFlag.Name):
+		genesis = core.DefaultSyscoinGenesisBlock()
+	case ctx.GlobalBool(TanenbaumFlag.Name):
+		genesis = core.DefaultTanenbaumGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

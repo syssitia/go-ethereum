@@ -32,17 +32,25 @@ import (
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
-FROM ethereum/client-go:latest
+FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM alpine:3.14
 
 ADD genesis.json /genesis.json
 {{if .Unlock}}
 	ADD signer.json /signer.json
 	ADD signer.pass /signer.pass
 {{end}}
+ENV SYSCOIN_DATA=/home/syscoin/.syscoin
+ENV SYSCOIN_VERSION=4.3.99
+ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+
+COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+
 RUN \
-  echo 'geth --cache 512 init /genesis.json' > geth.sh && \{{if .Unlock}}
-	echo 'mkdir -p /root/.ethereum/keystore/ && cp /signer.json /root/.ethereum/keystore/' >> geth.sh && \{{end}}
-	echo $'exec geth --networkid {{.NetworkID}} --cache 512 --port {{.Port}} --nat extip:{{.IP}} --maxpeers {{.Peers}} {{.LightFlag}} --ethstats \'{{.Ethstats}}\' {{if .Bootnodes}}--bootnodes {{.Bootnodes}}{{end}} {{if .Etherbase}}--miner.etherbase {{.Etherbase}} --mine --miner.threads 1{{end}} {{if .Unlock}}--unlock 0 --password /signer.pass --mine{{end}} --miner.gastarget {{.GasTarget}} --miner.gaslimit {{.GasLimit}} --miner.gasprice {{.GasPrice}}' >> geth.sh
+    {{if .Unlock}}
+	echo 'mkdir -p ${SYSCOIN_DATA}/{{if eq .NetworkID 58}}testnet3/{{end}}geth/keystore/ && cp /signer.json ${SYSCOIN_DATA}/{{if eq .NetworkID 58}}testnet3/{{end}}geth/keystore/' >> geth.sh && \{{end}}
+	echo $'exec syscoind {{if eq .NetworkID 58}}--testnet --addnode=3.15.199.152{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --zmqpubnevm="tcp://127.0.0.1:1111" --gethcommandline=--cache=512 --gethcommandline=--port={{.Port}} --gethcommandline=--nat=extip:{{.IP}} --gethcommandline=--maxpeers={{.Peers}} {{.LightFlag}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} {{if .Etherbase}}--gethcommandline=--miner.etherbase={{.Etherbase}} --gethcommandline=--mine --gethcommandline=--miner.threads=1{{end}} {{if .Unlock}}--gethcommandline=--unlock=0 --gethcommandline=--password=/signer.pass --gethcommandline=--mine{{end}} --gethcommandline=--miner.gastarget={{.GasTarget}} --gethcommandline=--miner.gaslimit={{.GasLimit}} --gethcommandline=--miner.gasprice={{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -58,12 +66,18 @@ services:
     container_name: {{.Network}}_{{.Type}}_1
     ports:
       - "{{.Port}}:{{.Port}}"
+      - "{{.SysPort1}}:{{.SysPort1}}"
+      - "{{.SysPort2}}:{{.SysPort2}}"
+      - "{{.SysPort3}}:{{.SysPort3}}"
       - "{{.Port}}:{{.Port}}/udp"
     volumes:
       - {{.Datadir}}:/root/.ethereum{{if .Ethashdir}}
       - {{.Ethashdir}}:/root/.ethash{{end}}
     environment:
       - PORT={{.Port}}/tcp
+      - SYSPORT1={{.SysPort1}}/tcp
+      - SYSPORT2={{.SysPort2}}/tcp
+      - SYSPORT3={{.SysPort3}}/tcp
       - TOTAL_PEERS={{.TotalPeers}}
       - LIGHT_PEERS={{.LightPeers}}
       - STATS_NAME={{.Ethstats}}
@@ -94,7 +108,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 
 	lightFlag := ""
 	if config.peersLight > 0 {
-		lightFlag = fmt.Sprintf("--light.maxpeers=%d --light.serve=50", config.peersLight)
+		lightFlag = fmt.Sprintf("--gethcommandline=--light.maxpeers=%d --gethcommandline=--light.serve=50", config.peersLight)
 	}
 	dockerfile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(nodeDockerfile)).Execute(dockerfile, map[string]interface{}{
@@ -120,6 +134,9 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Ethashdir":  config.ethashdir,
 		"Network":    network,
 		"Port":       config.port,
+		"SysPort1":   8369,
+		"SysPort2":   18369,
+		"SysPort3":   18444,
 		"TotalPeers": config.peersTotal,
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
@@ -229,7 +246,14 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 
 	// Container available, retrieve its node ID and its genesis json
 	var out []byte
-	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 geth --exec admin.nodeInfo.enode --cache=16 attach", network, kind)); err != nil {
+
+	// The ipc file is not in the standard location, so we need find it, and specify it.
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 find /home/syscoin/.syscoin -name geth.ipc", network, kind)); err != nil {
+		return nil, ErrServiceUnreachable
+	}
+	ipcLocation := string(bytes.TrimSpace(out))
+
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 /home/syscoin/.syscoin/sysgeth --exec admin.nodeInfo.enode --cache=16 attach "+ipcLocation, network, kind)); err != nil {
 		return nil, ErrServiceUnreachable
 	}
 	enode := bytes.Trim(bytes.TrimSpace(out), "\"")

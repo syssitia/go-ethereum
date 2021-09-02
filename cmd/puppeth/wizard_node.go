@@ -176,7 +176,7 @@ func (w *wizard) deployNode(boot bool) {
 	}
 	// All ok, run a network scan to pick any changes up
 	log.Info("Waiting for node to finish booting")
-	time.Sleep(3 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	w.networkStats()
 }

@@ -78,6 +78,7 @@ func TestEVM(t *testing.T) {
 		byte(vm.PUSH1),
 		byte(vm.ORIGIN),
 		byte(vm.BLOCKHASH),
+		byte(vm.SYSBLOCKHASH),
 		byte(vm.COINBASE),
 	}, nil, nil)
 }
@@ -245,7 +246,10 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	//fmt.Printf("GetHeader(%x, %d) => header with parent %x\n", h, n, parentHash)
 	return fakeHeader(n, parentHash)
 }
-
+// SYSCOIN
+func (d *dummyChain) ReadSYSHash(uint64) []byte {
+	return []byte{}
+}
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
@@ -295,6 +299,8 @@ func TestBlockhash(t *testing.T) {
 	chain := &dummyChain{}
 	ret, _, err := Execute(data, input, &Config{
 		GetHashFn:   core.GetHashFn(header, chain),
+		// SYSCOIN
+		ReadSYSHashFn:   core.ReadSYSHashFn(chain),
 		BlockNumber: new(big.Int).Set(header.Number),
 	})
 	if err != nil {

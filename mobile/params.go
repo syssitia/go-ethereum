@@ -59,6 +59,22 @@ func GoerliGenesis() string {
 	return string(enc)
 }
 
+// SYSCOIN SyscoinGenesis returns the JSON spec to use for the Goerli test network
+func SyscoinGenesis() string {
+	enc, err := json.Marshal(core.DefaultSyscoinGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
+	return string(enc)
+}
+func TanenbaumGenesis() string {
+	enc, err := json.Marshal(core.DefaultTanenbaumGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
+	return string(enc)
+}
+
 // FoundationBootnodes returns the enode URLs of the P2P bootstrap nodes operated
 // by the foundation running the V5 discovery protocol.
 func FoundationBootnodes() *Enodes {

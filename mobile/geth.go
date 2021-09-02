@@ -179,6 +179,18 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 				config.EthereumNetworkID = 5
 			}
 		}
+		if config.EthereumGenesis == SyscoinGenesis() {
+			genesis.Config = params.SyscoinChainConfig
+			if config.EthereumNetworkID == 1 {
+				config.EthereumNetworkID = 57
+			}
+		}
+		if config.EthereumGenesis == TanenbaumGenesis() {
+			genesis.Config = params.TanenbaumChainConfig
+			if config.EthereumNetworkID == 1 {
+				config.EthereumNetworkID = 58
+			}
+		}
 	}
 	// Register the Ethereum protocol if requested
 	if config.EthereumEnabled {

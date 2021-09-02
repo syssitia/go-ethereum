@@ -106,7 +106,16 @@ func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool) *Pe
 		term:            make(chan struct{}),
 	}
 	// Start up all the broadcasters
-	go peer.broadcastBlocks()
+	// SYSCOIN if not syscoin network actively broadcast blocks,
+	// otherwise just respond to blocks/headers upon request
+	if peer.txpool != nil {
+		chainConfig := peer.txpool.GetChainConfig()
+		if chainConfig == nil || chainConfig.SyscoinBlock == nil {
+			go peer.broadcastBlocks()
+		}
+	} else {
+		go peer.broadcastBlocks()
+	}
 	go peer.broadcastTransactions()
 	go peer.announceTransactions()
 

@@ -407,6 +407,7 @@ const (
 	ModeTest
 	ModeFake
 	ModeFullFake
+	ModeNEVM
 )
 
 // Config are the configuration parameters of the ethash.

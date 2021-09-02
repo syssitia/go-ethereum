@@ -200,6 +200,8 @@ type Config struct {
 
 	// Berlin block override (TODO: remove after the fork)
 	OverrideLondon *big.Int `toml:",omitempty"`
+	// SYSCOIN
+	NEVMPubEP string        `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
@@ -207,6 +209,12 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
+	}
+	// SYSCOIN
+	if chainConfig.ChainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
+		if chainConfig.ChainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainConfig.ChainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
+			config.PowMode = ethash.ModeNEVM
+		}
 	}
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
@@ -216,6 +224,9 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 		log.Warn("Ethash used in test mode")
 	case ethash.ModeShared:
 		log.Warn("Ethash used in shared mode")
+	// SYSCOIN
+	case ethash.ModeNEVM:
+		log.Warn("Ethash used in NEVM mode")
 	}
 	engine := ethash.New(ethash.Config{
 		PowMode:          config.PowMode,
@@ -229,6 +240,7 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 		DatasetsLockMmap: config.DatasetsLockMmap,
 		NotifyFull:       config.NotifyFull,
 	}, notify, noverify)
+
 	engine.SetThreads(-1) // Disable CPU mining
 	return engine
 }

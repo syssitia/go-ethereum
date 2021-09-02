@@ -185,6 +185,15 @@ func TestGenesisHashes(t *testing.T) {
 			genesis: DefaultRinkebyGenesisBlock(),
 			hash:    params.RinkebyGenesisHash,
 		},
+		// SYSCOIN
+		{
+			genesis: DefaultSyscoinGenesisBlock(),
+			hash:    params.SyscoinGenesisHash,
+		},
+		{
+			genesis: DefaultTanenbaumGenesisBlock(),
+			hash:    params.TanenbaumGenesisHash,
+		},
 	}
 	for i, c := range cases {
 		b := c.genesis.MustCommit(rawdb.NewMemoryDatabase())

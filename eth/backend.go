@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/clique"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -60,6 +61,19 @@ import (
 // Config contains the configuration options of the ETH protocol.
 // Deprecated: use ethconfig.Config instead.
 type Config = ethconfig.Config
+
+// SYSCOIN
+type NEVMCreateBlockFn func(*Ethereum) *types.Block
+type NEVMAddBlockFn func(*types.NEVMBlockConnect, *Ethereum) error
+type NEVMDeleteBlockFn func(string, *Ethereum) error
+
+type NEVMIndex struct {
+	// Callbacks
+	CreateBlock NEVMCreateBlockFn // Mines a block locally
+	AddBlock    NEVMAddBlockFn    // Connects a new NEVM block
+	DeleteBlock NEVMDeleteBlockFn // Disconnects NEVM tip
+}
+
 
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
@@ -94,7 +108,13 @@ type Ethereum struct {
 
 	p2pServer *p2p.Server
 
-	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+	// SYSCOIN
+	wgNEVM            sync.WaitGroup
+	minedNEVMBlockSub *event.TypeMuxSubscription
+	zmqRep            *ZMQRep
+	timeLastBlock		int64
+	startNetwork		bool
 }
 
 // New creates a new Ethereum object (including the
@@ -227,7 +247,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
-
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
 	if eth.APIBackend.allowUnprotectedTxs {
 		log.Info("Unprotected transactions allowed")
@@ -269,7 +288,148 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				"age", common.PrettyAge(t))
 		}
 	}
-	return eth, nil
+	// SYSCOIN
+	eth.minedNEVMBlockSub = eth.EventMux().Subscribe(core.NewMinedBlockEvent{})
+	createBlock := func(eth *Ethereum) *types.Block {
+		eth.wgNEVM.Add(1)
+		defer eth.wgNEVM.Done()
+		eb, _ := eth.Etherbase()
+		eth.miner.Start(eb)
+		for obj := range eth.minedNEVMBlockSub.Chan() {
+			if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
+				eth.miner.Stop()
+				return ev.Block
+			}
+		}
+		return nil
+	}
+	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
+		if nevmBlockConnect == nil  {
+			return errors.New("addBlock: Empty block")
+		}
+		current := eth.blockchain.CurrentBlock()
+		currentHash := current.Hash()
+		nextBlockNumber := current.NumberU64()+1
+		latestNEVMMappingHash := eth.blockchain.GetLatestNEVMMappingHash()
+		// ensure latest NEVM mapping matches the parent of the proposed mapping
+		if latestNEVMMappingHash != (common.Hash{}) && latestNEVMMappingHash != nevmBlockConnect.Parenthash {
+			return errors.New("addBlock: NEVM Mapping not continuous with latestNEVMMappingHash")
+		}
+		// special case where miner process includes validating block in pre-packaging stage on SYS node
+		// the validation of this hash is done in ConnectNEVMCommitment() in Syscoin using fJustCheck
+		sysBlockHash := common.BytesToHash([]byte(nevmBlockConnect.Sysblockhash))
+		if sysBlockHash == (common.Hash{}) {
+			if nevmBlockConnect.Block == nil {
+				return errors.New("addBlock: Miner validation but empty block")
+			}
+			if currentHash != nevmBlockConnect.Parenthash {
+				return errors.New("addBlock: Block not continuous with NEVM parent hash")
+			}
+			// write mapping so verifyHeader won't complain about it
+			eth.blockchain.WriteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, 0)
+			err := eth.engine.VerifyHeader(eth.blockchain, nevmBlockConnect.Block.Header(), false)
+			eth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, 0)
+			if err != nil {
+				eth.miner.Close()
+				eth.miner = miner.New(eth, &eth.config.Miner, eth.miner.ChainConfig(), eth.EventMux(), eth.engine, eth.isLocalBlock)
+				eth.miner.SetExtra(makeExtraData(eth.config.Miner.ExtraData))
+			}
+			return err
+		}
+		if eth.blockchain.HasNEVMMapping(nevmBlockConnect.Blockhash) {
+			return errors.New("addBlock: NEVMToSysBlockMapping exists already")
+		}
+		if eth.blockchain.HasSYSMapping(nevmBlockConnect.Sysblockhash) {
+			return errors.New("addBlock: sysToNEVMBlockMapping exists already")
+		}
+		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
+		eth.blockchain.WriteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nextBlockNumber)
+		if nevmBlockConnect.Block != nil {
+			// insert into chain if building on the tip, otherwise just add into mapping and fetch via normal sync via geth
+			if currentHash == nevmBlockConnect.Parenthash  {
+				_, err := eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))
+				if err != nil {
+					eth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
+					return err
+				}
+			} else {
+				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
+			}
+			if !eth.handler.inited {
+				eth.lock.Lock()
+				eth.timeLastBlock = time.Now().Unix()
+				eth.lock.Unlock()
+			}
+			// start networking sync once we start inserting chain meaning we are likely finished with IBD
+			if !eth.startNetwork {
+				log.Info("Attempt to start networking/peering...")
+				go func(eth *Ethereum) {
+					for {
+						time.Sleep(100)
+						eth.lock.Lock()
+						if eth.handler.inited && eth.handler.peers.closed {
+							log.Info("Networking stopped, return without starting peering...")
+							eth.lock.Unlock()
+							return
+						}
+						// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+						if time.Now().Unix() - eth.timeLastBlock >= 5 {
+							log.Info("Networking and peering start...")
+							eth.handler.Start(eth.handler.maxPeers)
+							eth.handler.peers.open()
+							eth.Downloader().Peers().Open()
+							eth.p2pServer.Start()
+							eth.lock.Unlock()
+							return
+						}
+						eth.lock.Unlock()
+					}
+				}(eth)
+				eth.startNetwork = true
+			}
+		} else {
+			log.Info("not building on tip, add to mapping...", "blockhash", nevmBlockConnect.Blockhash, "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
+		}
+		return nil
+	}
+	// mappings are assumed to be correct on lookup based on addBlock
+	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
+		nevmBlockhash := eth.blockchain.GetSYSMapping(sysBlockhash)
+		if nevmBlockhash == (common.Hash{}) {
+			return errors.New("deleteBlock: NEVM block hash does not exist in SYS Mapping")
+		}
+		if !eth.blockchain.HasNEVMMapping(nevmBlockhash) {
+			return errors.New("deleteBlock: entry does not exist in NEVM Mapping")
+		}
+
+		current := eth.blockchain.CurrentBlock()
+		currentParentHash := current.ParentHash()
+		currentHash := current.Hash()
+		currentNEVMMappingHash := eth.blockchain.GetLatestNEVMMappingHash()
+		// if the chain is synced then the head can be removed
+		if nevmBlockhash == currentHash {
+			// the SYS block has NEVM blockhash stored in its coinbase transaction which is extracted and passed to this function
+			// that will relate the SYS block to the NEVM block, this check relates the NEVM tip to the SYS block being disconnected
+			// it is assumed disconnect will always be called on the tip and if it isn't it should reject
+			if currentNEVMMappingHash != currentHash {
+				return errors.New("deleteBlock: NEVM latest mapping hash does not match current tip")
+			}
+			parent := eth.blockchain.GetBlock(currentParentHash, current.NumberU64()-1)
+			if parent == nil {
+				return errors.New("deleteBlock: NEVM tip parent block not found")
+			}
+			err := eth.blockchain.WriteKnownBlock(parent)
+			if err != nil {
+				return err
+			}
+		}
+		eth.blockchain.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, currentParentHash, current.NumberU64())
+		return nil
+	}
+	if ethashConfig.PowMode == ethash.ModeNEVM {
+		eth.zmqRep = NewZMQRep(eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
+	}
+	return eth, err
 }
 
 func makeExtraData(extra []byte) []byte {
@@ -476,8 +636,13 @@ func (s *Ethereum) StartMining(threads int) error {
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
 		atomic.StoreUint32(&s.handler.acceptTxs, 1)
-
-		go s.miner.Start(eb)
+		// SYSCOIN Skip miner start and disable presealing in NEVM mode, since PoW is on Syscoin
+		if s.miner.ChainConfig().SyscoinBlock == nil {
+			go s.miner.Start(eb)
+		} else {
+			log.Info("Skip networking start...")
+			s.miner.DisablePreseal()
+		}
 	}
 	return nil
 }
@@ -537,8 +702,16 @@ func (s *Ethereum) Start() error {
 		}
 		maxPeers -= s.config.LightPeers
 	}
-	// Start the networking layer and the light server if requested
-	s.handler.Start(maxPeers)
+	// SYSCOIN Start the networking layer and the light server if requested
+	if s.miner.ChainConfig().SyscoinBlock != nil {
+		log.Info("Skip networking and peering...")
+		s.handler.maxPeers = maxPeers
+		s.handler.peers.close()
+		s.Downloader().Peers().Close()
+		s.p2pServer.Stop()
+	} else {
+		s.handler.Start(maxPeers)
+	}
 	return nil
 }
 
@@ -560,6 +733,12 @@ func (s *Ethereum) Stop() error {
 	rawdb.PopUncleanShutdownMarker(s.chainDb)
 	s.chainDb.Close()
 	s.eventMux.Stop()
+	// SYSCOIN
+	s.minedNEVMBlockSub.Unsubscribe()
+	s.wgNEVM.Wait()
+	if s.zmqRep != nil {
+		s.zmqRep.Close()
+	}
 
 	return nil
 }

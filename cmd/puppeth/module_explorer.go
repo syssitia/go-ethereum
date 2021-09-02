@@ -19,7 +19,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"html/template"
+	"text/template"
 	"math/rand"
 	"path/filepath"
 	"strconv"
@@ -30,17 +30,119 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-FROM puppeth/blockscout:latest
+FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/blockscout:latest
 
-ADD genesis.json /genesis.json
+ENV SYSCOIN_DATA=/home/syscoin/.syscoin
+ENV SYSCOIN_VERSION=4.3.99
+ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+ARG COINSYMBOL={{.Coin}}
+ARG COINGECKO_COIN_ID={{.CoingeckoID}}
+ARG COINNETWORK={{.Network}}
+ARG BLOCK_TRANSFORMER={{.BlockTransformer}}
+ARG CSS_PRIMARY={{.CssPrimary}}
+ARG CSS_SECONDARY={{.CssSecondary}}
+ARG CSS_TERTIARY={{.CssTertiary}}
+ARG CSS_PRIMARY_DARK={{.CssPrimaryDark}}
+ARG CSS_SECONDARY_DARK={{.CssSecondaryDark}}
+ARG CSS_TERTIARY_DARK={{.CssTertiaryDark}}
+ARG CSS_FOOTER_BACKGROUND={{.CssFooterBackground}}
+ARG CSS_FOOTER_TEXT={{.CssFooterText}}
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/address/_balance_card.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/internal_transaction/_tile.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/transaction/_tile.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/layout/app.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/transaction/_pending_tile.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/transaction/overview.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/views/wei_helpers.ex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/priv/gettext/default.pot; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/default.pot; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address/_tabs.html.eex; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address_validation/index.html.eex; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/views/address_view.ex; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/layout/_topnav.html.eex; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/transaction/index.html.eex; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/assets/js/pages/address.js; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/priv/gettext/default.pot; fi
+
+RUN if [ "$CSS_PRIMARY" != "" ]; then sed -i s/"#5c34a2"/"${CSS_PRIMARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_PRIMARY" != "" ]; then sed -i s/"#5c34a2"/"${CSS_PRIMARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables-non-critical.scss; fi
+RUN if [ "$CSS_PRIMARY" != "" ]; then sed -i s/"#5b389f"/"${CSS_PRIMARY}"/g apps/block_scout_web/assets/css/theme/_base_variables.scss; fi
+
+RUN if [ "$CSS_SECONDARY" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_SECONDARY" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables-non-critical.scss; fi
+RUN if [ "$CSS_SECONDARY" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY}"/g apps/block_scout_web/assets/css/theme/_base_variables.scss; fi
+
+RUN if [ "$CSS_TERTIARY" != "" ]; then sed -i s/"#8258cd"/"${CSS_TERTIARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_TERTIARY" != "" ]; then sed -i s/"#bf9cff"/"${CSS_TERTIARY}"/g apps/block_scout_web/assets/css/theme/_neutral_variables-non-critical.scss; fi
+RUN if [ "$CSS_TERTIARY" != "" ]; then sed -i s/"#997fdc"/"${CSS_TERTIARY}"/g apps/block_scout_web/assets/css/theme/_base_variables.scss; fi
+
+RUN if [ "$CSS_PRIMARY_DARK" != "" ]; then sed -i s/"#9b62ff"/"${CSS_PRIMARY_DARK}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_PRIMARY_DARK" != "" ]; then sed -i s/"#bf9cff"/"${CSS_PRIMARY_DARK}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_PRIMARY_DARK" != "" ]; then sed -i s/"#9b62ff"/"${CSS_PRIMARY_DARK}"/g apps/block_scout_web/assets/css/theme/_base_variables.scss; fi
+
+RUN if [ "$CSS_SECONDARY_DARK" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY_DARK}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_SECONDARY_DARK" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY_DARK}"/g apps/block_scout_web/assets/css/theme/_neutral_variables-non-critical.scss; fi
+RUN if [ "$CSS_SECONDARY_DARK" != "" ]; then sed -i s/"#87e1a9"/"${CSS_SECONDARY_DARK}"/g apps/block_scout_web/assets/css/theme/_base_variables.scss; fi
+
+RUN if [ "$CSS_TERTIARY_DARK" != "" ]; then sed -i s/"#7e50d0"/"${CSS_TERTIARY_DARK}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+
+RUN if [ "$CSS_FOOTER_BACKGROUND" != "" ]; then sed -i s/"#3c226a"/"${CSS_FOOTER_BACKGROUND}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+
+RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#bda6e7"/"${CSS_FOOTER_TEXT}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#dcc8ff"/"${CSS_FOOTER_TEXT}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
+
+RUN if [ "$COINGECKO_COIN_ID" != "" ]; then sed -i s/"ethereum"/"${COINGECKO_COIN_ID}"/g apps/explorer/lib/explorer/exchange_rates/source/coin_gecko.ex; fi
+
+
+RUN mix phx.digest.clean --keep 0
+
+RUN cd apps/block_scout_web/assets/ && \
+    npm install && \
+    npm run deploy && \
+    cd -
+
+RUN cd apps/explorer/ && \
+    npm install && \
+    cd -
+
+RUN mix phx.digest
+
+RUN rm /usr/local/bin/geth
+COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* /opt/app/.syscoin/
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+ENV NETWORK={{.Network}} \
+    SUBNETWORK={{.SubNetwork}} \
+    COINGECKO_COIN_ID={{.CoingeckoID}} \
+    COIN={{.Coin}} \
+    LOGO={{.Logo}} \
+    LOGO_FOOTER={{.LogoFooter}} \
+    LOGO_TEXT={{.LogoText}} \
+    CHAIN_ID={{.NetworkID}} \
+    HEALTHY_BLOCKS_PERIOD={{.HealthyBlockPeriod}} \
+    SUPPORTED_CHAINS='{{.SupportedChains}}' \
+    BLOCK_TRANSFORMER={{.BlockTransformer}} \
+    SHOW_TXS_CHART={{.ShowTxChart}} \
+    DISABLE_EXCHANGE_RATES={{.DisableExchangeRates}} \
+    SHOW_PRICE_CHART={{.ShowPriceChart}} \
+    ETHEREUM_JSONRPC_HTTP_URL={{.HttpUrl}} \
+    ETHEREUM_JSONRPC_WS_URL={{.WsUrl}} \
+    BLOCKSCOUT_PROTOCOL={{.BlockscoutProtocol}} \
+    BLOCKSCOUT_HOST={{.BlockscoutHost}} \
+    GAS_PRICE=0
+
 RUN \
-  echo 'geth --cache 512 init /genesis.json' > explorer.sh && \
-  echo $'geth --networkid {{.NetworkID}} --syncmode "full" --gcmode "archive" --port {{.EthPort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --http --http.api "net,web3,eth,shh,debug" --http.corsdomain "*" --http.vhosts "*" --ws --ws.origins "*" --exitwhensynced' >> explorer.sh && \
-  echo $'exec geth --networkid {{.NetworkID}} --syncmode "full" --gcmode "archive" --port {{.EthPort}} --bootnodes {{.Bootnodes}} --ethstats \'{{.Ethstats}}\' --cache=512 --http --http.api "net,web3,eth,shh,debug" --http.corsdomain "*" --http.vhosts "*" --ws --ws.origins "*" &' >> explorer.sh && \
-  echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
-  echo 'sleep 5' >> explorer.sh && \
-  echo 'mix do ecto.drop --force, ecto.create, ecto.migrate' >> explorer.sh && \
-  echo 'mix phx.server' >> explorer.sh
+	echo $'LC_ALL=C syscoind {{if eq .NetworkID 58}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syscoin --disablewallet --zmqpubnevm="tcp://127.0.0.1:1111" --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=512 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
+	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 58}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syscoin --disablewallet --zmqpubnevm="tcp://127.0.0.1:1111" --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=512 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
+    echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
+    echo 'sleep 5' >> explorer.sh && \
+    echo 'mix do ecto.drop --force, ecto.create, ecto.migrate' >> explorer.sh && \
+    echo 'mix phx.server' >> explorer.sh
 
 ENTRYPOINT ["/bin/sh", "explorer.sh"]
 `
@@ -56,6 +158,9 @@ services:
         container_name: {{.Network}}_explorer_1
         ports:
             - "{{.EthPort}}:{{.EthPort}}"
+            - "{{.SysPort1}}:{{.SysPort1}}"
+            - "{{.SysPort2}}:{{.SysPort2}}"
+            - "{{.SysPort3}}:{{.SysPort3}}"
             - "{{.EthPort}}:{{.EthPort}}/udp"{{if not .VHost}}
             - "{{.WebPort}}:4000"{{end}}
         environment:
@@ -74,7 +179,6 @@ services:
             max-file: "10"
         restart: always
 `
-
 // deployExplorer deploys a new block explorer container to a remote machine via
 // SSH, docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
@@ -82,20 +186,59 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	// Generate the content to upload to the server
 	workdir := fmt.Sprintf("%d", rand.Int63())
 	files := make(map[string][]byte)
-
+	transformer := "base"
+	if isClique {
+		transformer = "clique"
+	}
 	dockerfile := new(bytes.Buffer)
+	subNetwork := ""
+	showPriceChart := "true"
+	disableExchangeRates := "false"
+	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://nevm.syscoin.org"}]`
+	if config.node.network == 58 {
+		subNetwork = "Tanenbaum"
+		disableExchangeRates = "false"
+		showPriceChart = "true"
+	}
+	protocol := "https"
+	host := config.host
+	if host == "" {
+		host = client.server
+		protocol = "http"
+	}
 	template.Must(template.New("").Parse(explorerDockerfile)).Execute(dockerfile, map[string]interface{}{
 		"NetworkID": config.node.network,
 		"Bootnodes": strings.Join(bootnodes, ","),
 		"Ethstats":  config.node.ethstats,
 		"EthPort":   config.node.port,
+		"HttpUrl":   "http://localhost:8545",
+		"WsUrl":   "ws://localhost:8546",
+		"Network":   "Syscoin",
+		"SubNetwork": subNetwork,
+		"CoingeckoID":   "syscoin",
+		"Coin":   "SYS",
+		"Logo":   "/images/sys_logo.svg",
+		"LogoFooter":   "/images/sys_logo.svg",
+		"LogoText":   "NEVM",
+		"HealthyBlockPeriod": 34500000,
+		"SupportedChains": supportedChains,
+		"BlockTransformer": transformer,
+		"BlockscoutProtocol": protocol,
+		"BlockscoutHost": host,
+		"ShowTxChart": "true",
+		"DisableExchangeRates": disableExchangeRates,
+		"ShowPriceChart": showPriceChart,
+		"CssPrimary": "#243066",
+		"CssSecondary": "#87e1a9",
+		"CssTertiary": "#344180",
+		"CssPrimaryDark": "#6fb8df",
+		"CssSecondaryDark": "#87e1a9",
+		"CssTertiaryDark": "#243066",
+		"CssFooterBackground": "#101d48",
+		"CssFooterText": "#6fb8df",
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
-	transformer := "base"
-	if isClique {
-		transformer = "clique"
-	}
 	composefile := new(bytes.Buffer)
 	template.Must(template.New("").Parse(explorerComposefile)).Execute(composefile, map[string]interface{}{
 		"Network":     network,
@@ -104,13 +247,15 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"Datadir":     config.node.datadir,
 		"DBDir":       config.dbdir,
 		"EthPort":     config.node.port,
+		"SysPort1":    8369,
+		"SysPort2":    18369,
+		"SysPort3":    18444,
 		"EthName":     config.node.ethstats[:strings.Index(config.node.ethstats, ":")],
 		"WebPort":     config.port,
 		"Transformer": transformer,
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 	files[filepath.Join(workdir, "genesis.json")] = config.node.genesis
-
 	// Upload the deployment files to the remote server (and clean up afterwards)
 	if out, err := client.Upload(files); err != nil {
 		return out, err

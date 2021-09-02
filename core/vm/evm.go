@@ -39,6 +39,8 @@ type (
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
+	// SYSCOIN
+	ReadSYSHashFunc func(uint64) []byte
 )
 
 func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
@@ -67,6 +69,8 @@ type BlockContext struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
+	// SYSCOIN
+	ReadSYSHash ReadSYSHashFunc
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE

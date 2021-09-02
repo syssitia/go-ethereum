@@ -77,6 +77,11 @@ func (p *testTxPool) Get(hash common.Hash) *types.Transaction {
 	return p.pool[hash]
 }
 
+// SYSCOIN
+func (pool *testTxPool) GetChainConfig() *params.ChainConfig {
+	return params.TestChainConfig
+}
+
 // AddRemotes appends a batch of transactions to the pool, and notifies any
 // listeners if the addition channel is non nil
 func (p *testTxPool) AddRemotes(txs []*types.Transaction) []error {

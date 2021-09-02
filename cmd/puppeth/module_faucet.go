@@ -33,21 +33,27 @@ import (
 // faucetDockerfile is the Dockerfile required to build a faucet container to
 // grant crypto tokens based on GitHub authentications.
 var faucetDockerfile = `
-FROM ethereum/client-go:alltools-latest
+FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM alpine:3.14
 
-ADD genesis.json /genesis.json
+ENV SYSCOIN_DATA=/home/syscoin/.syscoin
+ENV SYSCOIN_VERSION=4.3.99
+ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+
+COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+RUN rm ${SYSCOIN_DATA}/sysgeth
+COPY --from=syscoin-alpine ${SYSCOIN_DATA}/faucet ${SYSCOIN_DATA}/sysgeth
+
 ADD account.json /account.json
 ADD account.pass /account.pass
 
-EXPOSE 8080 30303 30303/udp
+EXPOSE 8080 {{.EthPort}} {{.EthPort}}/udp
 
-ENTRYPOINT [ \
-	"faucet", "--genesis", "/genesis.json", "--network", "{{.NetworkID}}", "--bootnodes", "{{.Bootnodes}}", "--ethstats", "{{.Ethstats}}", "--ethport", "{{.EthPort}}",     \
-	"--faucet.name", "{{.FaucetName}}", "--faucet.amount", "{{.FaucetAmount}}", "--faucet.minutes", "{{.FaucetMinutes}}", "--faucet.tiers", "{{.FaucetTiers}}",             \
-	"--account.json", "/account.json", "--account.pass", "/account.pass"                                                                                                    \
-	{{if .CaptchaToken}}, "--captcha.token", "{{.CaptchaToken}}", "--captcha.secret", "{{.CaptchaSecret}}"{{end}}{{if .NoAuth}}, "--noauth"{{end}}                          \
-	{{if .TwitterToken}}, "--twitter.token.v1", "{{.TwitterToken}}"{{end}}                                                                                                  \
-]`
+RUN echo $'exec syscoind {{if eq .NetworkID 58}}--testnet --addnode=3.15.199.152{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --zmqpubnevm="tcp://127.0.0.1:1111" --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
+
+ENTRYPOINT ["/bin/sh", "faucet.sh"]
+`
 
 // faucetComposefile is the docker-compose.yml file required to deploy and maintain
 // a crypto faucet.
@@ -127,7 +133,6 @@ func deployFaucet(client *sshClient, network string, bootnodes []string, config 
 	})
 	files[filepath.Join(workdir, "docker-compose.yaml")] = composefile.Bytes()
 
-	files[filepath.Join(workdir, "genesis.json")] = config.node.genesis
 	files[filepath.Join(workdir, "account.json")] = []byte(config.node.keyJSON)
 	files[filepath.Join(workdir, "account.pass")] = []byte(config.node.keyPass)
 
@@ -166,7 +171,7 @@ func (info *faucetInfos) Report() map[string]string {
 		"Website address":              info.host,
 		"Website listener port":        strconv.Itoa(info.port),
 		"Ethereum listener port":       strconv.Itoa(info.node.port),
-		"Funding amount (base tier)":   fmt.Sprintf("%d Ethers", info.amount),
+		"Funding amount (base tier)":   fmt.Sprintf("%d SYS", info.amount),
 		"Funding cooldown (base tier)": fmt.Sprintf("%d mins", info.minutes),
 		"Funding tiers":                strconv.Itoa(info.tiers),
 		"Captha protection":            fmt.Sprintf("%v", info.captchaToken != ""),

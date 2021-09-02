@@ -18,6 +18,9 @@
 package types
 
 import (
+	// SYSCOIN
+	"bytes"
+	"errors"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -29,6 +32,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+	// SYSCOIN
+	"github.com/syscoin/btcd/wire"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
@@ -174,6 +180,72 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 }
+
+// SYSCOIN
+type NEVMBlockConnect struct {
+	Blockhash       common.Hash
+	Parenthash      common.Hash
+	Sysblockhash    string
+	Block           *Block
+}
+
+func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
+	var NEVMBlockWire wire.NEVMBlockWire
+	r := bytes.NewReader(bytesIn)
+	err := NEVMBlockWire.Deserialize(r)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not deserialize", "err", err)
+		return err
+	}
+	n.Blockhash = common.BytesToHash(NEVMBlockWire.NEVMBlockHash)
+	n.Parenthash = common.BytesToHash(NEVMBlockWire.NEVMParentBlockHash)
+	n.Sysblockhash = string(NEVMBlockWire.SYSBlockHash)
+	if len(NEVMBlockWire.NEVMBlockData) > 0 {
+		// decode the raw block inside of NEVM data
+		var block Block
+		rlp.DecodeBytes(NEVMBlockWire.NEVMBlockData, &block)
+		// create NEVMBlockConnect object from deserialized block and NEVM wire data
+		n.Block = &block
+		// we need to validate that tx root and receipt root is correct based on the block because SYS will store this information in its coinbase tx
+		txRootHash := common.BytesToHash(NEVMBlockWire.TxRoot)
+		if txRootHash != block.TxHash() {
+			return errors.New("Transaction Root mismatch")
+		}
+		receiptRootHash := common.BytesToHash(NEVMBlockWire.ReceiptRoot)
+		if receiptRootHash != block.ReceiptHash() {
+			return errors.New("Receipt Root mismatch")
+		}
+		if n.Blockhash != block.Hash() {
+			return errors.New("Blockhash mismatch")
+		}
+		if n.Parenthash != block.ParentHash() {
+			return errors.New("ParentBlockhash mismatch")
+		}
+	}
+
+	return nil
+}
+
+func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
+	var NEVMBlockWire wire.NEVMBlockWire
+	var err error
+	NEVMBlockWire.NEVMBlockData, err = rlp.EncodeToBytes(block)
+	if err != nil {
+		return nil, err
+	}
+	NEVMBlockWire.NEVMBlockHash = block.Hash().Bytes()
+	NEVMBlockWire.NEVMParentBlockHash = block.ParentHash().Bytes()
+	NEVMBlockWire.TxRoot = block.TxHash().Bytes()
+	NEVMBlockWire.ReceiptRoot = block.ReceiptHash().Bytes()
+	var buffer bytes.Buffer
+	err = NEVMBlockWire.Serialize(&buffer)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not serialize", "err", err)
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
 
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {

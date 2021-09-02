@@ -1278,6 +1278,13 @@ func (ps *serverPeerSet) close() {
 	}
 	ps.closed = true
 }
+// SYSCOIN
+func (ps *serverPeerSet) open() {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	ps.closed = false
+}
 
 // clientPeerSet represents the set of active client peers currently
 // participating in the Light Ethereum sub-protocol.
@@ -1402,7 +1409,6 @@ func (ps *clientPeerSet) close() {
 	}
 	ps.closed = true
 }
-
 // serverSet is a special set which contains all connected les servers.
 // Les servers will also be discovered by discovery protocol because they
 // also run the LES protocol. We can't drop them although they are useless

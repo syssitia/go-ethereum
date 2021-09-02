@@ -459,6 +459,12 @@ func (lc *LightChain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return lc.hc.GetHeaderByHash(hash)
 }
 
+// SYSCOIN HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (lc *LightChain) HasNEVMMapping(hash common.Hash) bool {
+	return lc.hc.HasNEVMMapping(hash)
+}
+
 // HasHeader checks if a block header is present in the database or not, caching
 // it if present.
 func (lc *LightChain) HasHeader(hash common.Hash, number uint64) bool {
@@ -466,9 +472,36 @@ func (lc *LightChain) HasHeader(hash common.Hash, number uint64) bool {
 }
 
 // GetCanonicalHash returns the canonical hash for a given block number
-func (bc *LightChain) GetCanonicalHash(number uint64) common.Hash {
-	return bc.hc.GetCanonicalHash(number)
+func (lc *LightChain) GetCanonicalHash(number uint64) common.Hash {
+	return lc.hc.GetCanonicalHash(number)
 }
+// SYSCOIN
+func (lc *LightChain) GetSYSMapping(sysBlockhash string) common.Hash {
+	return lc.hc.ReadSYSMapping(sysBlockhash)
+}
+
+func (lc *LightChain) ReadSYSHash(n uint64) []byte {
+	return lc.hc.ReadSYSHash(n)
+}
+
+func (lc *LightChain) GetLatestNEVMMappingHash() common.Hash {
+	return lc.hc.ReadLatestNEVMMappingHash()
+}
+
+// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (lc *LightChain) HasSYSMapping(sysBlockhash string) bool {
+	return lc.hc.HasSYSMapping(sysBlockhash)
+}
+
+func (lc *LightChain) DeleteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, prevNevmBlockhash common.Hash, n uint64) {
+	lc.hc.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, prevNevmBlockhash, n)
+}
+
+func (lc *LightChain) WriteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, n uint64) {
+	lc.hc.WriteNEVMMappings(sysBlockhash, nevmBlockhash, n)
+}
+
 
 // GetBlockHashesFromHash retrieves a number of block hashes starting at a given
 // hash, fetching towards the genesis block.

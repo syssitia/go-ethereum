@@ -40,6 +40,8 @@ const (
 	headerCacheLimit = 512
 	tdCacheLimit     = 1024
 	numberCacheLimit = 2048
+	// SYSCOIN
+	SYSBlockCacheLimit = 50001
 )
 
 // HeaderChain implements the basic block header chain logic that is shared by
@@ -67,7 +69,11 @@ type HeaderChain struct {
 	headerCache *lru.Cache // Cache for the most recent block headers
 	tdCache     *lru.Cache // Cache for the most recent block total difficulties
 	numberCache *lru.Cache // Cache for the most recent block numbers
-
+	// SYSCOIN
+	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
+	SYSCache      *lru.Cache // Cache for SYS mapping to NEVM block hash
+	NEVMLatestCache common.Hash
+	SYSHashCache  *lru.Cache // Cache for NEVM hash to SYS blocks mappings
 	procInterrupt func() bool
 
 	rand   *mrand.Rand
@@ -80,6 +86,10 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	headerCache, _ := lru.New(headerCacheLimit)
 	tdCache, _ := lru.New(tdCacheLimit)
 	numberCache, _ := lru.New(numberCacheLimit)
+	// SYSOCIN
+	NEVMCache, _ := lru.New(headerCacheLimit)
+	SYSCache, _ := lru.New(headerCacheLimit)
+	SYSHashCache, _ := lru.New(SYSBlockCacheLimit)
 
 	// Seed a fast but crypto originating random generator
 	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
@@ -88,11 +98,15 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	}
 
 	hc := &HeaderChain{
-		config:        config,
-		chainDb:       chainDb,
-		headerCache:   headerCache,
-		tdCache:       tdCache,
-		numberCache:   numberCache,
+		config:      config,
+		chainDb:     chainDb,
+		headerCache: headerCache,
+		tdCache:     tdCache,
+		numberCache: numberCache,
+		// SYSCOIN
+		NEVMCache:     NEVMCache,
+		SYSCache:      SYSCache,
+		SYSHashCache:  SYSHashCache,
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
 		engine:        engine,
@@ -110,6 +124,8 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 		}
 	}
 	hc.currentHeaderHash = hc.CurrentHeader().Hash()
+	// SYSCOIN
+	hc.NEVMLatestCache = common.Hash{}
 	headHeaderGauge.Update(hc.CurrentHeader().Number.Int64())
 
 	return hc, nil
@@ -508,6 +524,93 @@ func (hc *HeaderChain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return hc.GetHeader(hash, *number)
 }
 
+func (hc *HeaderChain) ReadSYSMapping(sysBlockhash string) common.Hash {
+	// Short circuit if the hash already in the cache, retrieve otherwise
+	if nevmBlockhash, ok := hc.SYSCache.Get(sysBlockhash); ok {
+		return nevmBlockhash.(common.Hash)
+	}
+	nevmBlockhash := rawdb.ReadSYSMapping(hc.chainDb, sysBlockhash)
+	if nevmBlockhash == (common.Hash{}) {
+		return common.Hash{}
+	}
+	// Cache the found header for next time and return
+	hc.SYSCache.Add(sysBlockhash, nevmBlockhash)
+	return nevmBlockhash
+}
+
+
+func (hc *HeaderChain) ReadSYSHash(n uint64) []byte {
+	// Should exist in cache because we store in LRU upon creating block and delete upon disconnecting we should only store latest 50k blocks (limits to querying in opcode)
+	if sysBlockhash, ok := hc.SYSHashCache.Get(n); ok {
+		return sysBlockhash.([]byte)
+	}
+	// sanity in case it doesn't exist in LRU cache
+	sysBlockhash := rawdb.ReadSYSHash(hc.chainDb, n)
+	if len(sysBlockhash) == 0 {
+		return []byte{}
+	}
+	hc.SYSHashCache.Add(n, sysBlockhash)
+	return sysBlockhash
+}
+
+func (hc *HeaderChain) ReadLatestNEVMMappingHash() common.Hash {
+	// Short circuit if the hash already in the cache, retrieve otherwise
+	if hc.NEVMLatestCache != (common.Hash{}) {
+		return hc.NEVMLatestCache
+	}
+	nevmBlockhash := rawdb.ReadLatestNEVMMappingHash(hc.chainDb)
+	if nevmBlockhash == (common.Hash{}) {
+		return common.Hash{}
+	}
+	hc.NEVMLatestCache = nevmBlockhash
+	return nevmBlockhash
+}
+
+func (hc *HeaderChain) HasNEVMMapping(hash common.Hash) bool {
+	if hc.NEVMCache.Contains(hash) {
+		return true
+	}
+	hasMapping := rawdb.HasNEVMMapping(hc.chainDb, hash)
+	if hasMapping {
+		hc.NEVMCache.Add(hash, []byte{0})
+	}
+	return hasMapping
+}
+func (hc *HeaderChain) DeleteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, prevNevmBlockhash common.Hash, n uint64) {
+	batch := hc.chainDb.NewBatch()
+	rawdb.DeleteNEVMMappings(batch, sysBlockhash, nevmBlockhash, prevNevmBlockhash, n)
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to delete NEVM mappings", "err", err)
+	}
+	if n > 0 {
+		hc.SYSHashCache.Remove(n)
+	}
+	hc.NEVMCache.Remove(nevmBlockhash)
+	if len(sysBlockhash) > 0 {
+		hc.SYSCache.Remove(sysBlockhash)
+	}
+	hc.NEVMLatestCache = common.Hash{}
+}
+func (hc *HeaderChain) HasSYSMapping(sysBlockhash string) bool {
+	if hc.SYSCache.Contains(sysBlockhash) {
+		return true
+	}
+	return rawdb.HasSYSMapping(hc.chainDb, sysBlockhash)
+}
+func (hc *HeaderChain) WriteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, n uint64) {
+	batch := hc.chainDb.NewBatch()
+	rawdb.WriteNEVMMappings(batch, sysBlockhash, nevmBlockhash, n)
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to write NEVM mappings", "err", err)
+	}
+	hc.NEVMLatestCache = nevmBlockhash
+	if n > 0 {
+		hc.SYSHashCache.Add(n, []byte(sysBlockhash))
+	}
+	if len(sysBlockhash) > 0 {
+		hc.SYSCache.Add(sysBlockhash, nevmBlockhash)
+	}
+}
 // HasHeader checks if a block header is present in the database or not.
 // In theory, if header is present in the database, all relative components
 // like td and hash->number should be present too.
@@ -637,6 +740,11 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 	hc.headerCache.Purge()
 	hc.tdCache.Purge()
 	hc.numberCache.Purge()
+	// SYSCOIN
+	hc.NEVMCache.Purge()
+	hc.SYSCache.Purge()
+	hc.SYSHashCache.Purge()
+	hc.NEVMLatestCache = common.Hash{}
 }
 
 // SetGenesis sets a new genesis block header for the chain

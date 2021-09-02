@@ -69,6 +69,8 @@ type Backend interface {
 	ChainDb() ethdb.Database
 	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, checkLive bool) (*state.StateDB, error)
 	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error)
+	// SYSCOIN
+	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
 }
 
 // API is the collection of tracing APIs exposed over the private debugging endpoint.
@@ -104,7 +106,14 @@ func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.H
 	}
 	return header
 }
-
+// SYSCOIN
+func (context *chainContext) ReadSYSHash(n uint64) []byte {
+	sysBlockHash, err := context.api.backend.ReadSYSHash(context.ctx, rpc.BlockNumber(n))
+	if err != nil {
+		return nil
+	}
+	return sysBlockHash
+}
 // chainContext construts the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *API) chainContext(ctx context.Context) core.ChainContext {

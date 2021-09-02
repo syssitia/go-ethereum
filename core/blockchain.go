@@ -88,7 +88,8 @@ const (
 	receiptsCacheLimit  = 32
 	txLookupCacheLimit  = 1024
 	maxFutureBlocks     = 256
-	maxTimeFutureBlocks = 30
+	// SYSCOIN
+	maxTimeFutureBlocks = 400
 	TriesInMemory       = 128
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
@@ -1419,9 +1420,9 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	return nil
 }
 
-// writeKnownBlock updates the head block flag with a known block
+// WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
-func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
+func (bc *BlockChain) WriteKnownBlock(block *types.Block) error {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1728,7 +1729,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// head full block(new pivot point).
 		for block != nil && err == ErrKnownBlock {
 			log.Debug("Writing previously known block", "number", block.Number(), "hash", block.Hash())
-			if err := bc.writeKnownBlock(block); err != nil {
+			if err := bc.WriteKnownBlock(block); err != nil {
 				return it.index, err
 			}
 			lastCanon = block
@@ -1816,7 +1817,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 				log.Error("Please file an issue, skip known block execution without receipt",
 					"hash", block.Hash(), "number", block.NumberU64())
 			}
-			if err := bc.writeKnownBlock(block); err != nil {
+			if err := bc.WriteKnownBlock(block); err != nil {
 				return it.index, err
 			}
 			stats.processed++
@@ -2143,6 +2144,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	)
 	// Reduce the longer chain to the same number as the shorter one
 	if oldBlock.NumberU64() > newBlock.NumberU64() {
+		newChain = append(newChain, newBlock)
 		// Old chain is longer, gather all transactions and logs as deleted ones
 		for ; oldBlock != nil && oldBlock.NumberU64() != newBlock.NumberU64(); oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1) {
 			oldChain = append(oldChain, oldBlock)
@@ -2434,6 +2436,38 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 	}
 
 	return bc.hc.GetHeaderByHash(hash)
+}
+
+func (bc *BlockChain) GetSYSMapping(sysBlockhash string) common.Hash {
+	return bc.hc.ReadSYSMapping(sysBlockhash)
+}
+
+func (bc *BlockChain) ReadSYSHash(n uint64) []byte {
+	return bc.hc.ReadSYSHash(n)
+}
+
+func (bc *BlockChain) GetLatestNEVMMappingHash() common.Hash {
+	return bc.hc.ReadLatestNEVMMappingHash()
+}
+
+// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (bc *BlockChain) HasNEVMMapping(hash common.Hash) bool {
+	return bc.hc.HasNEVMMapping(hash)
+}
+
+// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (bc *BlockChain) HasSYSMapping(sysBlockhash string) bool {
+	return bc.hc.HasSYSMapping(sysBlockhash)
+}
+
+func (bc *BlockChain) DeleteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, prevNevmBlockhash common.Hash, n uint64) {
+	bc.hc.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, prevNevmBlockhash, n)
+}
+
+func (bc *BlockChain) WriteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, n uint64) {
+	bc.hc.WriteNEVMMappings(sysBlockhash, nevmBlockhash, n)
 }
 
 // HasHeader checks if a block header is present in the database or not, caching

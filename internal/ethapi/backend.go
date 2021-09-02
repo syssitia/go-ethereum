@@ -90,6 +90,8 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	Engine() consensus.Engine
+	// SYSCOIN
+	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

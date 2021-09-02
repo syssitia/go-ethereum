@@ -41,7 +41,7 @@ func (w *wizard) makeGenesis() {
 	genesis := &core.Genesis{
 		Timestamp:  uint64(time.Now().Unix()),
 		GasLimit:   4700000,
-		Difficulty: big.NewInt(524288),
+		Difficulty: big.NewInt(1),
 		Alloc:      make(core.GenesisAlloc),
 		Config: &params.ChainConfig{
 			HomesteadBlock:      big.NewInt(0),
@@ -52,6 +52,9 @@ func (w *wizard) makeGenesis() {
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
+			BerlinBlock:		 big.NewInt(0),
+			LondonBlock:       	 big.NewInt(0),
+			SyscoinBlock:      	 big.NewInt(0),
 		},
 	}
 	// Figure out which consensus engine to choose
@@ -242,6 +245,11 @@ func (w *wizard) manageGenesis() {
 		fmt.Println()
 		fmt.Printf("Which block should London come into effect? (default = %v)\n", w.conf.Genesis.Config.LondonBlock)
 		w.conf.Genesis.Config.LondonBlock = w.readDefaultBigInt(w.conf.Genesis.Config.LondonBlock)
+
+		// SYSCOIN
+		fmt.Println()
+		fmt.Printf("Which block should Syscoin come into effect? (default = %v)\n", w.conf.Genesis.Config.SyscoinBlock)
+		w.conf.Genesis.Config.SyscoinBlock = w.readDefaultBigInt(w.conf.Genesis.Config.SyscoinBlock)
 
 		out, _ := json.MarshalIndent(w.conf.Genesis.Config, "", "  ")
 		fmt.Printf("Chain configuration updated:\n\n%s\n", out)

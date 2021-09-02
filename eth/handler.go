@@ -71,6 +71,9 @@ type txPool interface {
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
+
+	// SYSCOIN get chainconfig for peer interface to know if its a syscoin compliant network (enforce that no blocks are outgoing)
+	GetChainConfig() *params.ChainConfig
 }
 
 // handlerConfig is the collection of initialization parameters to create a full
@@ -122,6 +125,8 @@ type handler struct {
 	chainSync *chainSyncer
 	wg        sync.WaitGroup
 	peerWG    sync.WaitGroup
+	// SYSCOIN
+	inited bool
 }
 
 // newHandler returns a handler for all Ethereum chain management protocol.
@@ -228,6 +233,8 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	}
 	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, h.txpool.AddRemotes, fetchTx)
 	h.chainSync = newChainSyncer(h)
+	// SYSCOIN
+	h.inited = false
 	return h, nil
 }
 
@@ -408,9 +415,15 @@ func (h *handler) Start(maxPeers int) {
 	// start sync handlers
 	h.wg.Add(1)
 	go h.chainSync.loop()
+  // SYSCOIN
+	h.inited = true
 }
 
 func (h *handler) Stop() {
+	// SYSCOIN
+	if !h.inited {
+		return
+	}
 	h.txsSub.Unsubscribe()        // quits txBroadcastLoop
 	h.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
 

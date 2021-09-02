@@ -52,6 +52,8 @@ type clientHandler struct {
 	// Hooks used in the testing
 	syncStart func(header *types.Header) // Hook called when the syncing is started
 	syncEnd   func(header *types.Header) // Hook called when the syncing is done
+	// SYSCOIN
+	inited bool
 }
 
 func newClientHandler(ulcServers []string, ulcFraction int, checkpoint *params.TrustedCheckpoint, backend *LightEthereum) *clientHandler {
@@ -76,14 +78,22 @@ func newClientHandler(ulcServers []string, ulcFraction int, checkpoint *params.T
 	handler.fetcher = newLightFetcher(backend.blockchain, backend.engine, backend.peers, handler.ulc, backend.chainDb, backend.reqDist, handler.synchronise)
 	handler.downloader = downloader.New(height, backend.chainDb, nil, backend.eventMux, nil, backend.blockchain, handler.removePeer)
 	handler.backend.peers.subscribe((*downloaderPeerNotify)(handler))
+	// SYSCOIN
+	handler.inited = false
 	return handler
 }
 
 func (h *clientHandler) start() {
 	h.fetcher.start()
+	// SYSCOIN
+	h.inited = true
 }
 
 func (h *clientHandler) stop() {
+	// SYSCOIN
+	if !h.inited {
+		return
+	}
 	close(h.closeCh)
 	h.downloader.Terminate()
 	h.fetcher.stop()

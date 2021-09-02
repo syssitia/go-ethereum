@@ -33,6 +33,8 @@ type ChainContext interface {
 
 	// GetHeader returns the hash corresponding to their hash.
 	GetHeader(common.Hash, uint64) *types.Header
+	// SYSCOIN
+	ReadSYSHash(uint64) []byte
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
@@ -41,7 +43,6 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		beneficiary common.Address
 		baseFee     *big.Int
 	)
-
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	if author == nil {
 		beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
@@ -55,6 +56,8 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
+		// SYSCOIN
+		ReadSYSHash:     ReadSYSHashFn(chain),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        new(big.Int).SetUint64(header.Time),
@@ -103,6 +106,13 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 			}
 		}
 		return common.Hash{}
+	}
+}
+
+// SYSCOIN returns if there is an NEVM mapping from this blockhash for canonical SYS chain detection
+func ReadSYSHashFn(chain ChainContext) func(n uint64) []byte {
+	return func(n uint64) []byte {
+		return chain.ReadSYSHash(n)
 	}
 }
 

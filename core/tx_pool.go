@@ -980,6 +980,11 @@ func (pool *TxPool) Get(hash common.Hash) *types.Transaction {
 	return pool.all.Get(hash)
 }
 
+// SYSCOIN get chainconfig so we can detect if we are syscoin network inside of peer
+func (pool *TxPool) GetChainConfig() *params.ChainConfig {
+	return pool.chainconfig
+}
+
 // Has returns an indicator whether txpool has a transaction cached with the
 // given hash.
 func (pool *TxPool) Has(hash common.Hash) bool {

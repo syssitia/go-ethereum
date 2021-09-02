@@ -257,3 +257,11 @@ func (ps *peerSet) close() {
 	}
 	ps.closed = true
 }
+
+// SYSCOIN
+func (ps *peerSet) open() {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	ps.closed = false
+}

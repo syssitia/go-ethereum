@@ -18,8 +18,11 @@
 package les
 
 import (
+	// SYSCOIN
+	"errors"
 	"fmt"
 	"time"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -47,8 +50,18 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	// SYSCOIN
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 )
+// SYSCOIN
+type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
+type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
+type LightNEVMIndex struct {
+	// Callbacks
+	AddBlock    LightNEVMAddBlockFn    // Connects a new NEVM block
+	DeleteBlock LightNEVMDeleteBlockFn // Disconnects NEVM tip
+}
 type LightEthereum struct {
 	lesCommons
 
@@ -76,6 +89,11 @@ type LightEthereum struct {
 	p2pServer  *p2p.Server
 	p2pConfig  *p2p.Config
 	udpEnabled bool
+	// SYSCOIN
+	zmqRep            *ZMQRep
+	timeLastBlock		int64
+	startNetwork		bool
+	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
 // New creates an instance of the light client.
@@ -194,6 +212,112 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			log.Warn("Unclean shutdown detected", "booted", t,
 				"age", common.PrettyAge(t))
 		}
+	}
+	// SYSCOIN
+	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, leth *LightEthereum) error {
+		if nevmBlockConnect == nil  {
+			return errors.New("addBlock: Empty block")
+		}
+		sysBlockHash := common.BytesToHash([]byte(nevmBlockConnect.Sysblockhash))
+		if sysBlockHash == (common.Hash{}) {
+			return errors.New("addBlock: Miner validation in LES mode")
+		}
+		if leth.blockchain.HasNEVMMapping(nevmBlockConnect.Blockhash) {
+			return errors.New("addBlock: NEVMToSysBlockMapping exists already")
+		}
+		if leth.blockchain.HasSYSMapping(nevmBlockConnect.Sysblockhash) {
+			return errors.New("addBlock: sysToNEVMBlockMapping exists already")
+		}
+		current := leth.blockchain.CurrentHeader()
+		currentHash := current.Hash()
+		nextBlockNumber := current.Number.Uint64()+1
+		latestNEVMMappingHash := leth.blockchain.GetLatestNEVMMappingHash()
+		// ensure latest NEVM mapping matches the parent of the proposed mapping
+		if latestNEVMMappingHash != (common.Hash{}) && latestNEVMMappingHash != nevmBlockConnect.Parenthash {
+			return errors.New("addBlock: NEVM Mapping not continuous")
+		}
+		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
+		leth.blockchain.WriteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nextBlockNumber)
+		if nevmBlockConnect.Block != nil {
+			// insert into chain if building on the tip, otherwise just add into mapping and fetch via normal sync via geth
+			if currentHash == nevmBlockConnect.Parenthash {
+				_, err := leth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+				if err != nil {
+					leth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
+					return err
+				}
+			} else {
+				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", current.Hash().String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
+			}
+			if !leth.handler.inited {
+				leth.lock.Lock()
+				leth.timeLastBlock = time.Now().Unix()
+				leth.lock.Unlock()
+			}
+			// start networking sync once we start inserting chain meaning we are likely finished with IBD
+			if !leth.startNetwork {
+				log.Info("Attempt to start networking/peering...")
+				go func(leth *LightEthereum) {
+					for {
+						time.Sleep(100)
+						leth.lock.Lock()
+						if leth.handler.inited && leth.peers.closed {
+							log.Info("Networking stopped, return without starting peering...")
+							leth.lock.Unlock()
+							return
+						}
+						// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+						if time.Now().Unix() - leth.timeLastBlock >= 5 {
+							log.Info("Networking and peering start...")
+							leth.udpEnabled = true
+							leth.handler.start()
+							leth.peers.open()
+							leth.Downloader().Peers().Open()
+							leth.p2pServer.Start()
+							leth.lock.Unlock()
+							return
+						}
+						leth.lock.Unlock()
+					}
+				}(leth)
+				leth.startNetwork = true
+			}
+		} else {
+			log.Info("not building on tip, add to mapping...", "blockhash", nevmBlockConnect.Blockhash, "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
+		}
+		return nil
+	}
+	// mappings are assumed to be correct on lookup based on addBlock
+	deleteBlock := func(sysBlockhash string, leth *LightEthereum) error {
+		nevmBlockhash := leth.blockchain.GetSYSMapping(sysBlockhash)
+		if nevmBlockhash == (common.Hash{}) {
+			return errors.New("deleteBlock: NEVM block hash does not exist in SYS Mapping")
+		}
+		if !leth.blockchain.HasNEVMMapping(nevmBlockhash) {
+			return errors.New("deleteBlock: entry does not exist in NEVM Mapping")
+		}
+
+		current := leth.blockchain.CurrentHeader()
+		currentHash := current.Hash()
+		currentNEVMMappingHash := leth.blockchain.GetLatestNEVMMappingHash()
+		// if the chain is synced then the head can be removed
+		if nevmBlockhash == currentHash  {
+			// the SYS block has NEVM blockhash stored in its coinbase transaction which is extracted and passed to this function
+			// that will relate the SYS block to the NEVM block, this check relates the NEVM tip to the SYS block being disconnected
+			// it is assumed disconnect will always be called on the tip and if it isn't it should reject
+			if currentNEVMMappingHash != currentHash {
+				return errors.New("deleteBlock: NEVM latest mapping hash does not match current tip")
+			}
+			err := leth.blockchain.SetHead(current.Number.Uint64() - 1)
+			if err != nil {
+				return err
+			}
+		}
+		leth.blockchain.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, current.ParentHash, current.Number.Uint64())
+		return nil
+	}
+	if config.Ethash.PowMode == ethash.ModeNEVM {
+		leth.zmqRep = NewZMQRep(leth, config.NEVMPubEP, LightNEVMIndex{addBlock, deleteBlock})
 	}
 	return leth, nil
 }
@@ -361,7 +485,17 @@ func (s *LightEthereum) Start() error {
 	// Start bloom request workers.
 	s.wg.Add(bloomServiceThreads)
 	s.startBloomHandlers(params.BloomBitsBlocksClient)
-	s.handler.start()
+	// SYSCOIN Start the networking layer and the light server if requested
+	if s.lesCommons.config.Ethash.PowMode != ethash.ModeNEVM {
+		s.handler.start()
+	} else {
+		log.Info("Skip networking start...")
+		s.udpEnabled = false
+		s.handler.stop()
+		s.Downloader().Peers().Close()
+		s.p2pServer.Stop()
+		s.peers.close()
+	}
 
 	return nil
 }
@@ -387,6 +521,10 @@ func (s *LightEthereum) Stop() error {
 	s.chainDb.Close()
 	s.lesDb.Close()
 	s.wg.Wait()
+	// SYSCOIN
+	if s.zmqRep != nil {
+		s.zmqRep.Close()
+	}
 	log.Info("Light ethereum stopped")
 	return nil
 }
