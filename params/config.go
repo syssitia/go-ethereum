@@ -141,7 +141,7 @@ var (
 		Threshold: 2,
 	}*/
 	TanenbaumChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(5800),
+		ChainID:             big.NewInt(5700),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport:      true,
