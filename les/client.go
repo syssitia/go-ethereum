@@ -93,6 +93,7 @@ type LightEthereum struct {
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
 	startNetwork		bool
+	lastBlockFull		bool
 	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
@@ -246,7 +247,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 					leth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
 					return err
 				}
+				leth.lastBlockFull = true
 			} else {
+				leth.lastBlockFull = false
 				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", current.Hash().String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 			}
 			if !leth.handler.inited {
@@ -275,6 +278,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 							leth.Downloader().Peers().Open()
 							leth.p2pServer.Start()
 							leth.lock.Unlock()
+							if leth.lastBlockFull {
+								// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
+								leth.Downloader().DoneEvent()
+							}
 							return
 						}
 						leth.lock.Unlock()

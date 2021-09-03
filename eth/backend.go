@@ -115,6 +115,7 @@ type Ethereum struct {
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
 	startNetwork		bool
+	lastBlockFull		bool
 }
 
 // New creates a new Ethereum object (including the
@@ -352,7 +353,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 					eth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
 					return err
 				}
+				eth.lastBlockFull = true
 			} else {
+				eth.lastBlockFull = false
 				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 			}
 			if !eth.handler.inited {
@@ -380,6 +383,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 							eth.Downloader().Peers().Open()
 							eth.p2pServer.Start()
 							eth.lock.Unlock()
+							if eth.lastBlockFull {
+								// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
+								eth.Downloader().DoneEvent()
+							}
 							return
 						}
 						eth.lock.Unlock()

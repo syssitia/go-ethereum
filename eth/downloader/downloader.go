@@ -436,6 +436,12 @@ func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
 
+// SYSCOIN
+func (d *Downloader) DoneEvent() {
+	latest := d.lightchain.CurrentHeader()
+	d.mux.Post(DoneEvent{latest})
+}
+
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
@@ -445,8 +451,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		if err != nil {
 			d.mux.Post(FailedEvent{err})
 		} else {
-			latest := d.lightchain.CurrentHeader()
-			d.mux.Post(DoneEvent{latest})
+			d.DoneEvent()
 		}
 	}()
 	if p.version < eth.ETH66 {
