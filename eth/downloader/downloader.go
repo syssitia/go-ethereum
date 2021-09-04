@@ -442,6 +442,10 @@ func (d *Downloader) DoneEvent() {
 	d.mux.Post(DoneEvent{latest})
 }
 
+func (d *Downloader) StartNetworkEvent() {
+	d.mux.Post(StartNetworkEvent{})
+}
+
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {

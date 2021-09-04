@@ -114,8 +114,7 @@ type Ethereum struct {
 	minedNEVMBlockSub *event.TypeMuxSubscription
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
-	startNetwork		bool
-	lastBlockFull		bool
+	doneEventEmitted		bool
 }
 
 // New creates a new Ethereum object (including the
@@ -353,9 +352,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 					eth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
 					return err
 				}
-				eth.lastBlockFull = true
+				if eth.handler.peers.closed == false && !eth.doneEventEmitted {
+					eth.doneEventEmitted = true
+					// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
+					eth.Downloader().DoneEvent()
+				}
 			} else {
-				eth.lastBlockFull = false
 				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 			}
 			if !eth.handler.inited {
@@ -363,42 +365,49 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				eth.timeLastBlock = time.Now().Unix()
 				eth.lock.Unlock()
 			}
-			// start networking sync once we start inserting chain meaning we are likely finished with IBD
-			if !eth.startNetwork {
-				log.Info("Attempt to start networking/peering...")
-				go func(eth *Ethereum) {
-					for {
-						time.Sleep(100)
-						eth.lock.Lock()
-						if eth.handler.inited && eth.handler.peers.closed {
-							log.Info("Networking stopped, return without starting peering...")
-							eth.lock.Unlock()
-							return
-						}
-						// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-						if time.Now().Unix() - eth.timeLastBlock >= 5 {
-							log.Info("Networking and peering start...")
-							eth.handler.Start(eth.handler.maxPeers)
-							eth.handler.peers.open()
-							eth.Downloader().Peers().Open()
-							eth.p2pServer.Start()
-							eth.lock.Unlock()
-							if eth.lastBlockFull {
-								// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
-								eth.Downloader().DoneEvent()
-							}
-							return
-						}
-						eth.lock.Unlock()
-					}
-				}(eth)
-				eth.startNetwork = true
-			}
 		} else {
 			log.Info("not building on tip, add to mapping...", "blockhash", nevmBlockConnect.Blockhash, "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 		}
 		return nil
 	}
+	// start networking sync once we start inserting chain meaning we are likely finished with IBD
+	go func(eth *Ethereum) {
+		sub := eth.eventMux.Subscribe(downloader.StartNetworkEvent{})
+		defer sub.Unsubscribe()
+		for {
+			event := <-sub.Chan()
+			if event == nil {
+				continue
+			}
+			switch event.Data.(type) {
+			case downloader.StartNetworkEvent:
+				eth.lock.Lock()
+				eth.timeLastBlock = time.Now().Unix()
+				eth.lock.Unlock()
+				log.Info("Attempt to start networking/peering...")
+				for {
+					time.Sleep(100)
+					eth.lock.Lock()
+					if eth.handler.inited && eth.handler.peers.closed {
+						log.Info("Networking stopped, return without starting peering...")
+						eth.lock.Unlock()
+						return
+					}
+					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+						log.Info("Networking and peering start...")
+						eth.handler.Start(eth.handler.maxPeers)
+						eth.handler.peers.open()
+						eth.Downloader().Peers().Open()
+						eth.p2pServer.Start()
+						eth.lock.Unlock()
+						return
+					}
+					eth.lock.Unlock()
+				}
+			}
+		}
+	}(eth)
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		nevmBlockhash := eth.blockchain.GetSYSMapping(sysBlockhash)

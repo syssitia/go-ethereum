@@ -92,8 +92,7 @@ type LightEthereum struct {
 	// SYSCOIN
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
-	startNetwork		bool
-	lastBlockFull		bool
+	doneEventEmitted		bool
 	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
@@ -247,9 +246,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 					leth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
 					return err
 				}
-				leth.lastBlockFull = true
+				if leth.peers.closed == false && !leth.doneEventEmitted {
+					leth.doneEventEmitted = true
+					// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
+					leth.Downloader().DoneEvent()
+				}
 			} else {
-				leth.lastBlockFull = false
 				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", current.Hash().String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 			}
 			if !leth.handler.inited {
@@ -257,43 +259,49 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				leth.timeLastBlock = time.Now().Unix()
 				leth.lock.Unlock()
 			}
-			// start networking sync once we start inserting chain meaning we are likely finished with IBD
-			if !leth.startNetwork {
-				log.Info("Attempt to start networking/peering...")
-				go func(leth *LightEthereum) {
-					for {
-						time.Sleep(100)
-						leth.lock.Lock()
-						if leth.handler.inited && leth.peers.closed {
-							log.Info("Networking stopped, return without starting peering...")
-							leth.lock.Unlock()
-							return
-						}
-						// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-						if time.Now().Unix() - leth.timeLastBlock >= 5 {
-							log.Info("Networking and peering start...")
-							leth.udpEnabled = true
-							leth.handler.start()
-							leth.peers.open()
-							leth.Downloader().Peers().Open()
-							leth.p2pServer.Start()
-							leth.lock.Unlock()
-							if leth.lastBlockFull {
-								// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
-								leth.Downloader().DoneEvent()
-							}
-							return
-						}
-						leth.lock.Unlock()
-					}
-				}(leth)
-				leth.startNetwork = true
-			}
 		} else {
 			log.Info("not building on tip, add to mapping...", "blockhash", nevmBlockConnect.Blockhash, "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
 		}
 		return nil
 	}
+	go func(eth *LightEthereum) {
+		sub := eth.eventMux.Subscribe(downloader.StartNetworkEvent{})
+		defer sub.Unsubscribe()
+		for {
+			event := <-sub.Chan()
+			if event == nil {
+				continue
+			}
+			switch event.Data.(type) {
+			case downloader.StartNetworkEvent:
+				eth.lock.Lock()
+				eth.timeLastBlock = time.Now().Unix()
+				eth.lock.Unlock()
+				log.Info("Attempt to start networking/peering...")
+				for {
+					time.Sleep(100)
+					eth.lock.Lock()
+					if eth.handler.inited && eth.peers.closed {
+						log.Info("Networking stopped, return without starting peering...")
+						eth.lock.Unlock()
+						return
+					}
+					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+						log.Info("Networking and peering start...")
+						eth.udpEnabled = true
+						eth.handler.start()
+						eth.peers.open()
+						eth.Downloader().Peers().Open()
+						eth.p2pServer.Start()
+						eth.lock.Unlock()
+						return
+					}
+					eth.lock.Unlock()
+				}
+			}
+		}
+	}(leth)
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, leth *LightEthereum) error {
 		nevmBlockhash := leth.blockchain.GetSYSMapping(sysBlockhash)
