@@ -91,8 +91,6 @@ type LightEthereum struct {
 	udpEnabled bool
 	// SYSCOIN
 	zmqRep            *ZMQRep
-	timeLastBlock		int64
-	doneEventEmitted		bool
 	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
@@ -214,121 +212,36 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 	}
 	// SYSCOIN
-	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, leth *LightEthereum) error {
+	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
 		}
-		sysBlockHash := common.BytesToHash([]byte(nevmBlockConnect.Sysblockhash))
-		if sysBlockHash == (common.Hash{}) {
-			return errors.New("addBlock: Miner validation in LES mode")
-		}
-		if leth.blockchain.HasNEVMMapping(nevmBlockConnect.Blockhash) {
-			return errors.New("addBlock: NEVMToSysBlockMapping exists already")
-		}
-		if leth.blockchain.HasSYSMapping(nevmBlockConnect.Sysblockhash) {
-			return errors.New("addBlock: sysToNEVMBlockMapping exists already")
-		}
-		current := leth.blockchain.CurrentHeader()
+		current := eth.blockchain.CurrentHeader()
 		currentHash := current.Hash()
-		nextBlockNumber := current.Number.Uint64()+1
-		latestNEVMMappingHash := leth.blockchain.GetLatestNEVMMappingHash()
-		// ensure latest NEVM mapping matches the parent of the proposed mapping
-		if latestNEVMMappingHash != (common.Hash{}) && latestNEVMMappingHash != nevmBlockConnect.Parenthash {
-			return errors.New("addBlock: NEVM Mapping not continuous")
+		if nevmBlockConnect.Block == nil {
+			return errors.New("addBlock: empty block")
 		}
-		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
-		leth.blockchain.WriteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nextBlockNumber)
-		if nevmBlockConnect.Block != nil {
-			// insert into chain if building on the tip, otherwise just add into mapping and fetch via normal sync via geth
-			if currentHash == nevmBlockConnect.Parenthash {
-				_, err := leth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
-				if err != nil {
-					leth.blockchain.DeleteNEVMMappings(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Blockhash, nevmBlockConnect.Parenthash, nextBlockNumber)
-					return err
-				}
-				if leth.peers.closed == false && !leth.doneEventEmitted {
-					leth.doneEventEmitted = true
-					// exitwhensynced functionality once we sync up and we are in full block sync (no need for downloader)
-					leth.Downloader().DoneEvent()
-				}
-			} else {
-				log.Info("not building on tip, add to mapping...", "blocknumber", nevmBlockConnect.Block.NumberU64(), "currenthash", current.Hash().String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
-			}
-			if !leth.handler.inited {
-				leth.lock.Lock()
-				leth.timeLastBlock = time.Now().Unix()
-				leth.lock.Unlock()
-			}
-		} else {
-			log.Info("not building on tip, add to mapping...", "blockhash", nevmBlockConnect.Blockhash, "currenthash", currentHash.String(), "proposedparenthash", nevmBlockConnect.Parenthash.String())
+		if currentHash != nevmBlockConnect.Parenthash {
+			return errors.New("addBlock: Block not continuous with NEVM parent hash")
 		}
+		_, err := leth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		if err != nil {
+			return err
+		}
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
 		return nil
 	}
-	go func(eth *LightEthereum) {
-		sub := eth.eventMux.Subscribe(downloader.StartNetworkEvent{})
-		defer sub.Unsubscribe()
-		for {
-			event := <-sub.Chan()
-			if event == nil {
-				continue
-			}
-			switch event.Data.(type) {
-			case downloader.StartNetworkEvent:
-				eth.lock.Lock()
-				eth.timeLastBlock = time.Now().Unix()
-				eth.lock.Unlock()
-				log.Info("Attempt to start networking/peering...")
-				for {
-					time.Sleep(100)
-					eth.lock.Lock()
-					if eth.handler.inited && eth.peers.closed {
-						log.Info("Networking stopped, return without starting peering...")
-						eth.lock.Unlock()
-						return
-					}
-					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-					if time.Now().Unix() - eth.timeLastBlock >= 5 {
-						log.Info("Networking and peering start...")
-						eth.udpEnabled = true
-						eth.handler.start()
-						eth.peers.open()
-						eth.Downloader().Peers().Open()
-						eth.p2pServer.Start()
-						eth.lock.Unlock()
-						return
-					}
-					eth.lock.Unlock()
-				}
-			}
-		}
-	}(leth)
 	// mappings are assumed to be correct on lookup based on addBlock
-	deleteBlock := func(sysBlockhash string, leth *LightEthereum) error {
-		nevmBlockhash := leth.blockchain.GetSYSMapping(sysBlockhash)
-		if nevmBlockhash == (common.Hash{}) {
-			return errors.New("deleteBlock: NEVM block hash does not exist in SYS Mapping")
+	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
+		current := eth.blockchain.CurrentHeader()
+		if current.ParentHash == (common.Hash{}) {
+			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
-		if !leth.blockchain.HasNEVMMapping(nevmBlockhash) {
-			return errors.New("deleteBlock: entry does not exist in NEVM Mapping")
+		err := leth.blockchain.SetHead(current.Number.Uint64() - 1)
+		if err != nil {
+			return err
 		}
-
-		current := leth.blockchain.CurrentHeader()
-		currentHash := current.Hash()
-		currentNEVMMappingHash := leth.blockchain.GetLatestNEVMMappingHash()
-		// if the chain is synced then the head can be removed
-		if nevmBlockhash == currentHash  {
-			// the SYS block has NEVM blockhash stored in its coinbase transaction which is extracted and passed to this function
-			// that will relate the SYS block to the NEVM block, this check relates the NEVM tip to the SYS block being disconnected
-			// it is assumed disconnect will always be called on the tip and if it isn't it should reject
-			if currentNEVMMappingHash != currentHash {
-				return errors.New("deleteBlock: NEVM latest mapping hash does not match current tip")
-			}
-			err := leth.blockchain.SetHead(current.Number.Uint64() - 1)
-			if err != nil {
-				return err
-			}
-		}
-		leth.blockchain.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, current.ParentHash, current.Number.Uint64())
+		eth.blockchain.DeleteSYSHash(current.Number.Uint64())
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {

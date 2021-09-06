@@ -200,29 +200,29 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	n.Blockhash = common.BytesToHash(NEVMBlockWire.NEVMBlockHash)
 	n.Parenthash = common.BytesToHash(NEVMBlockWire.NEVMParentBlockHash)
 	n.Sysblockhash = string(NEVMBlockWire.SYSBlockHash)
-	if len(NEVMBlockWire.NEVMBlockData) > 0 {
-		// decode the raw block inside of NEVM data
-		var block Block
-		rlp.DecodeBytes(NEVMBlockWire.NEVMBlockData, &block)
-		// create NEVMBlockConnect object from deserialized block and NEVM wire data
-		n.Block = &block
-		// we need to validate that tx root and receipt root is correct based on the block because SYS will store this information in its coinbase tx
-		txRootHash := common.BytesToHash(NEVMBlockWire.TxRoot)
-		if txRootHash != block.TxHash() {
-			return errors.New("Transaction Root mismatch")
-		}
-		receiptRootHash := common.BytesToHash(NEVMBlockWire.ReceiptRoot)
-		if receiptRootHash != block.ReceiptHash() {
-			return errors.New("Receipt Root mismatch")
-		}
-		if n.Blockhash != block.Hash() {
-			return errors.New("Blockhash mismatch")
-		}
-		if n.Parenthash != block.ParentHash() {
-			return errors.New("ParentBlockhash mismatch")
-		}
+	if len(NEVMBlockWire.NEVMBlockData) == 0 {
+		return errors.New("Empty block data")
 	}
-
+	// decode the raw block inside of NEVM data
+	var block Block
+	rlp.DecodeBytes(NEVMBlockWire.NEVMBlockData, &block)
+	// create NEVMBlockConnect object from deserialized block and NEVM wire data
+	n.Block = &block
+	// we need to validate that tx root and receipt root is correct based on the block because SYS will store this information in its coinbase tx
+	txRootHash := common.BytesToHash(NEVMBlockWire.TxRoot)
+	if txRootHash != block.TxHash() {
+		return errors.New("Transaction Root mismatch")
+	}
+	receiptRootHash := common.BytesToHash(NEVMBlockWire.ReceiptRoot)
+	if receiptRootHash != block.ReceiptHash() {
+		return errors.New("Receipt Root mismatch")
+	}
+	if n.Blockhash != block.Hash() {
+		return errors.New("Blockhash mismatch")
+	}
+	if n.Parenthash != block.ParentHash() {
+		return errors.New("ParentBlockhash mismatch")
+	}
 	return nil
 }
 

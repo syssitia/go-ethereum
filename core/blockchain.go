@@ -2438,36 +2438,15 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return bc.hc.GetHeaderByHash(hash)
 }
 
-func (bc *BlockChain) GetSYSMapping(sysBlockhash string) common.Hash {
-	return bc.hc.ReadSYSMapping(sysBlockhash)
-}
-
 func (bc *BlockChain) ReadSYSHash(n uint64) []byte {
 	return bc.hc.ReadSYSHash(n)
 }
 
-func (bc *BlockChain) GetLatestNEVMMappingHash() common.Hash {
-	return bc.hc.ReadLatestNEVMMappingHash()
+func (bc *BlockChain) WriteSYSHash(sysBlockhash string, n uint64) {
+	bc.hc.WriteSYSHash(sysBlockhash, n)
 }
-
-// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
-// it if present.
-func (bc *BlockChain) HasNEVMMapping(hash common.Hash) bool {
-	return bc.hc.HasNEVMMapping(hash)
-}
-
-// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
-// it if present.
-func (bc *BlockChain) HasSYSMapping(sysBlockhash string) bool {
-	return bc.hc.HasSYSMapping(sysBlockhash)
-}
-
-func (bc *BlockChain) DeleteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, prevNevmBlockhash common.Hash, n uint64) {
-	bc.hc.DeleteNEVMMappings(sysBlockhash, nevmBlockhash, prevNevmBlockhash, n)
-}
-
-func (bc *BlockChain) WriteNEVMMappings(sysBlockhash string, nevmBlockhash common.Hash, n uint64) {
-	bc.hc.WriteNEVMMappings(sysBlockhash, nevmBlockhash, n)
+func (bc *BlockChain) DeleteSYSHash(n uint64) {
+	bc.hc.DeleteSYSHash(n)
 }
 
 // HasHeader checks if a block header is present in the database or not, caching

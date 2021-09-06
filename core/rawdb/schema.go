@@ -91,10 +91,7 @@ var (
 	SnapshotAccountPrefix = []byte("a") // SnapshotAccountPrefix + account hash -> account trie value
 	SnapshotStoragePrefix = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
-	nevmToSysPrefix       = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
-	sysToNEVMPrefix       = []byte("y") // sysToNEVMPrefix + sys block hash -> nevm block hash
 	blockNumToSysKeyPrefix= []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
-	latestNEVMPrefix	  = []byte("latestNEVMPrefix")
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
@@ -237,20 +234,6 @@ func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
 }
 
-// nevmToSysKey = nevmToSysPrefix + hash
-func nevmToSysKey(hash common.Hash) []byte {
-	return append(nevmToSysPrefix, hash.Bytes()...)
-}
-
-// sysToNEVMKey = sysToNEVMPrefix + syshash
-func sysToNEVMKey(hash string) []byte {
-	return append(sysToNEVMPrefix, []byte(hash)...)
-}
-
-// sysToNEVMKey = sysToNEVMPrefix + syshash
-func nevmLatestKey() []byte {
-	return latestNEVMPrefix
-}
 // blockNumToSysKey = blockNumToSysKeyPrefix + blocknumber
 func blockNumToSysKey(n uint64) []byte {
 	return append(blockNumToSysKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)

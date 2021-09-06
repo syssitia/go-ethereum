@@ -436,14 +436,9 @@ func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
 
-// SYSCOIN
 func (d *Downloader) DoneEvent() {
 	latest := d.lightchain.CurrentHeader()
 	d.mux.Post(DoneEvent{latest})
-}
-
-func (d *Downloader) StartNetworkEvent() {
-	d.mux.Post(StartNetworkEvent{})
 }
 
 // syncWithPeer starts a block synchronization based on the hash chain from the
