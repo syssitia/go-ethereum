@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -91,7 +90,6 @@ type LightEthereum struct {
 	udpEnabled bool
 	// SYSCOIN
 	zmqRep            *ZMQRep
-	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
 // New creates an instance of the light client.
