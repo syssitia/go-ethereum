@@ -113,6 +113,7 @@ type Ethereum struct {
 	wgNEVM            sync.WaitGroup
 	minedNEVMBlockSub *event.TypeMuxSubscription
 	zmqRep            *ZMQRep
+	timeLastBlock		int64
 }
 
 // New creates a new Ethereum object (including the
@@ -330,8 +331,46 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		if !eth.handler.inited {
+			eth.lock.Lock()
+			eth.timeLastBlock = time.Now().Unix()
+			eth.lock.Unlock()
+		}
 		return nil
 	}
+	// start networking sync once we start inserting chain meaning we are likely finished with IBD
+	go func(eth *Ethereum) {
+		sub := eth.eventMux.Subscribe(downloader.StartNetworkEvent{})
+		defer sub.Unsubscribe()
+		for {
+			event := <-sub.Chan()
+			if event == nil {
+				continue
+			}
+			switch event.Data.(type) {
+			case downloader.StartNetworkEvent:
+				eth.lock.Lock()
+				eth.timeLastBlock = time.Now().Unix()
+				eth.lock.Unlock()
+				for {
+					time.Sleep(100)
+					eth.lock.Lock()
+					if eth.handler.inited && eth.handler.peers.closed {
+						log.Info("Networking stopped, return without starting peering...")
+						eth.lock.Unlock()
+						return
+					}
+					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+						eth.lock.Unlock()
+						eth.Downloader().DoneEvent()
+						return
+					}
+					eth.lock.Unlock()
+				}
+			}
+		}
+	}(eth)
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
@@ -622,16 +661,14 @@ func (s *Ethereum) Start() error {
 		}
 		maxPeers -= s.config.LightPeers
 	}
-	// SYSCOIN Start the networking layer and the light server if requested
+	// SYSCOIN
+	s.handler.Start(maxPeers)
 	if s.miner.ChainConfig().SyscoinBlock != nil {
-		log.Info("Skip networking and peering...")
-		s.handler.maxPeers = maxPeers
-		s.handler.peers.close()
+		log.Info("Shutdown block fetcher and downloader...")
 		s.Downloader().Peers().Close()
-		s.p2pServer.Stop()
-	} else {
-		s.handler.Start(maxPeers)
-	}
+		s.handler.blockFetcher.Stop()
+		s.Downloader().Terminate()
+	} 
 	return nil
 }
 

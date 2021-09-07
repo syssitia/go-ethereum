@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -90,6 +91,8 @@ type LightEthereum struct {
 	udpEnabled bool
 	// SYSCOIN
 	zmqRep            *ZMQRep
+	timeLastBlock		int64
+	lock              sync.RWMutex
 }
 
 // New creates an instance of the light client.
@@ -227,8 +230,45 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		if !leth.handler.inited {
+			leth.lock.Lock()
+			leth.timeLastBlock = time.Now().Unix()
+			leth.lock.Unlock()
+		}
 		return nil
 	}
+	go func(eth *LightEthereum) {
+		sub := eth.eventMux.Subscribe(downloader.StartNetworkEvent{})
+		defer sub.Unsubscribe()
+		for {
+			event := <-sub.Chan()
+			if event == nil {
+				continue
+			}
+			switch event.Data.(type) {
+			case downloader.StartNetworkEvent:
+				eth.lock.Lock()
+				eth.timeLastBlock = time.Now().Unix()
+				eth.lock.Unlock()
+				for {
+					time.Sleep(100)
+					eth.lock.Lock()
+					if eth.handler.inited && eth.peers.closed {
+						log.Info("Networking stopped, return without starting peering...")
+						eth.lock.Unlock()
+						return
+					}
+					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
+					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+						eth.Downloader().DoneEvent()
+						eth.lock.Unlock()
+						return
+					}
+					eth.lock.Unlock()
+				}
+			}
+		}
+	}(leth)
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
@@ -411,16 +451,13 @@ func (s *LightEthereum) Start() error {
 	// Start bloom request workers.
 	s.wg.Add(bloomServiceThreads)
 	s.startBloomHandlers(params.BloomBitsBlocksClient)
-	// SYSCOIN Start the networking layer and the light server if requested
-	if s.lesCommons.config.Ethash.PowMode != ethash.ModeNEVM {
-		s.handler.start()
-	} else {
-		log.Info("Skip networking start...")
-		s.udpEnabled = false
-		s.handler.stop()
+	// SYSCOIN
+	s.handler.start()
+	if s.lesCommons.config.Ethash.PowMode == ethash.ModeNEVM {
+		log.Info("Shutdown block fetcher and downloader...")
 		s.Downloader().Peers().Close()
-		s.p2pServer.Stop()
-		s.peers.close()
+		s.handler.fetcher.stop()
+		s.Downloader().Terminate()
 	}
 
 	return nil
