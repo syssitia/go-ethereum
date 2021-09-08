@@ -59,7 +59,12 @@ RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/b
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
 
 RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/default.pot; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/default.pot; fi
 RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/lib/block_scout_web/templates/block/overview.html.eex; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/lib/block_scout_web/templates/transaction/overview.html.eex; fi
+
 
 RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address/_tabs.html.eex; fi
 RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address_validation/index.html.eex; fi
