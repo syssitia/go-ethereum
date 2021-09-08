@@ -308,6 +308,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		current := eth.blockchain.CurrentBlock()
 		currentHash := current.Hash()
+		if currentHash != eth.blockchain.CurrentHeader().Hash() {
+			return errors.New("addBlock: header/block mismismatch")
+		}
+		if current.ParentHash() != eth.blockchain.CurrentHeader().ParentHash {
+			return errors.New("addBlock: parent header/block mismismatch")
+		}
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
@@ -374,11 +380,14 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
+		if current.NumberU64() == 0 {
+			return nil
+		}
 		parent := eth.blockchain.GetBlock(current.ParentHash(), current.NumberU64()-1)
 		if parent == nil {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
-		err := eth.blockchain.WriteKnownBlock(parent)
+		err := eth.blockchain.WriteKnownBlock(parent, true)
 		if err != nil {
 			return err
 		}
@@ -599,7 +608,7 @@ func (s *Ethereum) StartMining(threads int) error {
 		if s.miner.ChainConfig().SyscoinBlock == nil {
 			go s.miner.Start(eb)
 		} else {
-			log.Info("Skip networking start...")
+			log.Info("Disable mining presealer...")
 			s.miner.DisablePreseal()
 		}
 	}
