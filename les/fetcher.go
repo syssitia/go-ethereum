@@ -154,6 +154,7 @@ type lightFetcher struct {
 
 	// Test fields or hooks
 	newHeadHook func(*types.Header)
+	init bool
 }
 
 // newLightFetcher creates a light fetcher instance.
@@ -195,13 +196,17 @@ func newLightFetcher(chain *light.LightChain, engine consensus.Engine, peers *se
 func (f *lightFetcher) start() {
 	f.wg.Add(1)
 	f.fetcher.Start()
+	f.init = true
 	go f.mainloop()
 }
 
 func (f *lightFetcher) stop() {
-	close(f.closeCh)
-	f.fetcher.Stop()
-	f.wg.Wait()
+	if f.init == true{
+		f.init = false
+		close(f.closeCh)
+		f.fetcher.Stop()
+		f.wg.Wait()
+	}
 }
 
 // registerPeer adds an new peer to the fetcher's peer set

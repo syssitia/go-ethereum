@@ -688,7 +688,6 @@ func WriteAncientBlock(db ethdb.AncientWriter, block *types.Block, receipts type
 
 // SYSCOIN
 func WriteSYSHash(db ethdb.KeyValueWriter, sysBlockhash string, n uint64) {
-	log.Warn("WriteSYSHash", "blockNumToSysKey(n)", string(blockNumToSysKey(n)))
 	if err := db.Put(blockNumToSysKey(n), []byte(sysBlockhash)); err != nil {
 		log.Crit("Failed to store blockNumToSysKey", "err", err)
 	}
