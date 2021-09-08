@@ -272,6 +272,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
+		if current.Number.Uint64() == 0 {
+			return nil
+		}
 		if current.ParentHash == (common.Hash{}) {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}

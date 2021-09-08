@@ -719,7 +719,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write genesis block", "err", err)
 	}
-	bc.writeHeadBlock(genesis)
+	bc.writeHeadBlock(genesis, false)
 
 	// Last update all in-memory chain markers
 	bc.genesisBlock = genesis
@@ -770,7 +770,7 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // or if they are on a different side chain.
 //
 // Note, this function assumes that the `mu` mutex is held!
-func (bc *BlockChain) writeHeadBlock(block *types.Block) {
+func (bc *BlockChain) writeHeadBlock(block *types.Block, overrideUpdateHeads bool) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
 
@@ -781,7 +781,7 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 
 	// If the block is better than our head or is on a different chain, force update heads
-	if updateHeads {
+	if updateHeads || overrideUpdateHeads {
 		rawdb.WriteHeadHeaderHash(batch, block.Hash())
 		rawdb.WriteHeadFastBlockHash(batch, block.Hash())
 	}
@@ -790,7 +790,7 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 		log.Crit("Failed to update chain indexes and markers", "err", err)
 	}
 	// Update all in-memory chain markers in the last step
-	if updateHeads {
+	if updateHeads || overrideUpdateHeads {
 		bc.hc.SetCurrentHeader(block.Header())
 		bc.currentFastBlock.Store(block)
 		headFastBlockGauge.Update(int64(block.NumberU64()))
@@ -798,6 +798,7 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
 }
+
 
 // Genesis retrieves the chain's genesis block.
 func (bc *BlockChain) Genesis() *types.Block {
@@ -1422,7 +1423,7 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 
 // WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
-func (bc *BlockChain) WriteKnownBlock(block *types.Block) error {
+func (bc *BlockChain) WriteKnownBlock(block *types.Block, overrideUpdateHeads bool) error {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1432,7 +1433,7 @@ func (bc *BlockChain) WriteKnownBlock(block *types.Block) error {
 			return err
 		}
 	}
-	bc.writeHeadBlock(block)
+	bc.writeHeadBlock(block, overrideUpdateHeads)
 	return nil
 }
 
@@ -1562,7 +1563,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// Set new head.
 	if status == CanonStatTy {
-		bc.writeHeadBlock(block)
+		bc.writeHeadBlock(block, false)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 
@@ -1729,7 +1730,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// head full block(new pivot point).
 		for block != nil && err == ErrKnownBlock {
 			log.Debug("Writing previously known block", "number", block.Number(), "hash", block.Hash())
-			if err := bc.WriteKnownBlock(block); err != nil {
+			if err := bc.WriteKnownBlock(block, false); err != nil {
 				return it.index, err
 			}
 			lastCanon = block
@@ -1817,7 +1818,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 				log.Error("Please file an issue, skip known block execution without receipt",
 					"hash", block.Hash(), "number", block.NumberU64())
 			}
-			if err := bc.WriteKnownBlock(block); err != nil {
+			if err := bc.WriteKnownBlock(block, false); err != nil {
 				return it.index, err
 			}
 			stats.processed++
@@ -2208,7 +2209,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// taking care of the proper incremental order.
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
-		bc.writeHeadBlock(newChain[i])
+		bc.writeHeadBlock(newChain[i], false)
 
 		// Collect reborn logs due to chain reorg
 		collectLogs(newChain[i].Hash(), false)
