@@ -272,17 +272,22 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// mappings are assumed to be correct on lookup based on addBlock
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
-		if current.Number.Uint64() == 0 {
+		currentNumber := current.Number.Uint64()
+		if currentNumber == 0 {
+			log.Warn("Trying to disconnect block 0")
 			return nil
 		}
 		if current.ParentHash == (common.Hash{}) {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
-		err := leth.blockchain.SetHead(current.Number.Uint64() - 1)
+		err := leth.blockchain.SetHead(currentNumber - 1)
 		if err != nil {
 			return err
 		}
-		eth.blockchain.DeleteSYSHash(current.Number.Uint64())
+		if eth.blockchain.CurrentHeader().Number.Uint64() != (currentNumber - 1) {
+			return errors.New("deleteBlock: Block number post-write does not match")
+		}
+		eth.blockchain.DeleteSYSHash(currentNumber)
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {

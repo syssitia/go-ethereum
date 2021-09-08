@@ -307,11 +307,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			return errors.New("addBlock: Empty block")
 		}
 		current := eth.blockchain.CurrentBlock()
+		currentHeader := eth.blockchain.CurrentHeader()
+		currentNumber := current.NumberU64() 
 		currentHash := current.Hash()
-		if currentHash != eth.blockchain.CurrentHeader().Hash() {
+		if currentHash != currentHeader.Hash() && currentNumber > 1 {
 			return errors.New("addBlock: header/block mismismatch")
 		}
-		if current.ParentHash() != eth.blockchain.CurrentHeader().ParentHash {
+		if current.ParentHash() != currentHeader.ParentHash && currentNumber > 1 {
 			return errors.New("addBlock: parent header/block mismismatch")
 		}
 		if nevmBlockConnect.Block == nil {
@@ -381,6 +383,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
 		if current.NumberU64() == 0 {
+			log.Warn("Trying to disconnect block 0")
 			return nil
 		}
 		parent := eth.blockchain.GetBlock(current.ParentHash(), current.NumberU64()-1)
@@ -390,6 +393,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		err := eth.blockchain.WriteKnownBlock(parent, true)
 		if err != nil {
 			return err
+		}
+		if eth.blockchain.CurrentBlock().NumberU64() != (current.NumberU64()-1) {
+			return errors.New("deleteBlock: Block number post-write does not match")
 		}
 		eth.blockchain.DeleteSYSHash(current.NumberU64())
 		return nil
