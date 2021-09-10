@@ -236,8 +236,6 @@ func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, 
 	go dl.stateFetcher()
 	return dl
 }
-// SYSCOIN
-func (s *Downloader) Peers() *peerSet { return s.peers }
 // Progress retrieves the synchronisation boundaries, specifically the origin
 // block where synchronisation started at (may have failed/suspended); the block
 // or header sync is currently at; and the latest known block which the sync targets.
@@ -436,6 +434,7 @@ func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
 // SYSCOIN
+func (s *Downloader) Peers() *peerSet { return s.peers }
 func (d *Downloader) DoneEvent() {
 	latest := d.lightchain.CurrentHeader()
 	d.mux.Post(DoneEvent{latest})
