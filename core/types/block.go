@@ -184,7 +184,6 @@ type Block struct {
 // SYSCOIN
 type NEVMBlockConnect struct {
 	Blockhash       common.Hash
-	Parenthash      common.Hash
 	Sysblockhash    string
 	Block           *Block
 }
@@ -198,7 +197,6 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 		return err
 	}
 	n.Blockhash = common.BytesToHash(NEVMBlockWire.NEVMBlockHash)
-	n.Parenthash = common.BytesToHash(NEVMBlockWire.NEVMParentBlockHash)
 	n.Sysblockhash = string(NEVMBlockWire.SYSBlockHash)
 	if len(NEVMBlockWire.NEVMBlockData) == 0 {
 		return errors.New("Empty block data")
@@ -220,9 +218,6 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
-	if n.Parenthash != block.ParentHash() {
-		return errors.New("ParentBlockhash mismatch")
-	}
 	return nil
 }
 
@@ -234,7 +229,6 @@ func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 		return nil, err
 	}
 	NEVMBlockWire.NEVMBlockHash = block.Hash().Bytes()
-	NEVMBlockWire.NEVMParentBlockHash = block.ParentHash().Bytes()
 	NEVMBlockWire.TxRoot = block.TxHash().Bytes()
 	NEVMBlockWire.ReceiptRoot = block.ReceiptHash().Bytes()
 	var buffer bytes.Buffer

@@ -217,13 +217,19 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
 		}
-		current := eth.blockchain.CurrentHeader()
-		currentHash := current.Hash()
+		currentHeader := eth.blockchain.CurrentHeader()
+		currentNumber := currentHeader.Number.Uint64()
+		currentHash := currentHeader.Hash()
+		proposedBlockNumber := nevmBlockConnect.Block.NumberU64()
+		proposedBlockParentHash := nevmBlockConnect.Block.ParentHash()
+		proposedBlockHash := nevmBlockConnect.Block.Hash()
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if currentHash != nevmBlockConnect.Parenthash {
-			return errors.New("addBlock: Block not continuous with NEVM parent hash")
+		if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+			log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
+				"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
+			return errors.New("addBlock: Non contiguous block insert")
 		}
 		_, err := leth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {

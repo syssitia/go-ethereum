@@ -310,17 +310,23 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		currentHeader := eth.blockchain.CurrentHeader()
 		currentNumber := current.NumberU64() 
 		currentHash := current.Hash()
+		currentParentHash := current.ParentHash()
+		proposedBlockNumber := nevmBlockConnect.Block.NumberU64()
+		proposedBlockParentHash := nevmBlockConnect.Block.ParentHash()
+		proposedBlockHash := nevmBlockConnect.Block.Hash()
 		if currentHash != currentHeader.Hash() && currentNumber > 1 {
 			return errors.New("addBlock: header/block mismismatch")
 		}
-		if current.ParentHash() != currentHeader.ParentHash && currentNumber > 1 {
+		if currentParentHash != currentHeader.ParentHash && currentNumber > 1 {
 			return errors.New("addBlock: parent header/block mismismatch")
 		}
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if currentHash != nevmBlockConnect.Parenthash {
-			return errors.New("addBlock: Block not continuous with NEVM parent hash")
+		if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+			log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
+				"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
+			return errors.New("addBlock: Non contiguous block insert")
 		}
 		// special case where miner process includes validating block in pre-packaging stage on SYS node
 		// the validation of this hash is done in ConnectNEVMCommitment() in Syscoin using fJustCheck
