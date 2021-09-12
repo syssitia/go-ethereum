@@ -275,7 +275,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			}
 		}
 	}(leth)
-	// mappings are assumed to be correct on lookup based on addBlock
+	
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
 		currentNumber := current.Number.Uint64()

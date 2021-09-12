@@ -314,6 +314,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		proposedBlockNumber := nevmBlockConnect.Block.NumberU64()
 		proposedBlockParentHash := nevmBlockConnect.Block.ParentHash()
 		proposedBlockHash := nevmBlockConnect.Block.Hash()
+		// we want to ensure that header chain and canonical chain are actually the same since this is the only place blocks should be allowed to be inserted
 		if currentHash != currentHeader.Hash() && currentNumber > 1 {
 			return errors.New("addBlock: header/block mismismatch")
 		}
@@ -385,7 +386,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			}
 		}
 	}(eth)
-	// mappings are assumed to be correct on lookup based on addBlock
+
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
 		if current.NumberU64() == 0 {
