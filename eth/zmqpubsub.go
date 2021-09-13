@@ -65,6 +65,9 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					log.Info("ZMQ: exiting...")
 					return
 				}
+				if string(msg.Frames[1]) == "\fstartnetwork" {
+					zmq.eth.Downloader().StartNetworkEvent()
+				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcomms"), []byte("ack"))
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmconnect" {
