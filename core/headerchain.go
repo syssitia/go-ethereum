@@ -70,7 +70,8 @@ type HeaderChain struct {
 	tdCache     *lru.Cache // Cache for the most recent block total difficulties
 	numberCache *lru.Cache // Cache for the most recent block numbers
 	// SYSCOIN
-	SYSHashCache  *lru.Cache // Cache for NEVM hash to SYS blocks mappings
+	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
+	SYSHashCache  *lru.Cache // Cache for SYS hash
 	procInterrupt func() bool
 
 	rand   *mrand.Rand
@@ -85,6 +86,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	numberCache, _ := lru.New(numberCacheLimit)
 	// SYSCOIN
 	SYSHashCache, _ := lru.New(SYSBlockCacheLimit)
+	NEVMCache, _ := lru.New(headerCacheLimit)
 
 	// Seed a fast but crypto originating random generator
 	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
@@ -100,6 +102,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 		numberCache: numberCache,
 		// SYSCOIN
 		SYSHashCache:  SYSHashCache,
+		NEVMCache:  NEVMCache,
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
 		engine:        engine,
@@ -538,6 +541,24 @@ func (hc *HeaderChain) DeleteSYSHash(n uint64) {
 	hc.SYSHashCache.Remove(n)
 	
 }
+func (hc *HeaderChain) HasNEVMMapping(hash common.Hash) bool {
+	if hc.NEVMCache.Contains(hash) {
+		return true
+	}
+	hasMapping := rawdb.HasNEVMMapping(hc.chainDb, hash)
+	if hasMapping {
+		hc.NEVMCache.Add(hash, []byte{0})
+	}
+	return hasMapping
+}
+func (hc *HeaderChain) DeleteNEVMMapping(hash common.Hash) {
+	rawdb.DeleteNEVMMapping(hc.chainDb, hash)
+	hc.NEVMCache.Remove(hash)
+}
+func (hc *HeaderChain) WriteNEVMMapping(hash common.Hash) {
+	rawdb.WriteNEVMMapping(hc.chainDb, hash)
+	hc.NEVMCache.Add(hash, []byte{0})
+}
 // HasHeader checks if a block header is present in the database or not.
 // In theory, if header is present in the database, all relative components
 // like td and hash->number should be present too.
@@ -669,6 +690,7 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 	hc.numberCache.Purge()
 	// SYSCOIN
 	hc.SYSHashCache.Purge()
+	hc.NEVMCache.Purge()
 }
 
 // SetGenesis sets a new genesis block header for the chain

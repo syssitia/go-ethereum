@@ -231,15 +231,18 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
 			return errors.New("addBlock: Non contiguous block insert")
 		}
-		_, err := leth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
+		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
+		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
+			leth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
-		if !leth.handler.inited {
-			leth.lock.Lock()
-			leth.timeLastBlock = time.Now().Unix()
-			leth.lock.Unlock()
+		if !eth.handler.inited {
+			eth.lock.Lock()
+			eth.timeLastBlock = time.Now().Unix()
+			eth.lock.Unlock()
 		}
 		return nil
 	}
@@ -256,6 +259,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				eth.lock.Lock()
 				eth.timeLastBlock = time.Now().Unix()
 				eth.lock.Unlock()
+				log.Info("Attempt to start networking/peering...")
 				for {
 					time.Sleep(100)
 					eth.lock.Lock()
@@ -266,6 +270,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
 					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+						log.Info("Networking and peering start...")
+						eth.udpEnabled = true
+						eth.handler.start()
+						eth.peers.open()
+						eth.Downloader().Peers().Open()
+						eth.p2pServer.Start()
 						eth.Downloader().DoneEvent()
 						eth.lock.Unlock()
 						return
@@ -293,6 +303,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if eth.blockchain.CurrentHeader().Number.Uint64() != (currentNumber - 1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
+		eeth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 		eth.blockchain.DeleteSYSHash(currentNumber)
 		return nil
 	}
@@ -465,13 +476,15 @@ func (s *LightEthereum) Start() error {
 	// Start bloom request workers.
 	s.wg.Add(bloomServiceThreads)
 	s.startBloomHandlers(params.BloomBitsBlocksClient)
-	// SYSCOIN
-	s.handler.start()
-	if s.lesCommons.config.Ethash.PowMode == ethash.ModeNEVM {
-		log.Info("Shutdown block fetcher and downloader...")
-		s.Downloader().Peers().Close()
-		s.handler.fetcher.stop()
-		s.Downloader().Terminate()
+	// SYSCOIN Start the networking layer and the light server if requested
+	if s.lesCommons.config.Ethash.PowMode != ethash.ModeNEVM {
+		s.handler.start()
+	} else {
+		log.Info("Skip networking start...")
+		s.udpEnabled = false
+		s.handler.stop()
+		s.p2pServer.Stop()
+		s.peers.close()
 	}
 
 	return nil

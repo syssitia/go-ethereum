@@ -750,7 +750,23 @@ func ReadSYSHash(db ethdb.Reader, n uint64) []byte {
 	}
 	return data
 }
-
+// SYSCOIN HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
+func HasNEVMMapping(db ethdb.Reader, hash common.Hash) bool {
+	if has, err := db.Has(nevmToSysKey(hash)); !has || err != nil {
+		return false
+	}
+	return true
+}
+func WriteNEVMMapping(db ethdb.KeyValueWriter, hash common.Hash) {
+	if err := db.Put(nevmToSysKey(hash), []byte{0}); err != nil {
+		log.Crit("Failed to store nevmToSysKey", "err", err)
+	}
+}
+func DeleteNEVMMapping(db ethdb.KeyValueWriter, hash common.Hash) {
+	if err := db.Delete(nevmToSysKey(hash)); err != nil {
+		log.Crit("Failed to delete nevmToSysKey", "err", err)
+	}
+}
 // DeleteBlock removes all block data associated with a hash.
 func DeleteBlock(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)

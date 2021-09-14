@@ -333,7 +333,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		// the validation of this hash is done in ConnectNEVMCommitment() in Syscoin using fJustCheck
 		sysBlockHash := common.BytesToHash([]byte(nevmBlockConnect.Sysblockhash))
 		if sysBlockHash == (common.Hash{}) {
+			// we need to write/delete between verifyheader because it depends on the mapping
+			eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 			err := eth.engine.VerifyHeader(eth.blockchain, nevmBlockConnect.Block.Header(), false)
+			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			if err != nil {
 				eth.miner.Close()
 				eth.miner = miner.New(eth, &eth.config.Miner, eth.miner.ChainConfig(), eth.EventMux(), eth.engine, eth.isLocalBlock)
@@ -341,8 +344,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			}
 			return err
 		}
+		// do before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
+		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 		_, err := eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))
 		if err != nil {
+			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
@@ -367,6 +373,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				eth.lock.Lock()
 				eth.timeLastBlock = time.Now().Unix()
 				eth.lock.Unlock()
+				log.Info("Attempt to start networking/peering...")
 				for {
 					time.Sleep(100)
 					eth.lock.Lock()
@@ -377,8 +384,14 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
 					if time.Now().Unix() - eth.timeLastBlock >= 5 {
-						eth.lock.Unlock()
+						log.Info("Networking and peering start...")
+						eth.handler.Start(eth.handler.maxPeers)
+						eth.handler.peers.open()
+						eth.Downloader().Peers().Open()
+						eth.p2pServer.Start()
 						eth.Downloader().DoneEvent()
+						atomic.StoreUint32(&eth.handler.acceptTxs, 1)
+						eth.lock.Unlock()
 						return
 					}
 					eth.lock.Unlock()
@@ -404,6 +417,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if eth.blockchain.CurrentBlock().NumberU64() != (current.NumberU64()-1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
+		eth.blockchain.DeleteNEVMMapping(current.Hash())
 		eth.blockchain.DeleteSYSHash(current.NumberU64())
 		return nil
 	}
@@ -684,13 +698,14 @@ func (s *Ethereum) Start() error {
 		maxPeers -= s.config.LightPeers
 	}
 	// SYSCOIN
-	s.handler.Start(maxPeers)
 	if s.miner.ChainConfig().SyscoinBlock != nil {
-		log.Info("Shutdown block fetcher and downloader...")
-		s.Downloader().Peers().Close()
-		s.handler.blockFetcher.Stop()
-		s.Downloader().Terminate()
-	} 
+		log.Info("Skip networking and peering...")
+		s.handler.maxPeers = maxPeers
+		s.handler.peers.close()
+		s.p2pServer.Stop()
+	} else {
+		s.handler.Start(maxPeers)
+	}
 	return nil
 }
 

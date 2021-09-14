@@ -284,6 +284,9 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 		if header.UncleHash != uncleHash {
 			return errInvalidUncleHash
 		}
+		if !chain.HasNEVMMapping(header.Hash()) {
+			return errors.New("Block not found in NEVM mapping")
+		}
 	}
 	// Verify the block's difficulty based on its timestamp and parent's difficulty
 	expected := ethash.CalcDifficulty(chain, header.Time, parent)

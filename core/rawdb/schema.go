@@ -91,6 +91,7 @@ var (
 	SnapshotAccountPrefix = []byte("a") // SnapshotAccountPrefix + account hash -> account trie value
 	SnapshotStoragePrefix = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
+	nevmToSysPrefix       = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
 	blockNumToSysKeyPrefix= []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
 
 	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
@@ -233,7 +234,11 @@ func IsCodeKey(key []byte) (bool, []byte) {
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
 }
-
+// SYSCOIN
+// nevmToSysKey = nevmToSysPrefix + hash
+func nevmToSysKey(hash common.Hash) []byte {
+	return append(nevmToSysPrefix, hash.Bytes()...)
+}
 // blockNumToSysKey = blockNumToSysKeyPrefix + blocknumber
 func blockNumToSysKey(n uint64) []byte {
 	return append(blockNumToSysKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)

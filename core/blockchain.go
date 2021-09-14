@@ -2415,6 +2415,18 @@ func (bc *BlockChain) DeleteSYSHash(n uint64) {
 	bc.hc.DeleteSYSHash(n)
 }
 
+// HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (bc *BlockChain) HasNEVMMapping(hash common.Hash) bool {
+	return bc.hc.HasNEVMMapping(hash)
+}
+func (bc *BlockChain) DeleteNEVMMapping(hash common.Hash) {
+	bc.hc.DeleteNEVMMapping(hash)
+}
+
+func (bc *BlockChain) WriteNEVMMapping(hash common.Hash) {
+	bc.hc.WriteNEVMMapping(hash)
+}
 // HasHeader checks if a block header is present in the database or not, caching
 // it if present.
 func (bc *BlockChain) HasHeader(hash common.Hash, number uint64) bool {
