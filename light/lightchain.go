@@ -480,7 +480,17 @@ func (lc *LightChain) WriteSYSHash(sysBlockhash string, n uint64) {
 func (lc *LightChain) DeleteSYSHash(n uint64) {
 	lc.hc.DeleteSYSHash(n)
 }
-
+// SYSCOIN HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// it if present.
+func (lc *LightChain) HasNEVMMapping(hash common.Hash) bool {
+	return lc.hc.HasNEVMMapping(hash)
+}
+func (lc *LightChain) DeleteNEVMMapping(hash common.Hash) {
+	lc.hc.DeleteNEVMMapping(hash)
+}
+func (lc *LightChain) WriteNEVMMapping(hash common.Hash) {
+	lc.hc.WriteNEVMMapping(hash)
+}
 
 // GetBlockHashesFromHash retrieves a number of block hashes starting at a given
 // hash, fetching towards the genesis block.

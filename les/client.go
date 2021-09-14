@@ -235,7 +235,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
-			leth.blockchain.DeleteNEVMMapping(proposedBlockHash)
+			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
@@ -303,7 +303,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if eth.blockchain.CurrentHeader().Number.Uint64() != (currentNumber - 1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
-		eeth.blockchain.DeleteNEVMMapping(proposedBlockHash)
+		eth.blockchain.DeleteNEVMMapping(current.Hash())
 		eth.blockchain.DeleteSYSHash(currentNumber)
 		return nil
 	}
