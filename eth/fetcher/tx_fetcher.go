@@ -35,8 +35,7 @@ import (
 const (
 	// maxTxAnnounces is the maximum number of unique transaction a peer
 	// can announce in a short time.
-	// SYSCOIN
-	maxTxAnnounces = 32768
+	maxTxAnnounces = 4096
 
 	// maxTxRetrievals is the maximum transaction number can be fetched in one
 	// request. The rationale to pick 256 is:
