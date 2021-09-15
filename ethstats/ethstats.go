@@ -50,11 +50,12 @@ import (
 const (
 	// historyUpdateRange is the number of blocks a node should report upon login or
 	// history request.
-	historyUpdateRange = 50
+	historyUpdateRange = 100
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
-	txChanSize = 4096
+	// SYSCOIN
+	txChanSize = 32768
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
 )
