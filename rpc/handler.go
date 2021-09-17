@@ -121,6 +121,7 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 			}
 		}
 		h.addSubscriptions(cp.notifiers)
+		log.Warn("handleBatch ", answers, len(answers))
 		if len(answers) > 0 {
 			h.conn.writeJSON(cp.ctx, answers)
 		}
