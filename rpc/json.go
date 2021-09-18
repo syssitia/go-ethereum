@@ -229,13 +229,13 @@ func (c *jsonCodec) writeJSON(ctx context.Context, v interface{}) error {
 		deadline = time.Now().Add(defaultWriteTimeout)
 	}
 	c.conn.SetWriteDeadline(deadline)
-	jsonMsg := v.(*jsonrpcMessage)
+	jsonMsg, ok := v.(*jsonrpcMessage)
 	count := 0
-	if jsonMsg != nil {
+	if ok {
 		count = len(jsonMsg.Result)
 	} else {
-		jsonMsgArr := v.([]*jsonrpcMessage)
-		if jsonMsgArr != nil {
+		jsonMsgArr, ok := v.([]*jsonrpcMessage)
+		if ok {
 			for _, msg := range jsonMsgArr {
 				count += len(msg.Result)
 			}
