@@ -229,7 +229,7 @@ func (c *jsonCodec) writeJSON(ctx context.Context, v interface{}) error {
 		deadline = time.Now().Add(defaultWriteTimeout)
 	}
 	c.conn.SetWriteDeadline(deadline)
-	log.Warn("writeJSON", "len", len(v.(*jsonrpcMessage).Result))
+	log.Warn("writeJSON", "len", len(v.(string)))
 	return c.encode(v)
 }
 
