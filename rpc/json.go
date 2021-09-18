@@ -226,10 +226,11 @@ func (c *jsonCodec) writeJSON(ctx context.Context, v interface{}) error {
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
+		log.Warn("writeJSON", "update timeout", defaultWriteTimeout)
 		deadline = time.Now().Add(defaultWriteTimeout)
 	}
+	log.Warn("writeJSON", "defaultWriteTimeout", defaultWriteTimeout, "deadline", deadline, "time.Now()", time.Now())
 	c.conn.SetWriteDeadline(deadline)
-	log.Warn("writeJSON", "len", len(v.(string)))
 	return c.encode(v)
 }
 
