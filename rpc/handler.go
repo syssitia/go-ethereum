@@ -98,9 +98,7 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 	if len(msgs) == 0 {
 		h.startCallProc(func(cp *callProc) {
 			h.conn.writeJSON(cp.ctx, errorMessage(&invalidRequestError{"empty batch"}))
-			log.Warn("handleBatch ", "len(msgs) 0 empty batch", len(msgs))
 		})
-		log.Warn("handleBatch ", "len(msgs) 0", len(msgs))
 		return
 	}
 
@@ -112,7 +110,6 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 		}
 	}
 	if len(calls) == 0 {
-		log.Warn("handleBatch ", "len(calls) 0", len(calls))
 		return
 	}
 	// Process calls on a goroutine because they may block indefinitely:

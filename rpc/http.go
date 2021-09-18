@@ -29,7 +29,6 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -100,7 +99,7 @@ type HTTPTimeouts struct {
 // configuration is not provided.
 var DefaultHTTPTimeouts = HTTPTimeouts{
 	ReadTimeout:  30 * time.Second,
-	WriteTimeout: 300 * time.Second,
+	WriteTimeout: 30 * time.Second,
 	IdleTimeout:  120 * time.Second,
 }
 
@@ -231,12 +230,10 @@ func (t *httpServerConn) SetWriteDeadline(time.Time) error { return nil }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Permit dumb empty requests for remote health-checks (AWS)
 	if r.Method == http.MethodGet && r.ContentLength == 0 && r.URL.RawQuery == "" {
-		log.Warn("ServeHTTP AWS")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 	if code, err := validateRequest(r); err != nil {
-		log.Warn("ServeHTTP error")
 		http.Error(w, err.Error(), code)
 		return
 	}
