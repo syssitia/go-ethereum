@@ -104,7 +104,7 @@ RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#dcc8ff"/"${CSS_FOOTER_TEXT}
 
 RUN if [ "$COINGECKO_COIN_ID" != "" ]; then sed -i s/"ethereum"/"${COINGECKO_COIN_ID}"/g apps/explorer/lib/explorer/exchange_rates/source/coin_gecko.ex; fi
 
-RUN sed -i s/"blocks_batch_size 10"/"blocks_batch_size 1"/g apps/indexer/lib/indexer/block/catchup/fetcher.ex;
+RUN sed -i s/"@blocks_batch_size 10"/"@blocks_batch_size 1"/g apps/indexer/lib/indexer/block/catchup/fetcher.ex;
 
 
 RUN mix phx.digest.clean --keep 0
