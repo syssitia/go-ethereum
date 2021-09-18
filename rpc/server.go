@@ -94,6 +94,7 @@ func (s *Server) ServeCodec(codec ServerCodec, options CodecOption) {
 func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 	// Don't serve if server is stopped.
 	if atomic.LoadInt32(&s.run) == 0 {
+		log.Warn("serveSingleRequest server stopped")
 		return
 	}
 
@@ -106,6 +107,7 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 		if err != io.EOF {
 			codec.writeJSON(ctx, errorMessage(&invalidMessageError{"parse error"}))
 		}
+		log.Warn("serveSingleRequest", "err", err)
 		return
 	}
 	if batch {
