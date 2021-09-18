@@ -27,7 +27,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -36,7 +35,8 @@ const (
 	subscribeMethodSuffix    = "_subscribe"
 	unsubscribeMethodSuffix  = "_unsubscribe"
 	notificationMethodSuffix = "_subscription"
-	defaultWriteTimeout =  10 * time.Millisecond // used if context has no deadline
+
+	defaultWriteTimeout = 10 * time.Second // used if context has no deadline
 )
 
 var null = json.RawMessage("null")
@@ -226,10 +226,8 @@ func (c *jsonCodec) writeJSON(ctx context.Context, v interface{}) error {
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		log.Warn("writeJSON", "update timeout", defaultWriteTimeout)
 		deadline = time.Now().Add(defaultWriteTimeout)
 	}
-	log.Warn("writeJSON", "defaultWriteTimeout", defaultWriteTimeout, "deadline", deadline, "time.Now()", time.Now())
 	c.conn.SetWriteDeadline(deadline)
 	return c.encode(v)
 }
