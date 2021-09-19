@@ -32,8 +32,7 @@ import (
 )
 
 const (
-	// SYSCOIN
-	maxRequestContentLength = 1024 * 1024 * 5 * 13
+	maxRequestContentLength = 1024 * 1024 * 5
 	contentType             = "application/json"
 )
 
