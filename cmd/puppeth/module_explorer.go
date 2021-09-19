@@ -103,7 +103,9 @@ RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#bda6e7"/"${CSS_FOOTER_TEXT}
 RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#dcc8ff"/"${CSS_FOOTER_TEXT}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
 
 RUN if [ "$COINGECKO_COIN_ID" != "" ]; then sed -i s/"ethereum"/"${COINGECKO_COIN_ID}"/g apps/explorer/lib/explorer/exchange_rates/source/coin_gecko.ex; fi
-
+RUN sed -i s/"1 <<< 30"/"50 <<< 30"/g apps/indexer/config/config.exs
+RUN sed -i s/"1 <<< 30"/"50 <<< 30"/g apps/indexer/lib/indexer/memory/monitor.ex
+RUN sed -i s/"20_000_000"/"200_000_000"/g apps/block_scout_web/lib/block_scout_web/endpoint.ex
 
 RUN mix phx.digest.clean --keep 0
 
