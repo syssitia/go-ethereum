@@ -115,7 +115,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(1),
 		SyscoinBlock:        big.NewInt(0),
 		Ethash:              new(EthashConfig),
 	}
@@ -155,7 +155,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(1),
 		SyscoinBlock:        big.NewInt(0),
 		Ethash:              new(EthashConfig),
 	}
