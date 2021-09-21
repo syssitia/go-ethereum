@@ -406,13 +406,13 @@ func DefaultGoerliGenesisBlock() *Genesis {
 
 // SYSCOIN
 func DefaultSyscoinGenesisBlock() *Genesis {
-	// Full genesis: https://gist.github.com/holiman/c6ed9269dce28304ad176314caa75e97
 	return &Genesis{
 		Config:     params.SyscoinChainConfig,
 		Timestamp:  0x60d7aef6,
 		ExtraData:  hexutil.MustDecode("0x00"),
-		GasLimit:   0x47b760,
+		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(syscoinAllocData),
 	}
 }
 func DefaultTanenbaumGenesisBlock() *Genesis {
@@ -420,9 +420,9 @@ func DefaultTanenbaumGenesisBlock() *Genesis {
 		Config:     params.TanenbaumChainConfig,
 		Timestamp:  0x60d6aef5,
 		ExtraData:  hexutil.MustDecode("0x00"),
-		GasLimit:   0x47b760,
+		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(tanenbaumAllocData),
+		Alloc:      decodePrealloc(syscoinAllocData),
 	}
 }
 
