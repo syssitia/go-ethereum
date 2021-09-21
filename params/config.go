@@ -32,7 +32,7 @@ var (
 	RinkebyGenesisHash   = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 	GoerliGenesisHash    = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
 	SyscoinGenesisHash   = common.HexToHash("0x06213eb0669345b6b106bb19d9e2e198a8c06eae3a50e0f303a046ca6afd277f")
-	TanenbaumGenesisHash = common.HexToHash("0x17c624fd8ad80526042a066ec2977e5653c88448525b9685eea5436259f343bd")
+	TanenbaumGenesisHash = common.HexToHash("0xb1807236ba6c6657d380039fe027d0c78a27595d45de453738c9e6a8a3429d0d")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of
@@ -42,8 +42,6 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	RopstenGenesisHash: RopstenTrustedCheckpoint,
 	RinkebyGenesisHash: RinkebyTrustedCheckpoint,
 	GoerliGenesisHash:  GoerliTrustedCheckpoint,
-	// SyscoinGenesisHash: SyscoinTrustedCheckpoint,
-	// TanenbaumGenesisHash: TanenbaumTrustedCheckpoint,
 }
 
 // CheckpointOracles associates each known checkpoint oracles with the genesis hash of
@@ -53,8 +51,6 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 	RopstenGenesisHash: RopstenCheckpointOracle,
 	RinkebyGenesisHash: RinkebyCheckpointOracle,
 	GoerliGenesisHash:  GoerliCheckpointOracle,
-	// SyscoinGenesisHash: SyscoinCheckpointOracle,
-	// TanenbaumGenesisHash: TanenbaumCheckpointOracle,
 }
 
 var (
@@ -115,31 +111,11 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(1),
 		SyscoinBlock:        big.NewInt(0),
+		LondonBlock:         big.NewInt(1),
 		Ethash:              new(EthashConfig),
 	}
 
-	// SyscoinTrustedCheckpoint contains the light client trusted checkpoint for the main network.
-	/*SyscoinTrustedCheckpoint = &TrustedCheckpoint{
-		SectionIndex: 384,
-		SectionHead:  common.HexToHash("0xb583a0ead70324849c4caf923476de3645c0d2f707c86221ec8e40078bdd6884"),
-		CHTRoot:      common.HexToHash("0x6ecc993baad0c9f77fe9c4c13b89360112e5a0accae4d8502470b911211618b7"),
-		BloomRoot:    common.HexToHash("0x66a30d8885c19921711704921de7b4bcbd1b49191b197ee79e34dafeed9a04d9"),
-	}
-
-	// SyscoinCheckpointOracle contains a set of configs for the syscoin network oracle.
-	SyscoinCheckpointOracle = &CheckpointOracleConfig{
-		Address: common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a"),
-		Signers: []common.Address{
-			common.HexToAddress("0x1b2C260efc720BE89101890E4Db589b44E950527"), // Peter
-			common.HexToAddress("0x78d1aD571A1A09D60D9BBf25894b44e4C8859595"), // Martin
-			common.HexToAddress("0x286834935f4A8Cfb4FF4C77D5770C2775aE2b0E7"), // Zsolt
-			common.HexToAddress("0xb86e2B0Ab5A4B1373e40c51A7C712c70Ba2f9f8E"), // Gary
-			common.HexToAddress("0x0DF8fa387C602AE62559cC4aFa4972A7045d6707"), // Guillaume
-		},
-		Threshold: 2,
-	}*/
 	TanenbaumChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(5700),
 		HomesteadBlock:      big.NewInt(0),
@@ -155,31 +131,11 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(1),
 		SyscoinBlock:        big.NewInt(0),
+		LondonBlock:         big.NewInt(1),
 		Ethash:              new(EthashConfig),
 	}
 
-	// TanenbaumTrustedCheckpoint contains the light client trusted checkpoint for the main network.
-	/*TanenbaumTrustedCheckpoint = &TrustedCheckpoint{
-		SectionIndex: 384,
-		SectionHead:  common.HexToHash("0xb583a0ead70324849c4caf923476de3645c0d2f707c86221ec8e40078bdd6884"),
-		CHTRoot:      common.HexToHash("0x6ecc993baad0c9f77fe9c4c13b89360112e5a0accae4d8502470b911211618b7"),
-		BloomRoot:    common.HexToHash("0x66a30d8885c19921711704921de7b4bcbd1b49191b197ee79e34dafeed9a04d9"),
-	}
-
-	// TanenbaumCheckpointOracle contains a set of configs for the Tanenbaum test network oracle.
-	TanenbaumCheckpointOracle = &CheckpointOracleConfig{
-		Address: common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a"),
-		Signers: []common.Address{
-			common.HexToAddress("0x1b2C260efc720BE89101890E4Db589b44E950527"), // Peter
-			common.HexToAddress("0x78d1aD571A1A09D60D9BBf25894b44e4C8859595"), // Martin
-			common.HexToAddress("0x286834935f4A8Cfb4FF4C77D5770C2775aE2b0E7"), // Zsolt
-			common.HexToAddress("0xb86e2B0Ab5A4B1373e40c51A7C712c70Ba2f9f8E"), // Gary
-			common.HexToAddress("0x0DF8fa387C602AE62559cC4aFa4972A7045d6707"), // Guillaume
-		},
-		Threshold: 2,
-	}*/
 	// RopstenChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	RopstenChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(3),
@@ -399,8 +355,8 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 0 = already on london)
 	SyscoinBlock        *big.Int `json:"syscoinBlock,omitempty"`        // Syscoin switch block (nil = no fork, 0 = already on syscoin)
+	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 1 = already on london)
 
 	CatalystBlock *big.Int `json:"catalystBlock,omitempty"` // Catalyst switch block (nil = no fork, 0 = already on catalyst)
 
@@ -439,7 +395,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Syscoin: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, Syscoin: %v, London: %v, Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -453,8 +409,8 @@ func (c *ChainConfig) String() string {
 		c.IstanbulBlock,
 		c.MuirGlacierBlock,
 		c.BerlinBlock,
-		c.LondonBlock,
 		c.SyscoinBlock,
+		c.LondonBlock,
 		engine,
 	)
 }
@@ -569,8 +525,8 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "istanbulBlock", block: c.IstanbulBlock},
 		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
 		{name: "berlinBlock", block: c.BerlinBlock},
-		{name: "londonBlock", block: c.LondonBlock},
 		{name: "syscoinBlock", block: c.SyscoinBlock},
+		{name: "londonBlock", block: c.LondonBlock},
 	} {
 		if lastFork.name != "" {
 			// Next one must be higher number
