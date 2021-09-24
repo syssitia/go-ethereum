@@ -73,8 +73,7 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *even
 		exitCh:  make(chan struct{}),
 		startCh: make(chan common.Address),
 		stopCh:  make(chan struct{}),
-		// SYSCOIN stop miner by
-		worker:  newWorker(config, chainConfig, engine, eth, mux, isLocalBlock, false),
+		worker:  newWorker(config, chainConfig, engine, eth, mux, isLocalBlock),
 	}
 	go miner.update()
 
