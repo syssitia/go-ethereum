@@ -34,7 +34,7 @@ FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM sidhujag/blockscout:latest
 
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_VERSION=4.3.99
+ENV SYSCOIN_VERSION=4.3.0rc1
 ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
 ARG COINSYMBOL={{.Coin}}
 ARG COINGECKO_COIN_ID={{.CoingeckoID}}

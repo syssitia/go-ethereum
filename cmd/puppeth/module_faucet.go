@@ -37,7 +37,7 @@ FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM alpine:3.14
 
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_VERSION=4.3.99
+ENV SYSCOIN_VERSION=4.3.0rc1
 ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
 
 COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
