@@ -169,6 +169,7 @@ type TxPoolConfig struct {
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
 // pool.
+// SYSCOIN factor by 8
 var DefaultTxPoolConfig = TxPoolConfig{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
@@ -176,13 +177,14 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	PriceLimit: 1,
 	PriceBump:  10,
 
-	AccountSlots: 16,
+	AccountSlots: 128,
 	GlobalSlots:  32768 + 8192, // urgent + floating queue capacity with 4:1 ratio
-	AccountQueue: 64,
+	AccountQueue: 512,
 	GlobalQueue:  8192,
 
 	Lifetime: 3 * time.Hour,
 }
+
 
 // sanitize checks the provided user configurations and changes anything that's
 // unreasonable or unworkable.
