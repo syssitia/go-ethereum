@@ -142,7 +142,7 @@ ENV NETWORK={{.Network}} \
     BLOCKSCOUT_PROTOCOL={{.BlockscoutProtocol}} \
     BLOCKSCOUT_HOST={{.BlockscoutHost}} \
     ENABLE_1559_SUPPORT=true \
-    GAS_PRICE=0
+    GAS_PRICE=1
 
 RUN \
 	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
