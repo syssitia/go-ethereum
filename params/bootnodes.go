@@ -73,7 +73,7 @@ var SyscoinBootnodes = []string{
 	"",
 }
 var TanenbaumBootnodes = []string{
-	"",
+	"enode://f0e3e91d3d28b808734ce08b10855b5e6b6bde8eb9e4bedaf8aababc2ceaa8f4134cec309a996765f183361f1e67bce341326c05b743ed5932a8e705149364e4@18.118.194.233:30303",
 }
 
 var V5Bootnodes = []string{
