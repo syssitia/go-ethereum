@@ -65,7 +65,7 @@ var (
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
-	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
+	netFlag     = flag.Uint64("network", 0, "Network ID to use for the NEVM protocol")
 	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
@@ -80,7 +80,7 @@ var (
 	captchaSecret = flag.String("captcha.secret", "", "Recaptcha secret key to authenticate server side")
 
 	noauthFlag = flag.Bool("noauth", false, "Enables funding requests without authentication")
-	logFlag    = flag.Int("loglevel", 3, "Log level to use for Ethereum and the faucet")
+	logFlag    = flag.Int("loglevel", 3, "Log level to use for NEVM and the faucet")
 
 	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
 	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
@@ -274,7 +274,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 
 	lesBackend, err := les.New(stack, &cfg)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to register the Ethereum service: %w", err)
+		return nil, fmt.Errorf("Failed to register the NEVM service: %w", err)
 	}
 
 	// Assemble the ethstats monitoring and reporting service'
@@ -489,7 +489,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			id = username
 		default:
 			//lint:ignore ST1005 This error is to be displayed in the browser
-			err = errors.New("Something funky happened, please open an issue at https://github.com/ethereum/go-ethereum/issues")
+			err = errors.New("Something funky happened, please open an issue at https://github.com/syscoin/go-ethereum/issues")
 		}
 		if err != nil {
 			if err = sendError(wsconn, err); err != nil {
@@ -779,7 +779,7 @@ func authTwitter(url string, tokenV1, tokenV2 string) (string, string, string, c
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	var avatar string
 	if parts = regexp.MustCompile("src=\"([^\"]+twimg.com/profile_images[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -820,7 +820,7 @@ func authTwitterWithTokenV1(tweetID string, token string) (string, string, strin
 	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(result.Text))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	return result.User.ID + "@twitter", result.User.Username, result.User.Avatar, address, nil
 }
@@ -864,7 +864,7 @@ func authTwitterWithTokenV2(tweetID string, token string) (string, string, strin
 	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(result.Data.Text))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	return result.Data.AuthorID + "@twitter", result.Includes.Users[0].Username, result.Includes.Users[0].Avatar, address, nil
 }
@@ -905,7 +905,7 @@ func authFacebook(url string) (string, string, common.Address, error) {
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	var avatar string
 	if parts = regexp.MustCompile("src=\"([^\"]+fbcdn.net[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -921,7 +921,7 @@ func authNoAuth(url string) (string, string, common.Address, error) {
 	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(url))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	return address.Hex() + "@noauth", "", address, nil
 }
