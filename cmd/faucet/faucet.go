@@ -226,6 +226,7 @@ type faucet struct {
 	update   chan struct{}        // Channel to signal request updates
 
 	lock sync.RWMutex // Lock protecting the faucet's internals
+	backend *les.LesApiBackend
 }
 
 // wsConn wraps a websocket connection with a write mutex as the underlying
@@ -309,6 +310,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 		account:  ks.Accounts()[0],
 		timeouts: make(map[string]time.Time),
 		update:   make(chan struct{}, 1),
+		backend:  lesBackend.ApiBackend,
 	}, nil
 }
 
@@ -509,8 +511,29 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			amount := new(big.Int).Mul(big.NewInt(int64(*payoutFlag)), ether)
 			amount = new(big.Int).Mul(amount, new(big.Int).Exp(big.NewInt(5), big.NewInt(int64(msg.Tier)), nil))
 			amount = new(big.Int).Div(amount, new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(msg.Tier)), nil))
+			gasTipCap, err := f.backend.SuggestGasTipCap(context.Background())
+			if err != nil {
+				log.Warn("Failed to suggest gas tip", "err", err)
+				return
+			}
+			
+			gasFeeCap := new(big.Int).Add(
+				gasTipCap,
+				new(big.Int).Mul(f.backend.CurrentHeader().BaseFee, big.NewInt(2)),
+			)
 
-			tx := types.NewTransaction(f.nonce+uint64(len(f.reqs)), address, amount, 21000, f.price, nil)
+			txdata := &types.DynamicFeeTx{
+				To:         &address,
+				ChainID:    f.config.ChainID,
+				Nonce:      f.nonce+uint64(len(f.reqs)),
+				Gas:        21000,
+				GasFeeCap:  gasFeeCap,
+				GasTipCap:  gasTipCap,
+				Value:      amount,
+				Data:       nil,
+				AccessList: nil,
+			}
+			tx := types.NewTx(txdata)
 			signed, err := f.keystore.SignTx(f.account, tx, f.config.ChainID)
 			if err != nil {
 				f.lock.Unlock()
