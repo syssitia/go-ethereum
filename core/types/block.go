@@ -18,8 +18,6 @@
 package types
 
 import (
-	// SYSCOIN
-	"bytes"
 	"errors"
 	"encoding/binary"
 	"fmt"
@@ -28,6 +26,8 @@ import (
 	"reflect"
 	"sync/atomic"
 	"time"
+	// SYSCOIN
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"

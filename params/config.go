@@ -486,6 +486,7 @@ func (c *ChainConfig) IsCatalyst(num *big.Int) bool {
 func (c *ChainConfig) IsSyscoin(num *big.Int) bool {
 	return isForked(c.SyscoinBlock, num)
 }
+
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
 func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64) *ConfigCompatError {
