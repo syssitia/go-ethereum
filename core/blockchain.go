@@ -1426,7 +1426,7 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 // WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
 // SYSCOIN
-func (bc *BlockChain) writeKnownBlock(block *types.Block, overrideUpdateHeads bool) error {
+func (bc *BlockChain) WriteKnownBlock(block *types.Block, overrideUpdateHeads bool) error {
 	current := bc.CurrentBlock()
 	if block.ParentHash() != current.Hash() {
 		if err := bc.reorg(current, block); err != nil {
