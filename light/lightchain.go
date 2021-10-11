@@ -430,12 +430,6 @@ func (lc *LightChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	return lc.hc.GetTd(hash, number)
 }
 
-// GetTdByHash retrieves a block's total difficulty in the canonical chain from the
-// database by hash, caching it if found.
-func (lc *LightChain) GetTdByHash(hash common.Hash) *big.Int {
-	return lc.hc.GetTdByHash(hash)
-}
-
 // GetHeaderByNumberOdr retrieves the total difficult from the database or
 // network by hash and number, caching it (associated with its hash) if found.
 func (lc *LightChain) GetTdOdr(ctx context.Context, hash common.Hash, number uint64) *big.Int {
@@ -490,12 +484,6 @@ func (lc *LightChain) DeleteNEVMMapping(hash common.Hash) {
 }
 func (lc *LightChain) WriteNEVMMapping(hash common.Hash) {
 	lc.hc.WriteNEVMMapping(hash)
-}
-
-// GetBlockHashesFromHash retrieves a number of block hashes starting at a given
-// hash, fetching towards the genesis block.
-func (lc *LightChain) GetBlockHashesFromHash(hash common.Hash, max uint64) []common.Hash {
-	return lc.hc.GetBlockHashesFromHash(hash, max)
 }
 
 // GetAncestor retrieves the Nth ancestor of a given block. It assumes that either the given block or
