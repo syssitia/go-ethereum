@@ -703,6 +703,8 @@ func (s *Ethereum) Start() error {
 		s.handler.maxPeers = maxPeers
 		s.handler.peers.close()
 		s.p2pServer.Stop()
+		// mock the sync so it won't ever need to sync from peers
+		s.Downloader().SynchroniseMock = func(string, common.Hash) error { return nil }
 	} else {
 		s.handler.Start(maxPeers)
 	}

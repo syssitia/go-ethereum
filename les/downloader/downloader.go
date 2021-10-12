@@ -113,7 +113,8 @@ type Downloader struct {
 	dropPeer peerDropFn // Drops a peer for misbehaving
 
 	// Status
-	synchroniseMock func(id string, hash common.Hash) error // Replacement for synchronise during testing
+	// SYSCOIN
+	SynchroniseMock func(id string, hash common.Hash) error // Replacement for synchronise during testing
 	synchronising   int32
 	notified        int32
 	committed       int32
@@ -354,8 +355,8 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 // checks fail an error will be returned. This method is synchronous
 func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode SyncMode) error {
 	// Mock out the synchronisation if testing
-	if d.synchroniseMock != nil {
-		return d.synchroniseMock(id, hash)
+	if d.SynchroniseMock != nil {
+		return d.SynchroniseMock(id, hash)
 	}
 	// Make sure only one goroutine is ever allowed past this point at once
 	if !atomic.CompareAndSwapInt32(&d.synchronising, 0, 1) {

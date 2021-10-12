@@ -485,6 +485,8 @@ func (s *LightEthereum) Start() error {
 		s.handler.stop()
 		s.p2pServer.Stop()
 		s.peers.close()
+		// mock the sync so it won't ever need to sync from peers
+		s.Downloader().SynchroniseMock = func(string, common.Hash) error { return nil }
 	}
 
 	return nil
