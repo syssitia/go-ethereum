@@ -50,6 +50,7 @@ ARG CSS_FOOTER_BACKGROUND={{.CssFooterBackground}}
 ARG CSS_FOOTER_TEXT={{.CssFooterText}}
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/address/_balance_card.html.eex; fi
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/address/index.html.eex; fi
+RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/address/overview.html.eex; fi
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/block/overview.html.eex; fi
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/internal_transaction/_tile.html.eex; fi
 RUN if [ "$COINNETWORK" != "" ]; then sed -i s/"Ether"/"${COINNETWORK}"/g apps/block_scout_web/lib/block_scout_web/templates/layout/_topnav.html.eex; fi
@@ -69,7 +70,11 @@ RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block
 RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/default.pot; fi
 RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
 RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDai"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
-
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDAI"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/default.pot; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDAI"/"${COINSYMBOL}"/g apps/block_scout_web/priv/gettext/en/LC_MESSAGES/default.po; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"xDAI"/"${COINSYMBOL}"/g apps/block_scout_web/lib/block_scout_web/templates/address/overview.html.eex; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/lib/block_scout_web/templates/address_token/overview.html.eex; fi
+RUN if [ "$COINSYMBOL" != "" ]; then sed -i s/"ETH"/"${COINSYMBOL}"/g apps/block_scout_web/lib/block_scout_web/templates/smart_contract/_functions.html.eex; fi
 
 RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address/_tabs.html.eex; fi
 RUN if [ "$BLOCK_TRANSFORMER" == "base" ]; then sed -i s/"Validated"/"Mined"/g apps/block_scout_web/lib/block_scout_web/templates/address_validation/index.html.eex; fi
