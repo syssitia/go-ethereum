@@ -782,7 +782,7 @@ func authTwitter(url string, tokenV1, tokenV2 string) (string, string, string, c
 		return "", "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	var avatar string
-	if parts = regexp.MustCompile("src=\"([^\"]+twimg.com/profile_images[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
+	if parts = regexp.MustCompile(`src="([^"]+twimg\.com/profile_images[^"]+)"`).FindStringSubmatch(string(body)); len(parts) == 2 {
 		avatar = parts[1]
 	}
 	return username + "@twitter", username, avatar, address, nil
@@ -908,7 +908,7 @@ func authFacebook(url string) (string, string, common.Address, error) {
 		return "", "", common.Address{}, errors.New("No NEVM address found to fund")
 	}
 	var avatar string
-	if parts = regexp.MustCompile("src=\"([^\"]+fbcdn.net[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
+	if parts = regexp.MustCompile(`src="([^"]+fbcdn\.net[^"]+)"`).FindStringSubmatch(string(body)); len(parts) == 2 {
 		avatar = parts[1]
 	}
 	return username + "@facebook", avatar, address, nil
