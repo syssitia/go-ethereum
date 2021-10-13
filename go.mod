@@ -26,7 +26,6 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-ole/go-ole v1.2.1 // indirect
-	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-stack/stack v1.8.1
 	github.com/go-zeromq/zmq4 v0.13.1-0.20210609075421-6fb93424d02a
 	github.com/golang/protobuf v1.4.3
