@@ -46,9 +46,23 @@ var (
 	// eip1559Config is a chain config with EIP-1559 enabled at block 0.
 	eip1559Config *params.ChainConfig
 )
+// SYSCOIN
+var DefaultTxPoolConfigTest = TxPoolConfig{
+	Journal:   "transactions.rlp",
+	Rejournal: time.Hour,
 
+	PriceLimit: 1,
+	PriceBump:  10,
+
+	AccountSlots: 16,
+	GlobalSlots:  4096 + 1024, // urgent + floating queue capacity with 4:1 ratio
+	AccountQueue: 64,
+	GlobalQueue:  1024,
+
+	Lifetime: 3 * time.Hour,
+}
 func init() {
-	testTxPoolConfig = DefaultTxPoolConfig
+	testTxPoolConfig = DefaultTxPoolConfigTest
 	testTxPoolConfig.Journal = ""
 
 	cpy := *params.TestChainConfig
