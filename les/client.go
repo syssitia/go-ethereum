@@ -226,10 +226,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
-			log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
-				"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
-			return errors.New("addBlock: Non contiguous block insert")
+		if(currentNumber > 0) {
+			if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+				log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
+					"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
+				return errors.New("addBlock: Non contiguous block insert")
+			}
 		}
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
