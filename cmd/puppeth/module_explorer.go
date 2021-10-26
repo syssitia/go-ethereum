@@ -152,6 +152,7 @@ ENV NETWORK={{.Network}} \
     BLOCKSCOUT_PROTOCOL={{.BlockscoutProtocol}} \
     BLOCKSCOUT_HOST={{.BlockscoutHost}} \
     ENABLE_1559_SUPPORT=true \
+    ENABLE_SOURCIFY_INTEGRATION=true \
     GAS_PRICE=1
 
 RUN \
