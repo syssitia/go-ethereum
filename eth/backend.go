@@ -415,7 +415,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil
 	}
 	if ethashConfig.PowMode == ethash.ModeNEVM {
-		eth.zmqRep = NewZMQRep(eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
+		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
 	}
 	return eth, err
 }

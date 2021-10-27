@@ -20,11 +20,13 @@ package les
 import (
 	"context"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type ZMQRep struct {
+	stack 	  	   *node.Node
 	leth           *LightEthereum
 	rep            zmq4.Socket
 	nevmIndexer    LightNEVMIndex
@@ -63,7 +65,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			if strTopic == "nevmcomms" {
 				if string(msg.Frames[1]) == "\ndisconnect" {
 					log.Info("ZMQ: exiting...")
-					zmq.leth.Stop()
+					zmq.stack.Close()
 					return
 				}
 				if string(msg.Frames[1]) == "\fstartnetwork" {
@@ -106,9 +108,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 	return nil
 }
 
-func NewZMQRep(lethIn *LightEthereum, NEVMPubEP string, nevmIndexerIn LightNEVMIndex) *ZMQRep {
+func NewZMQRep(stackIn *node.Node, lethIn *LightEthereum, NEVMPubEP string, nevmIndexerIn LightNEVMIndex) *ZMQRep {
 	ctx := context.Background()
 	zmq := &ZMQRep{
+		stack:			stackIn,
 		leth:           lethIn,
 		rep:            zmq4.NewRep(ctx),
 		nevmIndexer:    nevmIndexerIn,

@@ -20,11 +20,13 @@ package eth
 import (
 	"context"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type ZMQRep struct {
+	stack 	  	   *node.Node
 	eth            *Ethereum
 	rep            zmq4.Socket
 	nevmIndexer    NEVMIndex
@@ -63,7 +65,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			if strTopic == "nevmcomms" {
 				if string(msg.Frames[1]) == "\ndisconnect" {
 					log.Info("ZMQ: exiting...")
-					zmq.eth.Stop()
+					zmq.stack.Close()
 					return
 				}
 				if string(msg.Frames[1]) == "\fstartnetwork" {
@@ -116,9 +118,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 	return nil
 }
 
-func NewZMQRep(ethIn *Ethereum, NEVMPubEP string, nevmIndexerIn NEVMIndex) *ZMQRep {
+func NewZMQRep(stackIn *node.Node, ethIn *Ethereum, NEVMPubEP string, nevmIndexerIn NEVMIndex) *ZMQRep {
 	ctx := context.Background()
 	zmq := &ZMQRep{
+		stack:			stackIn,
 		eth:            ethIn,
 		rep:            zmq4.NewRep(ctx),
 		nevmIndexer:    nevmIndexerIn,

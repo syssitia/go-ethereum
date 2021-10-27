@@ -310,7 +310,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {
-		leth.zmqRep = NewZMQRep(leth, config.NEVMPubEP, LightNEVMIndex{addBlock, deleteBlock})
+		leth.zmqRep = NewZMQRep(stack, leth, config.NEVMPubEP, LightNEVMIndex{addBlock, deleteBlock})
 	}
 	return leth, nil
 }
