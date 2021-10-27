@@ -63,6 +63,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			if strTopic == "nevmcomms" {
 				if string(msg.Frames[1]) == "\ndisconnect" {
 					log.Info("ZMQ: exiting...")
+					zmq.eth.Stop()
 					return
 				}
 				if string(msg.Frames[1]) == "\fstartnetwork" {
