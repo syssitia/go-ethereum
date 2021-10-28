@@ -48,6 +48,11 @@ var (
 	// SYSCOIN
 	allowedFutureBlockTimeSeconds = int64(150) // Max seconds from current time allowed for blocks, before they're considered future blocks
 
+	// calcDifficultyEip4345 is the difficulty adjustment algorithm as specified by EIP 4345.
+	// It offsets the bomb a total of 10.7M blocks.
+	// Specification EIP-4345: https://eips.ethereum.org/EIPS/eip-4345
+	calcDifficultyEip4345 = makeDifficultyCalculator(big.NewInt(10_700_000))
+
 	// calcDifficultyEip3554 is the difficulty adjustment algorithm as specified by EIP 3554.
 	// It offsets the bomb a total of 9.7M blocks.
 	// Specification EIP-3554: https://eips.ethereum.org/EIPS/eip-3554
@@ -352,6 +357,8 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	// SYSCOIN
 	case config.IsSyscoin(next):
 		return big.NewInt(1)
+	case config.IsArrowGlacier(next):
+		return calcDifficultyEip4345(time, parent)
 	case config.IsLondon(next):
 		return calcDifficultyEip3554(time, parent)
 	case config.IsMuirGlacier(next):

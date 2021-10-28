@@ -202,10 +202,10 @@ type Config struct {
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 
-	// Berlin block override (TODO: remove after the fork)
-	OverrideLondon *big.Int `toml:",omitempty"`
 	// SYSCOIN
 	NEVMPubEP string        `toml:",omitempty"`
+	// Arrow Glacier block override (TODO: remove after the fork)
+	OverrideArrowGlacier *big.Int `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
