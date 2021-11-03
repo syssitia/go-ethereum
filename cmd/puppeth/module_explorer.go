@@ -153,6 +153,7 @@ ENV NETWORK={{.Network}} \
     BLOCKSCOUT_HOST={{.BlockscoutHost}} \
     ENABLE_1559_SUPPORT=true \
     ENABLE_SOURCIFY_INTEGRATION=true \
+    DISPLAY_TOKEN_ICONS=true \
     GAS_PRICE=1
 
 RUN \
