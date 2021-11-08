@@ -820,6 +820,7 @@ func MakeDataDir(ctx *cli.Context) string {
 		}
 		if ctx.GlobalBool(TanenbaumFlag.Name) {
 			return filepath.Join(path, "tanenbaum")
+		}
 		if ctx.GlobalBool(SepoliaFlag.Name) {
 			return filepath.Join(path, "sepolia")
 		}
