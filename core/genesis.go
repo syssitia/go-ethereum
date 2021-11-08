@@ -244,6 +244,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.MainnetChainConfig
 	case ghash == params.RopstenGenesisHash:
 		return params.RopstenChainConfig
+	case ghash == params.SepoliaGenesisHash:
+		return params.SepoliaChainConfig
 	case ghash == params.RinkebyGenesisHash:
 		return params.RinkebyChainConfig
 	case ghash == params.GoerliGenesisHash:
@@ -423,6 +425,18 @@ func DefaultTanenbaumGenesisBlock() *Genesis {
 		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(syscoinAllocData),
+	}
+}
+// DefaultSepoliaGenesisBlock returns the Sepolia network genesis block.
+func DefaultSepoliaGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.SepoliaChainConfig,
+		Nonce:      0,
+		ExtraData:  []byte("Sepolia, Athens, Attica, Greece!"),
+		GasLimit:   0x1c9c380,
+		Difficulty: big.NewInt(0x20000),
+		Timestamp:  1633267481,
+		Alloc:      decodePrealloc(sepoliaAllocData),
 	}
 }
 
