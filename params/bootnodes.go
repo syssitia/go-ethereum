@@ -79,7 +79,7 @@ var GoerliBootnodes = []string{
 // SyscoinBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Syscoin NEVM-based network.
 var SyscoinBootnodes = []string{
-	"enode://9960cc009fe6332c1b61429fe5a8a56c303cda415b2dc08986b70183a278ed2e201f59bd64c832b1aca47a1886c54f3d6eadc92ca76eb6e7efea78dcc3cf7dd4@18.118.112.81:30303",
+	"enode://6f417e6740e559818cedd1ae31ea339657f4580c06491ab9c9a7be9dc9136e858e5bc9a3c2e8d6ea49567af5102afced9d8a99c04410244b0c0880911720439a@3.133.0.208:30303",
 }
 var TanenbaumBootnodes = []string{
 	"enode://f0e3e91d3d28b808734ce08b10855b5e6b6bde8eb9e4bedaf8aababc2ceaa8f4134cec309a996765f183361f1e67bce341326c05b743ed5932a8e705149364e4@18.118.194.233:30303",

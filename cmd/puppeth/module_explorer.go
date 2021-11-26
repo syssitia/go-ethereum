@@ -213,7 +213,7 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	subNetwork := ""
 	showPriceChart := "true"
 	disableExchangeRates := "false"
-	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://nevm.syscoin.org"}]`
+	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://explorer.syscoin.org"}]`
 	if config.node.network == 5700 {
 		subNetwork = "Tanenbaum"
 		disableExchangeRates = "false"
