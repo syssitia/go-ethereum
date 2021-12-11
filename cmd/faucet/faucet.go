@@ -514,6 +514,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			gasTipCap, err := f.backend.SuggestGasTipCap(context.Background())
 			if err != nil {
 				log.Warn("Failed to suggest gas tip", "err", err)
+				f.lock.Unlock()
 				return
 			}
 			
