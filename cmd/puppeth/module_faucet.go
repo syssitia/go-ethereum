@@ -155,7 +155,7 @@ type faucetInfos struct {
 	node          *nodeInfos
 	host          string
 	port          int
-	amount        int
+	amount        float64
 	minutes       int
 	tiers         int
 	noauth        bool
@@ -171,7 +171,7 @@ func (info *faucetInfos) Report() map[string]string {
 		"Website address":              info.host,
 		"Website listener port":        strconv.Itoa(info.port),
 		"Ethereum listener port":       strconv.Itoa(info.node.port),
-		"Funding amount (base tier)":   fmt.Sprintf("%d SYS", info.amount),
+		"Funding amount (base tier)":   fmt.Sprintf("%s SYS", strconv.FormatFloat(info.amount, 'f', -1, 64)),
 		"Funding cooldown (base tier)": fmt.Sprintf("%d mins", info.minutes),
 		"Funding tiers":                strconv.Itoa(info.tiers),
 		"Captha protection":            fmt.Sprintf("%v", info.captchaToken != ""),
@@ -220,7 +220,7 @@ func checkFaucet(client *sshClient, network string) (*faucetInfos, error) {
 	if host == "" {
 		host = client.server
 	}
-	amount, _ := strconv.Atoi(infos.envvars["FAUCET_AMOUNT"])
+	amount, _ := strconv.ParseFloat(infos.envvars["FAUCET_AMOUNT"], 64)
 	minutes, _ := strconv.Atoi(infos.envvars["FAUCET_MINUTES"])
 	tiers, _ := strconv.Atoi(infos.envvars["FAUCET_TIERS"])
 

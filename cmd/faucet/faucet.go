@@ -69,7 +69,7 @@ var (
 	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
-	payoutFlag  = flag.Int("faucet.amount", 1, "Number of SYS to pay out per user request")
+	payoutFlag  = flag.Float64("faucet.amount", 1, "Number of SYS to pay out per user request")
 	minutesFlag = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
 	tiersFlag   = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
 
@@ -115,9 +115,6 @@ func main() {
 		// Calculate the amount for the next tier and format it
 		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
 		amounts[i] = fmt.Sprintf("%s SYS", strconv.FormatFloat(amount, 'f', -1, 64))
-		if amount == 1 {
-			amounts[i] = strings.TrimSuffix(amounts[i], "s")
-		}
 		// Calculate the period for the next tier and format it
 		period := *minutesFlag * int(math.Pow(3, float64(i)))
 		periods[i] = fmt.Sprintf("%d mins", period)
@@ -503,12 +500,15 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 		// Ensure the user didn't request funds too recently
 		f.lock.Lock()
 		var (
-			fund    bool
-			timeout time.Time
+			fund bool
 		)
-		if timeout = f.timeouts[id]; time.Now().After(timeout) {
+		timeoutId := f.timeouts[id]
+		timeoutAddress := f.timeouts[address.String()]
+		if time.Now().After(timeoutId) && time.Now().After(timeoutAddress) {
 			// User wasn't funded recently, create the funding transaction
-			amount := new(big.Int).Mul(big.NewInt(int64(*payoutFlag)), ether)
+			etherf := new(big.Float).SetInt(ether)
+			amountI, _ := new(big.Float).Mul(big.NewFloat(*payoutFlag), etherf).Int64()
+			amount := big.NewInt(amountI)
 			amount = new(big.Int).Mul(amount, new(big.Int).Exp(big.NewInt(5), big.NewInt(int64(msg.Tier)), nil))
 			amount = new(big.Int).Div(amount, new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(msg.Tier)), nil))
 			gasTipCap, err := f.backend.SuggestGasTipCap(context.Background())
@@ -563,6 +563,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			grace := timeout / 288 // 24h timeout => 5m grace
 
 			f.timeouts[id] = time.Now().Add(timeout - grace)
+			f.timeouts[address.String()] = time.Now().Add(timeout - grace)
 			fund = true
 		}
 		f.lock.Unlock()
