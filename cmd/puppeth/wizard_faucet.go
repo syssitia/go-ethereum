@@ -63,8 +63,8 @@ func (w *wizard) deployFaucet() {
 	}
 	// Port and proxy settings retrieved, figure out the funding amount per period configurations
 	fmt.Println()
-	fmt.Printf("How many SYS to release per request? (default = %d)\n", infos.amount)
-	infos.amount = w.readDefaultInt(infos.amount)
+	fmt.Printf("How many SYS to release per request? (default = %.2f)\n", infos.amount)
+	infos.amount = w.readDefaultFloat(infos.amount)
 
 	fmt.Println()
 	fmt.Printf("How many minutes to enforce between requests? (default = %d)\n", infos.minutes)
