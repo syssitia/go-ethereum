@@ -36,7 +36,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -114,7 +113,7 @@ func main() {
 	for i := 0; i < *tiersFlag; i++ {
 		// Calculate the amount for the next tier and format it
 		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
-		amounts[i] = fmt.Sprintf("%s SYS", strconv.FormatFloat(amount, 'f', -1, 64))
+		amounts[i] = fmt.Sprintf("%.2f SYS", amount)
 		// Calculate the period for the next tier and format it
 		period := *minutesFlag * int(math.Pow(3, float64(i)))
 		periods[i] = fmt.Sprintf("%d mins", period)

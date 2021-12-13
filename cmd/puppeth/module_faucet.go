@@ -171,7 +171,7 @@ func (info *faucetInfos) Report() map[string]string {
 		"Website address":              info.host,
 		"Website listener port":        strconv.Itoa(info.port),
 		"Ethereum listener port":       strconv.Itoa(info.node.port),
-		"Funding amount (base tier)":   fmt.Sprintf("%s SYS", strconv.FormatFloat(info.amount, 'f', -1, 64)),
+		"Funding amount (base tier)":   fmt.Sprintf("%.2f SYS", info.amount),
 		"Funding cooldown (base tier)": fmt.Sprintf("%d mins", info.minutes),
 		"Funding tiers":                strconv.Itoa(info.tiers),
 		"Captha protection":            fmt.Sprintf("%v", info.captchaToken != ""),
