@@ -53,6 +53,11 @@ var (
 	// Specification EIP-4345: https://eips.ethereum.org/EIPS/eip-4345
 	calcDifficultyEip4345 = makeDifficultyCalculator(big.NewInt(10_700_000))
 
+	// calcDifficultyEip4345 is the difficulty adjustment algorithm as specified by EIP 4345.
+	// It offsets the bomb a total of 10.7M blocks.
+	// Specification EIP-4345: https://eips.ethereum.org/EIPS/eip-4345
+	calcDifficultyEip4345 = makeDifficultyCalculator(big.NewInt(10_700_000))
+
 	// calcDifficultyEip3554 is the difficulty adjustment algorithm as specified by EIP 3554.
 	// It offsets the bomb a total of 9.7M blocks.
 	// Specification EIP-3554: https://eips.ethereum.org/EIPS/eip-3554
@@ -300,9 +305,8 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
 	}
 	// Verify that the gas limit is <= 2^63-1
-	cap := uint64(0x7fffffffffffffff)
-	if header.GasLimit > cap {
-		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, cap)
+	if header.GasLimit > params.MaxGasLimit {
+		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
 	// Verify that the gasUsed is <= gasLimit
 	if header.GasUsed > header.GasLimit {

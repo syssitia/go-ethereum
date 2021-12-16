@@ -47,6 +47,8 @@ type ChainHeaderReader interface {
 
 	// SYSCOIN check to see if an NEVM mapping exists for a specific block hash
 	HasNEVMMapping(hash common.Hash) bool
+	// GetTd retrieves the total difficulty from the database by hash and number.
+	GetTd(hash common.Hash, number uint64) *big.Int
 }
 
 // ChainReader defines a small collection of methods needed to access the local
