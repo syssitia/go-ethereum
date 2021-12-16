@@ -126,7 +126,6 @@ func (s *ServerPoolTest) start() {
 			s.queryWg.Add(1)
 			idx := testNodeIndex(node.ID())
 			n := &s.testNodes[idx]
-			s.preNegLock.Lock()
 			canConnect := !n.connected && n.connectCycles != 0 && s.cycle >= n.nextConnCycle
 			s.preNegLock.Unlock()
 			defer s.queryWg.Done()
