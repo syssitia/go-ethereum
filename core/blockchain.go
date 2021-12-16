@@ -683,7 +683,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write genesis block", "err", err)
 	}
-	bc.writeHeadBlock(genesis, false)
+	bc.writeHeadBlock(genesis)
 
 	// Last update all in-memory chain markers
 	bc.genesisBlock = genesis
@@ -1159,9 +1159,9 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	return nil
 }
 
-// WriteKnownBlock updates the head block flag with a known block
+// SYSCOIN WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
-func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
+func (bc *BlockChain) WriteKnownBlock(block *types.Block) error {
 	current := bc.CurrentBlock()
 	if block.ParentHash() != current.Hash() {
 		if err := bc.reorg(current, block); err != nil {
@@ -1290,7 +1290,7 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 	}
 	// Set new head.
 	if status == CanonStatTy {
-		bc.writeHeadBlock(block, false)
+		bc.writeHeadBlock(block)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 
@@ -1450,7 +1450,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 		// head full block(new pivot point).
 		for block != nil && bc.skipBlock(err, it) {
 			log.Debug("Writing previously known block", "number", block.Number(), "hash", block.Hash())
-			if err := bc.WriteKnownBlock(block, false); err != nil {
+			if err := bc.WriteKnownBlock(block); err != nil {
 				return it.index, err
 			}
 			lastCanon = block
@@ -1547,7 +1547,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 				log.Error("Please file an issue, skip known block execution without receipt",
 					"hash", block.Hash(), "number", block.NumberU64())
 			}
-			if err := bc.WriteKnownBlock(block, false); err != nil {
+			if err := bc.WriteKnownBlock(block); err != nil {
 				return it.index, err
 			}
 			stats.processed++
@@ -2017,7 +2017,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// taking care of the proper incremental order.
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
-		bc.writeHeadBlock(newChain[i], false)
+		bc.writeHeadBlock(newChain[i])
 
 		// Collect reborn logs due to chain reorg
 		logs := bc.collectLogs(newChain[i].Hash(), false)

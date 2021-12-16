@@ -338,7 +338,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			if err != nil {
 				eth.miner.Close()
-				eth.miner = miner.New(eth, &eth.config.Miner, eth.miner.ChainConfig(), eth.EventMux(), eth.engine, eth.isLocalBlock)
+				eth.miner = miner.New(eth, &eth.config.Miner, eth.miner.ChainConfig(), eth.EventMux(), eth.engine, eth.isLocalBlock, eth.Merger())
 				eth.miner.SetExtra(makeExtraData(eth.config.Miner.ExtraData))
 			}
 			return err
@@ -409,7 +409,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if parent == nil {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
-		err := eth.blockchain.WriteKnownBlock(parent, true)
+		err := eth.blockchain.WriteKnownBlock(parent)
 		if err != nil {
 			return err
 		}
