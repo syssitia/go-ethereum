@@ -72,7 +72,6 @@ func generatePreMergeChain(n int) (*core.Genesis, []*types.Block) {
 	config.TerminalTotalDifficulty = totalDifficulty
 	return genesis, blocks
 }
-*/
 
 func TestEth2AssembleBlock(t *testing.T) {
 	genesis, blocks := generatePreMergeChain(10)
@@ -283,7 +282,6 @@ func TestEth2NewBlock(t *testing.T) {
 		parent, head = block, block.NumberU64()
 	}
 }
-*/
 
 func TestEth2DeepReorg(t *testing.T) {
 	// TODO (MariusVanDerWijden) TestEth2DeepReorg is currently broken, because it tries to reorg
