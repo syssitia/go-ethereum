@@ -151,7 +151,6 @@ ENV NETWORK={{.Network}} \
     ETHEREUM_JSONRPC_WS_URL={{.WsUrl}} \
     BLOCKSCOUT_PROTOCOL={{.BlockscoutProtocol}} \
     BLOCKSCOUT_HOST={{.BlockscoutHost}} \
-    ENABLE_1559_SUPPORT=true \
     ENABLE_SOURCIFY_INTEGRATION=true \
     DISPLAY_TOKEN_ICONS=true \
     GAS_PRICE=1
