@@ -19,17 +19,20 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"text/template"
 	"math/rand"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/ethereum/go-ethereum/log"
 )
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
+RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
+RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
+
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM sidhujag/blockscout:latest
 
@@ -226,35 +229,37 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		protocol = "http"
 	}
 	template.Must(template.New("").Parse(explorerDockerfile)).Execute(dockerfile, map[string]interface{}{
-		"NetworkID": config.node.network,
-		"Bootnodes": strings.Join(bootnodes, ","),
-		"Ethstats":  config.node.ethstats,
-		"EthPort":   config.node.port,
-		"HttpUrl":   "http://localhost:8545",
-		"WsUrl":   "ws://localhost:8546",
-		"Network":   "Syscoin",
-		"SubNetwork": subNetwork,
-		"CoingeckoID":   "syscoin",
-		"Coin":   "SYS",
-		"Logo":   "/images/sys_logo.svg",
-		"LogoFooter":   "/images/sys_logo.svg",
-		"LogoText":   "NEVM",
-		"HealthyBlockPeriod": 34500000,
-		"SupportedChains": supportedChains,
-		"BlockTransformer": transformer,
-		"BlockscoutProtocol": protocol,
-		"BlockscoutHost": host,
-		"ShowTxChart": "true",
-		"DisableExchangeRates": disableExchangeRates,
-		"ShowPriceChart": showPriceChart,
-		"CssPrimary": "#243066",
-		"CssSecondary": "#87e1a9",
-		"CssTertiary": "#344180",
-		"CssPrimaryDark": "#6fb8df",
-		"CssSecondaryDark": "#87e1a9",
-		"CssTertiaryDark": "#243066",
-		"CssFooterBackground": "#101d48",
-		"CssFooterText": "#6fb8df",
+		"NetworkID":                  config.node.network,
+		"Bootnodes":                  strings.Join(bootnodes, ","),
+		"Ethstats":                   config.node.ethstats,
+		"EthPort":                    config.node.port,
+		"HttpUrl":                    "http://localhost:8545",
+		"WsUrl":                      "ws://localhost:8546",
+		"Network":                    "Syscoin",
+		"SubNetwork":                 subNetwork,
+		"CoingeckoID":                "syscoin",
+		"Coin":                       "SYS",
+		"Logo":                       "/images/sys_logo.svg",
+		"LogoFooter":                 "/images/sys_logo.svg",
+		"LogoText":                   "NEVM",
+		"HealthyBlockPeriod":         34500000,
+		"SupportedChains":            supportedChains,
+		"BlockTransformer":           transformer,
+		"BlockscoutProtocol":         protocol,
+		"BlockscoutHost":             host,
+		"ShowTxChart":                "true",
+		"DisableExchangeRates":       disableExchangeRates,
+		"ShowPriceChart":             showPriceChart,
+		"CssPrimary":                 "#243066",
+		"CssSecondary":               "#87e1a9",
+		"CssTertiary":                "#344180",
+		"CssPrimaryDark":             "#6fb8df",
+		"CssSecondaryDark":           "#87e1a9",
+		"CssTertiaryDark":            "#243066",
+		"CssFooterBackground":        "#101d48",
+		"CssFooterText":              "#6fb8df",
+		"BlockScoutCaptchaSiteKey":   config.blockscoutCaptchaSiteKey,
+		"BlockScoutCaptchaSecretKey": config.blockscoutCaptchaSecretKey,
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
 
@@ -291,10 +296,12 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 // explorerInfos is returned from a block explorer status check to allow reporting
 // various configuration parameters.
 type explorerInfos struct {
-	node  *nodeInfos
-	dbdir string
-	host  string
-	port  int
+	node                       *nodeInfos
+	dbdir                      string
+	host                       string
+	port                       int
+	blockscoutCaptchaSiteKey   string
+	blockscoutCaptchaSecretKey string
 }
 
 // Report converts the typed struct into a plain string->string map, containing
