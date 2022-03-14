@@ -30,12 +30,11 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-ENV RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
-ENV RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
-
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM sidhujag/blockscout:latest
 
+ENV RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
+ENV RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_VERSION=4.3.0
 ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
@@ -201,6 +200,7 @@ services:
             max-file: "10"
         restart: always
 `
+
 // deployExplorer deploys a new block explorer container to a remote machine via
 // SSH, docker and docker-compose. If an instance with the specified network name
 // already exists there, it will be overwritten!
