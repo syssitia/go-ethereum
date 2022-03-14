@@ -30,8 +30,8 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
-RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
+ENV RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
+ENV RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
 
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM sidhujag/blockscout:latest
