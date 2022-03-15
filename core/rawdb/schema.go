@@ -65,6 +65,9 @@ var (
 	// snapshotSyncStatusKey tracks the snapshot sync status across restarts.
 	snapshotSyncStatusKey = []byte("SnapshotSyncStatus")
 
+	// skeletonSyncStatusKey tracks the skeleton sync status across restarts.
+	skeletonSyncStatusKey = []byte("SkeletonSyncStatus")
+
 	// txIndexTailKey tracks the oldest block whose transactions have been indexed.
 	txIndexTailKey = []byte("TransactionIndexTail")
 
@@ -96,6 +99,7 @@ var (
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
 	nevmToSysPrefix       = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
 	blockNumToSysKeyPrefix= []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
+	skeletonHeaderPrefix  = []byte("S") // skeletonHeaderPrefix + num (uint64 big endian) -> header
 
 	PreimagePrefix = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
@@ -212,6 +216,11 @@ func bloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
 	binary.BigEndian.PutUint64(key[3:], section)
 
 	return key
+}
+
+// skeletonHeaderKey = skeletonHeaderPrefix + num (uint64 big endian)
+func skeletonHeaderKey(number uint64) []byte {
+	return append(skeletonHeaderPrefix, encodeBlockNumber(number)...)
 }
 
 // preimageKey = PreimagePrefix + hash
