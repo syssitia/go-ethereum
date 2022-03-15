@@ -33,8 +33,6 @@ var explorerDockerfile = `
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
 FROM sidhujag/blockscout:latest
 
-ENV RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}}
-ENV RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}}
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_VERSION=4.3.0
 ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
@@ -153,6 +151,8 @@ ENV NETWORK={{.Network}} \
     ETHEREUM_JSONRPC_WS_URL={{.WsUrl}} \
     BLOCKSCOUT_PROTOCOL={{.BlockscoutProtocol}} \
     BLOCKSCOUT_HOST={{.BlockscoutHost}} \
+    RE_CAPTCHA_CLIENT_KEY={{.BlockScoutCaptchaSiteKey}} \
+    RE_CAPTCHA_SECRET_KEY={{.BlockScoutCaptchaSecretKey}} \
     ENABLE_1559_SUPPORT=true \
     ENABLE_SOURCIFY_INTEGRATION=true \
     DISPLAY_TOKEN_ICONS=true \
