@@ -89,6 +89,16 @@ func (w *wizard) deployExplorer() {
 	fmt.Printf("Which TCP/UDP port should the archive node listen on? (default = %d)\n", infos.node.port)
 	infos.node.port = w.readDefaultInt(infos.node.port)
 
+	// Ask which reCaptcha Site Key to use for Blockscout
+	fmt.Println()
+	fmt.Printf("Which reCaptcha Site Key (v2 'I am not a Robot') to use for Blockscout? (default = '')\n")
+	infos.blockscoutCaptchaSiteKey = w.readDefaultString("")
+
+	// Ask which reCaptcha Secret Key to use for Blockscout
+	fmt.Println()
+	fmt.Printf("Which reCaptcha Secret Key (v2 'I am not a Robot') to use for Blockscout? (default = '')\n")
+	infos.blockscoutCaptchaSecretKey = w.readDefaultString("")
+
 	// Set a proper name to report on the stats page
 	fmt.Println()
 	if infos.node.ethstats == "" {
