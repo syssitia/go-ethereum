@@ -152,6 +152,7 @@ var (
 		utils.GoerliFlag,
 		utils.SyscoinFlag,
 		utils.TanenbaumFlag,
+		utils.KilnFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.EthStatsURLFlag,

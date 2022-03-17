@@ -258,6 +258,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.SyscoinChainConfig
 	case ghash == params.TanenbaumGenesisHash:
 		return params.TanenbaumChainConfig
+	case ghash == params.KilnGenesisHash:
+		return DefaultKilnGenesisBlock().Config
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -442,6 +444,15 @@ func DefaultSepoliaGenesisBlock() *Genesis {
 		Timestamp:  1633267481,
 		Alloc:      decodePrealloc(sepoliaAllocData),
 	}
+}
+
+func DefaultKilnGenesisBlock() *Genesis {
+	g := new(Genesis)
+	reader := strings.NewReader(KilnAllocData)
+	if err := json.NewDecoder(reader).Decode(g); err != nil {
+		panic(err)
+	}
+	return g
 }
 
 // DeveloperGenesisBlock returns the 'geth --dev' genesis block.
