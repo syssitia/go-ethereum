@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
+	"strconv"
 )
 
 type ZMQRep struct {
@@ -100,6 +101,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			} else if strTopic == "nevmblock" {
 				nevmBlockConnectBytes := make([]byte, 0)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblock"), nevmBlockConnectBytes)
+				zmq.rep.SendMulti(msgSend)
+			}  else if strTopic == "nevmblockinfo" {
+				str := strconv.FormatUint(zmq.leth.blockchain.CurrentHeader().Number.Uint64(), 10)
+				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
 				zmq.rep.SendMulti(msgSend)
 			}
 		}
