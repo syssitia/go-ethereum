@@ -78,6 +78,11 @@ const (
 	staleThreshold = 7
 )
 
+var (
+	errBlockInterruptedByNewHead  = errors.New("new head arrived while building block")
+	errBlockInterruptedByRecommit = errors.New("recommit interrupt while building block")
+)
+
 // environment is the worker's current environment and holds all
 // information of the sealing block generation.
 type environment struct {
@@ -849,7 +854,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 	return receipt.Logs, nil
 }
 
-func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32) bool {
+func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32) error {
 	gasLimit := env.header.GasLimit
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(gasLimit)
@@ -874,8 +879,9 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 					ratio: ratio,
 					inc:   true,
 				}
+				return errBlockInterruptedByRecommit
 			}
-			return atomic.LoadInt32(interrupt) == commitInterruptNewHead
+			return errBlockInterruptedByNewHead
 		}
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -959,7 +965,7 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	return false
+	return nil
 }
 
 // generateParams wraps various of settings for generating sealing task.
@@ -1058,7 +1064,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 // fillTransactions retrieves the pending transactions from the txpool and fills them
 // into the given sealing block. The transaction selection and ordering strategy can
 // be customized with the plugin in the future.
-func (w *worker) fillTransactions(interrupt *int32, env *environment) {
+func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
@@ -1071,16 +1077,17 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) {
 	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(env.signer, localTxs, env.header.BaseFee)
-		if w.commitTransactions(env, txs, interrupt) {
-			return
+		if err := w.commitTransactions(env, txs, interrupt); err != nil {
+			return err
 		}
 	}
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(env.signer, remoteTxs, env.header.BaseFee)
-		if w.commitTransactions(env, txs, interrupt) {
-			return
+		if err := w.commitTransactions(env, txs, interrupt); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 // generateWork generates a sealing block based on the given parameters.
@@ -1092,6 +1099,7 @@ func (w *worker) generateWork(params *generateParams) (*types.Block, error) {
 	defer work.discard()
 
 	w.fillTransactions(nil, work)
+
 	return w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, work.unclelist(), work.receipts)
 }
 
@@ -1121,8 +1129,14 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64) {
 	if !noempty && atomic.LoadUint32(&w.noempty) == 0 {
 		w.commit(work.copy(), nil, false, start)
 	}
+
 	// Fill pending transactions from the txpool
-	w.fillTransactions(interrupt, work)
+	err = w.fillTransactions(interrupt, work)
+	if errors.Is(err, errBlockInterruptedByNewHead) {
+		work.discard()
+		return
+	}
+
 	w.commit(work.copy(), w.fullTaskHook, true, start)
 
 	// Swap out the old work with the new one, terminating any leftover
