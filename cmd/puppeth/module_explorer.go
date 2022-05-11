@@ -156,7 +156,8 @@ ENV NETWORK={{.Network}} \
     ENABLE_1559_SUPPORT=true \
     ENABLE_SOURCIFY_INTEGRATION=true \
     DISPLAY_TOKEN_ICONS=true \
-    GAS_PRICE=1
+    GAS_PRICE=1 \
+    ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT='15s'
 
 RUN \
 	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.134.96.21{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
