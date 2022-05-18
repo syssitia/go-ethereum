@@ -32,7 +32,10 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
-
+const (
+	// SYSCOIN
+	DataBlockLimit = 50001
+)
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
 	var data []byte
@@ -832,8 +835,66 @@ func DeleteSYSHash(db ethdb.KeyValueWriter, n uint64) {
 		log.Crit("Failed to delete blockNumToSysKey", "err", err)
 	}
 }
+func ReadDataHashesRLP(db ethdb.Reader, number uint64) rlp.RawValue {
+	var data []byte
+	data, _ = db.Get(dataHashesKey(number))
+	return data
+}
+// ReadRawDataHashes retrieves all the data hashes belonging to a block.
+func ReadRawDataHashes(db ethdb.Reader,  number uint64) []*common.Hash {
+	// Retrieve the flattened datahash slice
+	data := ReadDataHashesRLP(db, number)
+	if len(data) == 0 {
+		return nil
+	}
+	dataHashes := []*common.Hash{}
+	if err := rlp.DecodeBytes(data, &dataHashes); err != nil {
+		log.Error("Invalid datahash array RLP", "number", number, "err", err)
+		return nil
+	}
+	return dataHashes
+}
+
+
+func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataHashes []*common.Hash) {
+	bytes, err := rlp.EncodeToBytes(dataHashes)
+	if err != nil {
+		log.Crit("Failed to encode block dataHashes", "err", err)
+	}
+	// Store the flattened receipt slice
+	if err := dbw.Put(dataHashesKey(n), bytes); err != nil {
+		log.Crit("Failed to store block dataHashes", "err", err)
+	}
+	// prune older data hashes after a safe amount of blocks
+	if n > DataBlockLimit {
+		DeleteDataHashes(dbw, dbr, n-DataBlockLimit)
+	}
+}
+func DeleteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64) []*common.Hash {
+	dataHashes := ReadRawDataHashes(dbr, n)
+	if dataHashes == nil {
+		log.Crit("Failed to delete datahash", "n", n)
+		return nil
+	}
+	for _, dataHash := range dataHashes {
+		if err := dbw.Delete(dataHashKey(*dataHash)); err != nil {
+			log.Crit("Failed to delete dataHashKey", "err", err)
+		}
+	}
+	if err := dbw.Delete(dataHashesKey(n)); err != nil {
+		log.Crit("Failed to delete dataHashesKey", "err", err)
+	}
+	return dataHashes
+}
 func ReadSYSHash(db ethdb.Reader, n uint64) []byte {
 	data, err := db.Get(blockNumToSysKey(n))
+	if data == nil || err != nil {
+		return []byte{}
+	}
+	return data
+}
+func ReadDataHash(db ethdb.Reader, hash common.Hash) []byte {
+	data, err := db.Get(dataHashKey(hash))
 	if data == nil || err != nil {
 		return []byte{}
 	}

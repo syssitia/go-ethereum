@@ -104,6 +104,8 @@ const (
 	ExtcodeHashGasConstantinople uint64 = 400  // Cost of EXTCODEHASH (introduced in Constantinople)
 	ExtcodeHashGasEIP1884        uint64 = 700  // Cost of EXTCODEHASH after EIP 1884 (part in Istanbul)
 	SelfdestructGasEIP150        uint64 = 5000 // Cost of SELFDESTRUCT post EIP 150 (Tangerine)
+	// SYSCOIN
+	SYSDataHashGas               uint64 = 1400 // The cost of data hash retrieval
 
 	// EXP has a dynamic portion depending on the size of the exponent
 	ExpByteFrontier uint64 = 10 // was set to 10 in Frontier
