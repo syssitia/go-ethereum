@@ -40,9 +40,12 @@ func BenchmarkVerifyBlobs(b *testing.B) {
 		kzg.VerifyBlobs(commitments, blobs)
 	}
 }
-func verifykzg(commitment *bls.G1Point, xFr *bls.Fr, value *bls.Fr, proof *bls.G1Point, wg *sync.WaitGroup) {
+func verifykzg(commitment bls.G1Point, xFr bls.Fr, value bls.Fr, proof bls.G1Point, wg *sync.WaitGroup, result *bool) {
 	defer wg.Done()
-	kzg.VerifyKzgProof(commitment, xFr, value, proof)
+	resultKzg := kzg.VerifyKzgProof(&commitment, &xFr, &value, &proof)
+	if resultKzg != true {
+		*result = false
+	}
 }
 func BenchmarkVerifyKzgProof(b *testing.B) {
 	runtime.GOMAXPROCS(0)
@@ -77,12 +80,15 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 
 	b.ResetTimer()
 
-
+	result := true
 	for i := 0; i < b.N; i++ {
 		var wg sync.WaitGroup
 		for j := 0; j < 23; j++ {
 			wg.Add(1)
-			go verifykzg(commitment, &xFr, &value, proof, &wg)
+			go verifykzg(*commitment, xFr, value, *proof, &wg, &result)
+		}
+		if result != true {
+			b.Fatal("failed proof verification")
 		}
 		wg.Wait()
 	}
