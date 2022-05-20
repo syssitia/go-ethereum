@@ -344,11 +344,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
 		// add DA hashes
-		dataHashes := make([]common.Hash, len(nevmBlockConnect.DataHashes))
+		/*dataHashes := make([]common.Hash, len(nevmBlockConnect.DataHashes))
 		for i, dataHashBytes := range nevmBlockConnect.DataHashes {
 			dataHashes[i] = common.BytesToHash(dataHashBytes)
 		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)*/
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
