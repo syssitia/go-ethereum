@@ -56,12 +56,10 @@ func polyLongDiv(dividend []bls.Fr, divisor []bls.Fr) []bls.Fr {
 }
 
 // Helper: Compute proof for polynomial
-func ComputeProof(poly []bls.Fr, x uint64, crsG1 []bls.G1Point) *bls.G1Point {
+func ComputeProof(poly []bls.Fr, xFr *bls.Fr, crsG1 []bls.G1Point) *bls.G1Point {
 	// divisor = [-x, 1]
 	divisor := [2]bls.Fr{}
-	var tmp bls.Fr
-	bls.AsFr(&tmp, x)
-	bls.SubModFr(&divisor[0], &bls.ZERO, &tmp)
+	bls.SubModFr(&divisor[0], &bls.ZERO, xFr)
 	bls.CopyFr(&divisor[1], &bls.ONE)
 	//for i := 0; i < 2; i++ {
 	//	fmt.Printf("div poly %d: %s\n", i, FrStr(&divisor[i]))
@@ -115,17 +113,15 @@ func TestGoKzg(t *testing.T) {
 	}
 
 	// Create proof for testing
-	x := uint64(17)
-	proof := ComputeProof(polynomial, x, kzg.KzgSetupG1)
+	xFr := bls.RandomFr()
+	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 
 	// Get actual evaluation at x
-	var xFr bls.Fr
-	bls.AsFr(&xFr, x)
 	var value bls.Fr
-	bls.EvalPolyAt(&value, polynomial, &xFr)
+	bls.EvalPolyAt(&value, polynomial, xFr)
 
 	// Check proof against evaluation
-	if !kzgSettings.CheckProofSingle(commitmentByEval, proof, &xFr, &value) {
+	if !kzgSettings.CheckProofSingle(commitmentByEval, proof, xFr, &value) {
 		t.Fatal("could not verify proof")
 	}
 }
@@ -151,18 +147,16 @@ func TestKzg(t *testing.T) {
 	commitment := kzg.BlobToKzg(evalPoly)
 
 	// Create proof for testing
-	x := uint64(17)
-	proof := ComputeProof(polynomial, x, kzg.KzgSetupG1)
+	xFr := bls.RandomFr()
+	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 	
 	// Get actual evaluation at x
-	var xFr bls.Fr
-	bls.AsFr(&xFr, x)
 	var value bls.Fr
-	bls.EvalPolyAt(&value, polynomial, &xFr)
+	bls.EvalPolyAt(&value, polynomial, xFr)
 	t.Log("value\n", bls.FrStr(&value))
 
 	// Verify kzg proof
-	if kzg.VerifyKzgProof(commitment, &xFr, &value, proof) != true {
+	if kzg.VerifyKzgProof(commitment, xFr, &value, proof) != true {
 		t.Fatal("failed proof verification")
 	}
 }
@@ -236,8 +230,8 @@ func TestVerifyBlobs(t *testing.T) {
 
 // Helper: Create test vector for the BlobVerification precompile
 func TestBlobVerificationTestVector(t *testing.T) {
-	data := []byte(strings.Repeat("HELPMELOVEME ", 10083))[:params.FieldElementsPerBlob*32]
-
+	data := []byte(strings.Repeat("HELPMELOVEME ", 322639))[:params.FieldElementsPerBlob*32]
+	t.Logf("test-vector: %x", data)
 	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
 
 	var inputPoint [32]byte
@@ -251,7 +245,7 @@ func TestBlobVerificationTestVector(t *testing.T) {
 	versionedHash := commitment.ComputeVersionedHash()
 
 	calldata := append(versionedHash[:], data[:]...)
-	t.Logf("test-vector: %x", calldata)
+	//t.Logf("test-vector: %x", calldata)
 
 	precompile := vm.PrecompiledContractsDanksharding[common.BytesToAddress([]byte{0x13})]
 	if _, err := precompile.Run(calldata, nil); err != nil {
@@ -284,17 +278,15 @@ func TestPointEvaluationTestVector(t *testing.T) {
 	commitment := kzg.BlobToKzg(evalPoly)
 
 	// Create proof for testing
-	x := uint64(0x42)
-	proof := ComputeProof(polynomial, x, kzg.KzgSetupG1)
+	xFr := bls.RandomFr()
+	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 
 	// Get actual evaluation at x
-	var xFr bls.Fr
-	bls.AsFr(&xFr, x)
 	var y bls.Fr
-	bls.EvalPolyAt(&y, polynomial, &xFr)
+	bls.EvalPolyAt(&y, polynomial, xFr)
 
 	// Verify kzg proof
-	if kzg.VerifyKzgProof(commitment, &xFr, &y, proof) != true {
+	if kzg.VerifyKzgProof(commitment, xFr, &y, proof) != true {
 		panic("failed proof verification")
 	}
 
@@ -305,7 +297,7 @@ func TestPointEvaluationTestVector(t *testing.T) {
 
 	proofBytes := bls.ToCompressedG1(proof)
 
-	xBytes := bls.FrTo32(&xFr)
+	xBytes := bls.FrTo32(xFr)
 	yBytes := bls.FrTo32(&y)
 
 	calldata := append(versionedHash[:], xBytes[:]...)

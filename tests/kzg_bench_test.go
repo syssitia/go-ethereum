@@ -69,23 +69,27 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 	commitment := kzg.BlobToKzg(evalPoly)
 
 	// Create proof for testing
-	x := uint64(17)
-	proof := ComputeProof(polynomial, x, kzg.KzgSetupG1)
+	xFr := bls.RandomFr()
+	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 
 	// Get actual evaluation at x
-	var xFr bls.Fr
-	bls.AsFr(&xFr, x)
 	var value bls.Fr
-	bls.EvalPolyAt(&value, polynomial, &xFr)
-
-	b.ResetTimer()
-
+	bls.EvalPolyAt(&value, polynomial, xFr)
 	result := true
+	var wg sync.WaitGroup
+	xFrRand := bls.RandomFr()
+	wg.Add(1)
+	go verifykzg(*commitment, *xFrRand, value, *proof, &wg, &result)
+	wg.Wait()
+	if result == true {
+		b.Fatal("failed proof passed when expected to fail")
+	}
+	result = true
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		var wg sync.WaitGroup
 		for j := 0; j < 23; j++ {
 			wg.Add(1)
-			go verifykzg(*commitment, xFr, value, *proof, &wg, &result)
+			go verifykzg(*commitment, *xFr, value, *proof, &wg, &result)
 		}
 		if result != true {
 			b.Fatal("failed proof verification")
