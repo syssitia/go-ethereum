@@ -30,7 +30,7 @@ func BenchmarkBlobToKzg(b *testing.B) {
 func BenchmarkVerifyBlobs(b *testing.B) {
 	var blobs [][]bls.Fr
 	var commitments []*bls.G1Point
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 23; i++ {
 		blob := randomBlob()
 		blobs = append(blobs, blob)
 		commitments = append(commitments, kzg.BlobToKzg(blob))
