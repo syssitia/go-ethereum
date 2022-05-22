@@ -82,7 +82,6 @@ type Backend interface {
 	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error)
 	// SYSCOIN
 	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
-	ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error)
 }
 
 // API is the collection of tracing APIs exposed over the private debugging endpoint.
@@ -125,13 +124,6 @@ func (context *chainContext) ReadSYSHash(n uint64) []byte {
 		return nil
 	}
 	return sysBlockHash
-}
-func (context *chainContext) ReadDataHash(hash common.Hash) []byte {
-	dataHash, err := context.api.backend.ReadDataHash(context.ctx, hash)
-	if err != nil {
-		return nil
-	}
-	return dataHash
 }
 // chainContext construts the context reader which is used by the evm for reading
 // the necessary chain context.

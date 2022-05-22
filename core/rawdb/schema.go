@@ -99,8 +99,6 @@ var (
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
 	nevmToSysPrefix       = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
 	blockNumToSysKeyPrefix= []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
-	dataHashesKeyPrefix   = []byte("y") // dataHashesKeyPrefix + block number -> versioned hashes
-	dataHashKeyPrefix     = []byte("w") // dataHashKeyPrefix + versioned hash -> versioned hash
 	skeletonHeaderPrefix  = []byte("S") // skeletonHeaderPrefix + num (uint64 big endian) -> header
 
 	PreimagePrefix = []byte("secure-key-")       // PreimagePrefix + hash -> preimage
@@ -257,12 +255,6 @@ func nevmToSysKey(hash common.Hash) []byte {
 // blockNumToSysKey = blockNumToSysKeyPrefix + blocknumber
 func blockNumToSysKey(n uint64) []byte {
 	return append(blockNumToSysKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)
-}
-func dataHashesKey(n uint64) []byte {
-	return append(dataHashesKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)
-}
-func dataHashKey(hash common.Hash) []byte {
-	return append(dataHashKeyPrefix, hash.Bytes()...)
 }
 // genesisKey = genesisPrefix + hash
 func genesisKey(hash common.Hash) []byte {

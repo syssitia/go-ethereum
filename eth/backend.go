@@ -342,13 +342,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
-		// add DA hashes
-		dataHashes := make([]common.Hash, len(nevmBlockConnect.DataHashes))
-		for i, dataHashBytes := range nevmBlockConnect.DataHashes {
-			dataHashes[i] = common.BytesToHash(dataHashBytes)
-		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -399,12 +393,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
-		currentNumber := current.NumberU64()
 		if current.NumberU64() == 0 {
 			log.Warn("Trying to disconnect block 0")
 			return nil
 		}
-		parent := eth.blockchain.GetBlock(current.ParentHash(), currentNumber-1)
+		parent := eth.blockchain.GetBlock(current.ParentHash(), current.NumberU64()-1)
 		if parent == nil {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
@@ -412,12 +405,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return err
 		}
-		if eth.blockchain.CurrentBlock().NumberU64() != (currentNumber-1) {
+		if eth.blockchain.CurrentBlock().NumberU64() != (current.NumberU64()-1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())
-		eth.blockchain.DeleteSYSHash(currentNumber)
-		eth.blockchain.DeleteDataHashes(currentNumber)
+		eth.blockchain.DeleteSYSHash(current.NumberU64())
 		return nil
 	}
 	if ethashConfig.PowMode == ethash.ModeNEVM {

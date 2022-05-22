@@ -35,7 +35,6 @@ type ChainContext interface {
 	GetHeader(common.Hash, uint64) *types.Header
 	// SYSCOIN
 	ReadSYSHash(uint64) []byte
-	ReadDataHash(common.Hash) []byte
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
@@ -63,7 +62,6 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		GetHash:     GetHashFn(header, chain),
 		// SYSCOIN
 		ReadSYSHash:     ReadSYSHashFn(chain),
-		ReadDataHash:    ReadDataHashFn(chain),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        new(big.Int).SetUint64(header.Time),
@@ -122,11 +120,7 @@ func ReadSYSHashFn(chain ChainContext) func(n uint64) []byte {
 		return chain.ReadSYSHash(n)
 	}
 }
-func ReadDataHashFn(chain ChainContext) func(hash common.Hash) []byte {
-	return func(hash common.Hash) []byte {
-		return chain.ReadDataHash(hash)
-	}
-}
+
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {

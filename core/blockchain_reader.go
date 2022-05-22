@@ -396,21 +396,14 @@ func (bc *BlockChain) SubscribeBlockProcessingEvent(ch chan<- bool) event.Subscr
 func (bc *BlockChain) ReadSYSHash(n uint64) []byte {
 	return bc.hc.ReadSYSHash(n)
 }
-func (bc *BlockChain) ReadDataHash(hash common.Hash) []byte {
-	return bc.hc.ReadDataHash(hash)
-}
+
 func (bc *BlockChain) WriteSYSHash(sysBlockhash string, n uint64) {
 	bc.hc.WriteSYSHash(sysBlockhash, n)
-}
-func (bc *BlockChain) WriteDataHashes(n uint64, dataHashes []*common.Hash) {
-	bc.hc.WriteDataHashes(n, dataHashes)
-}
-func (bc *BlockChain) DeleteDataHashes(n uint64) {
-	bc.hc.DeleteDataHashes(n)
 }
 func (bc *BlockChain) DeleteSYSHash(n uint64) {
 	bc.hc.DeleteSYSHash(n)
 }
+
 // HasNEVMMapping checks if a NEVM block is present in the database or not, caching
 // it if present.
 func (bc *BlockChain) HasNEVMMapping(hash common.Hash) bool {
