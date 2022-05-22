@@ -16,7 +16,7 @@ import (
 	"github.com/protolambda/go-kzg/bls"
 )
 
-const CHUNKS_PER_BLOB = 65536
+const CHUNKS_PER_BLOB = 131072
 
 type JSONTrustedSetup struct {
 	SetupG1       []bls.G1Point

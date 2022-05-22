@@ -1094,8 +1094,7 @@ type blobVerification struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *blobVerification) RequiredGas(input []byte) uint64 {
-	// 4096 (4096*32) is base gas (BlobVerificationGas), anything above should scale up the cost
-	return params.BlobVerificationGas * (uint64(len(input))/131104)
+	return params.BlobVerificationGas
 }
 
 func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {

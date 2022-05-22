@@ -53,17 +53,14 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/syscoin/btcd/wire"
 )
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
-type LightNEVMVerifyDataFn func([]*wire.NEVMBlob) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
 type LightNEVMIndex struct {
 	// Callbacks
 	AddBlock    LightNEVMAddBlockFn    // Connects a new NEVM block
-	VerifyData  LightNEVMVerifyDataFn  // Verify Data Blob
 	DeleteBlock LightNEVMDeleteBlockFn // Disconnects NEVM tip
 }
 type LightEthereum struct {
@@ -212,47 +209,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
-	verifyData := funct(blobsWire []*wire.NEVMBlob) ([]common.Hash, error) {
-		dataHashes := make([]common.Hash, len(blobsWire))
-		blobs := make([][]bls.Fr, len(blobsWire))
-		commitments := make([]*bls.G1Point, len(blobsWire))
-		foundCommitent := false
-		for i, blob := range blobsWire {
-			if blob.VersionHash[0] != params.BlobCommitmentVersionKZG {
-				return nil, errors.New("invalid versioned hash")
-			}
-			dataHashes[i] = common.BytesToHash(blob.VersionHash)
-			var commitment types.KZGCommitment
-			if len(blob.Commitment) != commitment.FixedLength() {
-				continue
-			}
-			copy(commitment[:], blob.Commitment)
-			if commitment.ComputeVersionedHash() != dataHashes[i] {
-				return nil, errors.New("mismatched versioned hash")
-			}
-			lenBlob := len(blob.blob)
-			if lenBlob >  params.FieldElementsPerBlob {
-				return nil, errors.New("Blob too big")
-			}
-			foundCommitent = true
-			blobs[i]  := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
-			for j := 0; j < lenBlob; j++ {
-				ok := bls.FrFrom32(&blobs[i][j], blob.blob[i][j*32:(j+1)*32])
-				if ok != true {
-					return nil, errors.New("invalid chunk")
-				}
-			}
-   			commitments[i] = commitment.Point();
-		}
-		if foundCommitent == true {
-			err = kzg.VerifyBlobs(commitments, blobs)
-			if err != nil {
-				return nil, err
-			}
-		}
-		
-		return dataHashes, nil
-	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
@@ -357,7 +313,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {
-		leth.zmqRep = NewZMQRep(stack, leth, config.NEVMPubEP, LightNEVMIndex{addBlock, verifyData, deleteBlock})
+		leth.zmqRep = NewZMQRep(stack, leth, config.NEVMPubEP, LightNEVMIndex{addBlock, deleteBlock})
 	}
 	return leth, nil
 }

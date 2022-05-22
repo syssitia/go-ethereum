@@ -23,9 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/syscoin/btcd/wire"
 	"strconv"
-	"bytes"
 )
 
 type ZMQRep struct {
@@ -107,23 +105,6 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			}  else if strTopic == "nevmblockinfo" {
 				str := strconv.FormatUint(zmq.leth.blockchain.CurrentHeader().Number.Uint64(), 10)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
-				zmq.rep.SendMulti(msgSend)
-			} else if strTopic == "nevmcheckblob" {
-				result := "success"
-				nevmBlob := make(wire.NEVMBlob, 1)
-				r := bytes.NewReader(msg.Frames[1])
-				err = nevmBlob[0].Deserialize(r)
-				if err != nil {
-					log.Error("nevmcheckblobSub Deserialize", "err", err)
-					result = err.Error()
-				} else {
-					err = zmq.nevmIndexer.VerifyData(nevmBlob)
-					if err != nil {
-						log.Error("nevmcheckblobSub VerifyData", "err", err)
-						result = err.Error()
-					}
-				}
-				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblob"), []byte(result))
 				zmq.rep.SendMulti(msgSend)
 			}
 		}
