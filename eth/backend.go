@@ -58,6 +58,8 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	// SYSCOIN
+	"github.com/syscoin/btcd/wire"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -67,12 +69,14 @@ type Config = ethconfig.Config
 // SYSCOIN
 type NEVMCreateBlockFn func(*Ethereum) *types.Block
 type NEVMAddBlockFn func(*types.NEVMBlockConnect, *Ethereum) error
+type NEVMVerifyDataFn func([]*wire.NEVMBlob) error
 type NEVMDeleteBlockFn func(string, *Ethereum) error
 
 type NEVMIndex struct {
 	// Callbacks
 	CreateBlock NEVMCreateBlockFn // Mines a block locally
 	AddBlock    NEVMAddBlockFn    // Connects a new NEVM block
+	VerifyData  NEVMVerifyDataFn  // Verify Data Blob
 	DeleteBlock NEVMDeleteBlockFn // Disconnects NEVM tip
 }
 
@@ -119,7 +123,6 @@ type Ethereum struct {
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
 }
-
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
@@ -300,6 +303,47 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		return nil
 	}
+	verifyData := funct(blobsWire []*wire.NEVMBlob) ([]common.Hash, error) {
+		dataHashes := make([]common.Hash, len(blobsWire))
+		blobs := make([][]bls.Fr, len(blobsWire))
+		commitments := make([]*bls.G1Point, len(blobsWire))
+		foundCommitent := false
+		for i, blob := range blobsWire {
+			if blob.VersionHash[0] != params.BlobCommitmentVersionKZG {
+				return nil, errors.New("invalid versioned hash")
+			}
+			dataHashes[i] = common.BytesToHash(blob.VersionHash)
+			var commitment types.KZGCommitment
+			if len(blob.Commitment) != commitment.FixedLength() {
+				continue
+			}
+			copy(commitment[:], blob.Commitment)
+			if commitment.ComputeVersionedHash() != dataHashes[i] {
+				return nil, errors.New("mismatched versioned hash")
+			}
+			lenBlob := len(blob.blob)
+			if lenBlob >  params.FieldElementsPerBlob {
+				return nil, errors.New("Blob too big")
+			}
+			foundCommitent = true
+			blobs[i]  := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+			for j := 0; j < lenBlob; j++ {
+				ok := bls.FrFrom32(&blobs[i][j], blob.blob[i][j*32:(j+1)*32])
+				if ok != true {
+					return nil, errors.New("invalid chunk")
+				}
+			}
+   			commitments[i] = commitment.Point();
+		}
+		if foundCommitent == true {
+			err = kzg.VerifyBlobs(commitments, blobs)
+			if err != nil {
+				return nil, err
+			}
+		}
+		
+		return dataHashes, nil
+	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
@@ -335,6 +379,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			}
 			return err
 		}
+		err, dataHashes := verifyData(nevmBlockConnect.Blobs)
+		if err != nil {
+			return err
+		}
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
 		// do before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 		_, err := eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))
@@ -343,12 +392,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
-		// add DA hashes
-		/*dataHashes := make([]common.Hash, len(nevmBlockConnect.DataHashes))
-		for i, dataHashBytes := range nevmBlockConnect.DataHashes {
-			dataHashes[i] = common.BytesToHash(dataHashBytes)
-		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)*/
+
+
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -421,7 +466,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil
 	}
 	if ethashConfig.PowMode == ethash.ModeNEVM {
-		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
+		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, verifyData, deleteBlock})
 	}
 	return eth, err
 }
