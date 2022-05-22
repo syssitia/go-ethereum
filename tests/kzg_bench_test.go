@@ -26,18 +26,20 @@ func BenchmarkBlobToKzg(b *testing.B) {
 		kzg.BlobToKzg(blob)
 	}
 }
-
 func BenchmarkVerifyBlobs(b *testing.B) {
 	var blobs [][]bls.Fr
 	var commitments []*bls.G1Point
-	for i := 0; i < 23; i++ {
+	for i := 0; i < 32; i++ {
 		blob := randomBlob()
 		blobs = append(blobs, blob)
 		commitments = append(commitments, kzg.BlobToKzg(blob))
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		kzg.VerifyBlobs(commitments, blobs)
+		err := kzg.VerifyBlobs(commitments, blobs)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 func verifykzg(commitment bls.G1Point, xFr bls.Fr, value bls.Fr, proof bls.G1Point, wg *sync.WaitGroup, result *bool) {
@@ -66,25 +68,17 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 
 	// Now let's start testing the kzg module
 	// Create a commitment
-	commitment := kzg.BlobToKzg(evalPoly)
-
-	// Create proof for testing
+	
 	xFr := bls.RandomFr()
 	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 
 	// Get actual evaluation at x
 	var value bls.Fr
 	bls.EvalPolyAt(&value, polynomial, xFr)
+	commitment := kzg.BlobToKzg(evalPoly)
+	// Create proof for testing
 	result := true
 	var wg sync.WaitGroup
-	xFrRand := bls.RandomFr()
-	wg.Add(1)
-	go verifykzg(*commitment, *xFrRand, value, *proof, &wg, &result)
-	wg.Wait()
-	if result == true {
-		b.Fatal("failed proof passed when expected to fail")
-	}
-	result = true
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < 23; j++ {

@@ -193,6 +193,7 @@ type NEVMBlockConnect struct {
 	Blockhash       common.Hash
 	Sysblockhash    string
 	Block           *Block
+	Blobs           []*wire.NEVMBlob
 }
 
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
@@ -225,6 +226,7 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
+	n.Blobs = NEVMBlockWire.Blobs
 	return nil
 }
 
