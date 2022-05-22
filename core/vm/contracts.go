@@ -20,7 +20,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -29,9 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/blake2b"
 	"github.com/ethereum/go-ethereum/crypto/bls12381"
 	"github.com/ethereum/go-ethereum/crypto/bn256"
-	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/protolambda/go-kzg/bls"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
@@ -134,9 +131,6 @@ func init() {
 		PrecompiledAddressesBerlin = append(PrecompiledAddressesBerlin, k)
 	}
 	for k := range PrecompiledContractsSyscoin {
-		PrecompiledAddressesSyscoin = append(PrecompiledAddressesSyscoin, k)
-	}
-	for k := range PrecompiledContractsDanksharding {
 		PrecompiledAddressesSyscoin = append(PrecompiledAddressesSyscoin, k)
 	}
 }
@@ -1075,132 +1069,5 @@ func (c *datahash) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error
 	}
 
 	return interpreter.evm.Context.ReadDataHash(common.BytesToHash(input)), nil
-}
-
-var PrecompiledContractsDanksharding = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{0x13}): &blobVerification{},
-	common.BytesToAddress([]byte{0x14}): &pointEvaluation{},
-}
-
-var (
-	errBlobVerificationInputLength = errors.New("invalid input length")
-	errInvalidVersionedHash        = errors.New("invalid versioned hash")
-	errInvalidChunk                = errors.New("invalid chunk")
-	errBadBlobCommitment           = errors.New("versioned hash did not match")
-)
-
-// DOCDOC
-type blobVerification struct{}
-
-// RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *blobVerification) RequiredGas(input []byte) uint64 {
-	return params.BlobVerificationGas
-}
-
-func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {
-	if len(input) != 32+(32*params.FieldElementsPerBlob) {
-		return nil, errBlobVerificationInputLength
-	}
-
-	var expectedVersionedHash [32]byte
-	copy(expectedVersionedHash[:], input[:32])
-	if expectedVersionedHash[0] != params.BlobCommitmentVersionKZG {
-		return nil, errInvalidVersionedHash
-	}
-
-	input = input[32:] // skip forward to the input points
-
-	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
-	var inputPoint [32]byte
-	for i := 0; i < params.FieldElementsPerBlob; i++ {
-		copy(inputPoint[:32], input[i*32:(i+1)*32])
-		ok := bls.FrFrom32(&inputPoints[i], inputPoint)
-		if ok != true {
-			return nil, errInvalidChunk
-		}
-	}
-
-	// Get versioned hash out of input points
-	commitment := kzg.BlobToKzg(inputPoints)
-	var compressedCommitment types.KZGCommitment
-	copy(compressedCommitment[:], bls.ToCompressedG1(commitment))
-
-	versionedHash := compressedCommitment.ComputeVersionedHash()
-	if versionedHash != expectedVersionedHash {
-		return nil, errBadBlobCommitment
-	}
-
-	return []byte{}, nil
-}
-
-// DOCDOC
-type pointEvaluation struct{}
-
-var (
-	errPointEvaluationInputLength           = errors.New("invalid input length")
-	errPointEvaluationInvalidVersionedHash  = errors.New("invalid versioned hash")
-	errPointEvaluationInvalidX              = errors.New("invalid evaluation point")
-	errPointEvaluationInvalidY              = errors.New("invalid expected output")
-	errPointEvaluationInvalidKzg            = errors.New("invalid data kzg")
-	errPointEvaluationInvalidProof          = errors.New("invalid proof")
-	errPointEvaluationMismatchVersionedHash = errors.New("mismatched versioned hash")
-	errPointEvaluationBadProof              = errors.New("bad proof")
-)
-
-// RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *pointEvaluation) RequiredGas(input []byte) uint64 {
-	return params.PointEvaluationGas
-}
-
-func (c *pointEvaluation) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {
-	if len(input) != 192 {
-		return nil, errPointEvaluationInputLength
-	}
-
-	var versionedHash common.Hash
-	copy(versionedHash[:], input[:32])
-	// XXX Should we version check the hash?
-	if versionedHash[0] != params.BlobCommitmentVersionKZG {
-		return nil, errInvalidVersionedHash
-	}
-
-	var x bls.Fr
-	var data [32]byte
-	copy(data[:], input[32:64])
-	ok := bls.FrFrom32(&x, data)
-	if ok != true {
-		return nil, errPointEvaluationInvalidX
-	}
-
-	var y bls.Fr
-	copy(data[:], input[64:96])
-	ok = bls.FrFrom32(&y, data)
-	if ok != true {
-		return nil, errPointEvaluationInvalidY
-	}
-
-	var commitment types.KZGCommitment
-	copy(commitment[:], input[96:144])
-	if commitment.ComputeVersionedHash() != versionedHash {
-		return nil, errPointEvaluationMismatchVersionedHash
-	}
-
-	parsedCommitment, err := commitment.Point()
-	if err != nil {
-		return nil, errPointEvaluationInvalidKzg
-	}
-
-	var proof types.KZGCommitment
-	copy(proof[:], input[144:192])
-	parsedProof, err := proof.Point()
-	if err != nil {
-		return nil, errPointEvaluationInvalidProof
-	}
-
-	if kzg.VerifyKzgProof(parsedCommitment, &x, &y, parsedProof) != true {
-		return nil, errPointEvaluationBadProof
-	}
-
-	return []byte{}, nil
 }
 
