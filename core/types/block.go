@@ -250,7 +250,7 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 	var inputPoint [32]byte
-	for i := 0; i < len(blob); i++ {
+	for i := 0; i < lenBlob; i++ {
 		copy(inputPoint[:32], blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
 		if ok != true {
@@ -262,7 +262,7 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	n.Commitment = kzg.BlobToKzg(n.Blob)
 	// need the full field elements array above to properly calculate and validate blob to kzg, 
 	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
-	n.Blob = n.Blob[0:len(blob)]
+	n.Blob = n.Blob[0:lenBlob]
 	var compressedCommitment KZGCommitment
 	copy(compressedCommitment[:], bls.ToCompressedG1(n.Commitment))
 	n.VersionHash = compressedCommitment.ComputeVersionedHash()
@@ -286,9 +286,7 @@ func (n *NEVMBlob) Serialize() ([]byte, error) {
 	var NEVMBlobWire wire.NEVMBlob
 	var err error
 	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
-	var out KZGCommitment
-	copy(out[:], bls.ToCompressedG1(n.Commitment))
-	copy(NEVMBlobWire.Commitment[:], out[:])
+	copy(NEVMBlobWire.Commitment[:], bls.ToCompressedG1(n.Commitment))
 	for _, fr := range n.Blob {
 		bBytes := bls.FrTo32(&fr)
 		sliceBytes := make([]byte, 32)
