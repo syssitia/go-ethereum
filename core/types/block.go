@@ -33,8 +33,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 	// SYSCOIN
+	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/syscoin/btcd/wire"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/protolambda/go-kzg/bls"
+	
 )
 
 var (
@@ -189,13 +193,110 @@ type Block struct {
 }
 
 // SYSCOIN
+type NEVMBlob struct {
+	VersionHash common.Hash
+	Commitment *bls.G1Point
+	Blob []bls.Fr
+}
 type NEVMBlockConnect struct {
 	Blockhash       common.Hash
 	Sysblockhash    string
 	Block           *Block
-	Blobs           []*wire.NEVMBlob
+	Blobs           []*NEVMBlob
 }
+func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
+	var err error
+	n.VersionHash = common.BytesToHash(NEVMBlobWire.VersionHash)
+	if n.VersionHash[0] != params.BlobCommitmentVersionKZG {
+		return errors.New("invalid versioned hash")
+	}
+	var commitment KZGCommitment
+	// if commitment exists deserialize it, not required as core would have perhaps already processed it (during mempool inclusion)
+	if len(NEVMBlobWire.Commitment) == int(commitment.FixedLength()) {
+		copy(commitment[:], NEVMBlobWire.Commitment)
+		if commitment.ComputeVersionedHash() != n.VersionHash {
+			return errors.New("mismatched versioned hash")
+		}
+		n.Commitment, err = commitment.Point()
+		if err != nil {
+			return errors.New("invalid proof")
+		}
+		lenBlob := len(NEVMBlobWire.Blob)
+		if lenBlob > params.FieldElementsPerBlob {
+			return errors.New("Blob too big")
+		}
+		n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+		var inputPoint [32]byte
+		for i := 0; i < lenBlob; i++ {
+			copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
+			ok := bls.FrFrom32(&n.Blob[i], inputPoint)
+			if ok != true {
+				return errors.New("invalid chunk")
+			}
+		}
+	}
+	return nil
+}
+func (n *NEVMBlob) FromBytes(blob []byte) error {
+	lenBlob := len(blob)
+	if lenBlob == 0 {
+		return errors.New("empty blob")
+	}
+	if lenBlob > params.FieldElementsPerBlob {
+		return errors.New("Blob too big")
+	}
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	var inputPoint [32]byte
+	for i := 0; i < len(blob); i++ {
+		copy(inputPoint[:32], blob[i*32:(i+1)*32])
+		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
+		if ok != true {
+			return errors.New("invalid chunk")
+		}
+	}
 
+	// Get versioned hash out of input points
+	n.Commitment = kzg.BlobToKzg(n.Blob)
+	var compressedCommitment KZGCommitment
+	copy(compressedCommitment[:], bls.ToCompressedG1(n.Commitment))
+	n.VersionHash = compressedCommitment.ComputeVersionedHash()
+	return nil
+}
+func (n *NEVMBlob) Deserialize(bytesIn []byte) error {
+	var NEVMBlobWire wire.NEVMBlob
+	r := bytes.NewReader(bytesIn)
+	err := NEVMBlobWire.Deserialize(r)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not deserialize", "err", err)
+		return err
+	}
+	err = n.FromWire(&NEVMBlobWire)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (n *NEVMBlob) Serialize() ([]byte, error) {
+	var NEVMBlobWire wire.NEVMBlob
+	var err error
+	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
+	var out KZGCommitment
+	copy(out[:], bls.ToCompressedG1(n.Commitment))
+	copy(NEVMBlobWire.Commitment[:], out[:])
+	for _, fr := range n.Blob {
+		bBytes := bls.FrTo32(&fr)
+		sliceBytes := make([]byte, 32)
+		copy(sliceBytes[:], bBytes[:])
+		NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, sliceBytes...)
+	}
+	var buffer bytes.Buffer
+	err = NEVMBlobWire.Serialize(&buffer)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not serialize", "err", err)
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	var NEVMBlockWire wire.NEVMBlockWire
 	r := bytes.NewReader(bytesIn)
@@ -226,7 +327,14 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
-	n.Blobs = NEVMBlockWire.Blobs
+	numBlobs := len(NEVMBlockWire.Blobs)
+	n.Blobs = make([]*NEVMBlob, numBlobs)
+	for i := 0; i < int(numBlobs); i++ {
+		err = n.Blobs[i].FromWire(NEVMBlockWire.Blobs[i])
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

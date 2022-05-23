@@ -23,9 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/syscoin/btcd/wire"
 	"strconv"
-	"bytes"
 )
 
 type ZMQRep struct {
@@ -110,20 +108,41 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcheckblob" {
 				result := "success"
-				nevmBlob := make(wire.NEVMBlob, 1)
-				r := bytes.NewReader(msg.Frames[1])
-				err = nevmBlob[0].Deserialize(r)
+				var nevmBlob types.NEVMBlob
+				err = nevmBlob.Deserialize(msg.Frames[1])
 				if err != nil {
 					log.Error("nevmcheckblobSub Deserialize", "err", err)
 					result = err.Error()
 				} else {
-					err = zmq.nevmIndexer.VerifyData(nevmBlob)
+					_, err = zmq.nevmIndexer.VerifyData([]*types.NEVMBlob{&nevmBlob})
 					if err != nil {
 						log.Error("nevmcheckblobSub VerifyData", "err", err)
 						result = err.Error()
 					}
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblob"), []byte(result))
+				zmq.rep.SendMulti(msgSend)
+			} else if strTopic == "nevmcreateblob" {
+				var nevmBlobBytes []byte
+				var nevmBlob types.NEVMBlob
+				// pass in blob and return nevm blob including kzg information
+				err = nevmBlob.FromBytes(msg.Frames[1])
+				if err != nil {
+					log.Error("nevmcreateblob Deserialize", "err", err)
+					nevmBlobBytes = make([]byte, 0)
+				} else {
+					_, err = zmq.nevmIndexer.VerifyData([]*types.NEVMBlob{&nevmBlob})
+					if err != nil {
+						log.Error("nevmcreateblob VerifyData", "err", err)
+						nevmBlobBytes = make([]byte, 0)
+					}
+				}
+				nevmBlobBytes, err := nevmBlob.Serialize()
+				if err != nil {
+					log.Error("nevmcreateblob", "err", err)
+					nevmBlobBytes = make([]byte, 0)
+				}
+				msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
 				zmq.rep.SendMulti(msgSend)
 			}
 		}

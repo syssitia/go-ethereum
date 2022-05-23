@@ -53,11 +53,12 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/syscoin/btcd/wire"
+	"github.com/ethereum/go-ethereum/crypto/kzg"
+	"github.com/protolambda/go-kzg/bls"
 )
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
-type LightNEVMVerifyDataFn func([]*wire.NEVMBlob) error
+type LightNEVMVerifyDataFn func([]*types.NEVMBlob) ([]*common.Hash, error)
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
 type LightNEVMIndex struct {
@@ -212,45 +213,25 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
-	verifyData := funct(blobsWire []*wire.NEVMBlob) ([]common.Hash, error) {
-		dataHashes := make([]common.Hash, len(blobsWire))
-		blobs := make([][]bls.Fr, len(blobsWire))
-		commitments := make([]*bls.G1Point, len(blobsWire))
-		foundCommitent := false
-		for i, blob := range blobsWire {
-			if blob.VersionHash[0] != params.BlobCommitmentVersionKZG {
-				return nil, errors.New("invalid versioned hash")
-			}
-			dataHashes[i] = common.BytesToHash(blob.VersionHash)
-			var commitment types.KZGCommitment
-			if len(blob.Commitment) != commitment.FixedLength() {
+	verifyData := func(blobsIn []*types.NEVMBlob) ([]*common.Hash, error) {
+		dataHashes := make([]*common.Hash, len(blobsIn))
+		var blobs [][]bls.Fr
+		var commitments []*bls.G1Point
+		for i, blob := range blobsIn {
+			dataHashes[i] = &blob.VersionHash
+			// blob can be empty, UTXO chain would have verified it to be correct through mempool and so we don't need to recheck commitment
+			if len(blob.Blob) == 0 {
 				continue
 			}
-			copy(commitment[:], blob.Commitment)
-			if commitment.ComputeVersionedHash() != dataHashes[i] {
-				return nil, errors.New("mismatched versioned hash")
-			}
-			lenBlob := len(blob.blob)
-			if lenBlob >  params.FieldElementsPerBlob {
-				return nil, errors.New("Blob too big")
-			}
-			foundCommitent = true
-			blobs[i]  := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
-			for j := 0; j < lenBlob; j++ {
-				ok := bls.FrFrom32(&blobs[i][j], blob.blob[i][j*32:(j+1)*32])
-				if ok != true {
-					return nil, errors.New("invalid chunk")
-				}
-			}
-   			commitments[i] = commitment.Point();
+			blobs = append(blobs, blob.Blob)
+			commitments = append(commitments, blob.Commitment)
 		}
-		if foundCommitent == true {
-			err = kzg.VerifyBlobs(commitments, blobs)
+		if len(blobs )> 0 {
+			err := kzg.VerifyBlobs(commitments, blobs)
 			if err != nil {
 				return nil, err
 			}
 		}
-		
 		return dataHashes, nil
 	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
@@ -273,20 +254,19 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				return errors.New("addBlock: Non contiguous block insert")
 			}
 		}
+		dataHashes, err := verifyData(nevmBlockConnect.Blobs)
+		if err != nil {
+			return err
+		}
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
-		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		_, err = eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
-		// add DA hashes
-		/*dataHashes := make([]common.Hash, len(nevmBlockConnect.DataHashes))
-		for i, dataHashBytes := range nevmBlockConnect.DataHashes {
-			dataHashes[i] = common.BytesToHash(dataHashBytes)
-		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)*/
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
