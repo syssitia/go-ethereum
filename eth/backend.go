@@ -70,7 +70,7 @@ type Config = ethconfig.Config
 // SYSCOIN
 type NEVMCreateBlockFn func(*Ethereum) *types.Block
 type NEVMAddBlockFn func(*types.NEVMBlockConnect, *Ethereum) error
-type NEVMVerifyDataFn func([]*types.NEVMBlob) ([]*common.Hash, error)
+type NEVMVerifyDataFn func(types.NEVMBlobs) error
 type NEVMDeleteBlockFn func(string, *Ethereum) error
 
 type NEVMIndex struct {
@@ -304,12 +304,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		return nil
 	}
-	verifyData := func(blobsIn []*types.NEVMBlob) ([]*common.Hash, error) {
-		dataHashes := make([]*common.Hash, len(blobsIn))
+	verifyData := func(blobsIn types.NEVMBlobs) error {
 		var blobs [][]bls.Fr
 		var commitments []*bls.G1Point
-		for i, blob := range blobsIn {
-			dataHashes[i] = &blob.VersionHash
+		for _, blob := range blobsIn.Blobs {
 			// blob can be empty, UTXO chain would have verified it to be correct through mempool and so we don't need to recheck commitment
 			if len(blob.Blob) == 0 {
 				continue
@@ -320,10 +318,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if len(blobs )> 0 {
 			err := kzg.VerifyBlobs(commitments, blobs)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
-		return dataHashes, nil
+		return nil
 	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
 		if nevmBlockConnect == nil  {
@@ -360,11 +358,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			}
 			return err
 		}
-		dataHashes, err := verifyData(nevmBlockConnect.Blobs)
-		if err != nil {
-			return err
-		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
 		// do before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 		_, err = eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))

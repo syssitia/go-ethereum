@@ -198,11 +198,14 @@ type NEVMBlob struct {
 	Commitment *bls.G1Point
 	Blob []bls.Fr
 }
+type NEVMBlobs struct {
+	Blobs []*NEVMBlob
+}
 type NEVMBlockConnect struct {
 	Blockhash       common.Hash
 	Sysblockhash    string
 	Block           *Block
-	Blobs           []*NEVMBlob
+	VersionHashes   []*common.Hash
 }
 func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 	var err error
@@ -225,7 +228,7 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 		if lenBlob > params.FieldElementsPerBlob {
 			return errors.New("Blob too big")
 		}
-		n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+		n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 		var inputPoint [32]byte
 		for i := 0; i < lenBlob; i++ {
 			copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
@@ -257,6 +260,9 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 
 	// Get versioned hash out of input points
 	n.Commitment = kzg.BlobToKzg(n.Blob)
+	// need the full field elements array above to properly calculate and validate blob to kzg, 
+	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
+	n.Blob = n.Blob[0:len(blob)]
 	var compressedCommitment KZGCommitment
 	copy(compressedCommitment[:], bls.ToCompressedG1(n.Commitment))
 	n.VersionHash = compressedCommitment.ComputeVersionedHash()
@@ -297,6 +303,24 @@ func (n *NEVMBlob) Serialize() ([]byte, error) {
 	}
 	return buffer.Bytes(), nil
 }
+func (n *NEVMBlobs) Deserialize(bytesIn []byte) error {
+	var NEVMBlobsWire wire.NEVMBlobs
+	r := bytes.NewReader(bytesIn)
+	err := NEVMBlobsWire.Deserialize(r)
+	if err != nil {
+		log.Error("NEVMBlobs: could not deserialize", "err", err)
+		return err
+	}
+	numBlobs := len(NEVMBlobsWire.Blobs)
+	n.Blobs = make([]*NEVMBlob, numBlobs)
+	for i := 0; i < int(numBlobs); i++ {
+		err = n.Blobs[i].FromWire(NEVMBlobsWire.Blobs[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	var NEVMBlockWire wire.NEVMBlockWire
 	r := bytes.NewReader(bytesIn)
@@ -327,13 +351,11 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
-	numBlobs := len(NEVMBlockWire.Blobs)
-	n.Blobs = make([]*NEVMBlob, numBlobs)
-	for i := 0; i < int(numBlobs); i++ {
-		err = n.Blobs[i].FromWire(NEVMBlockWire.Blobs[i])
-		if err != nil {
-			return err
-		}
+	numVH := len(NEVMBlockWire.VersionHashes)
+	n.VersionHashes = make([]*common.Hash, numVH)
+	for i := 0; i < int(numVH); i++ {
+		vh := common.BytesToHash(NEVMBlockWire.VersionHashes[i])
+		n.VersionHashes[i] = &vh
 	}
 	return nil
 }

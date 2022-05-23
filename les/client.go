@@ -58,7 +58,7 @@ import (
 )
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
-type LightNEVMVerifyDataFn func([]*types.NEVMBlob) ([]*common.Hash, error)
+type LightNEVMVerifyDataFn func(types.NEVMBlobs) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
 type LightNEVMIndex struct {
@@ -213,12 +213,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
-	verifyData := func(blobsIn []*types.NEVMBlob) ([]*common.Hash, error) {
-		dataHashes := make([]*common.Hash, len(blobsIn))
+	verifyData := func(blobsIn types.NEVMBlobs) error {
 		var blobs [][]bls.Fr
 		var commitments []*bls.G1Point
-		for i, blob := range blobsIn {
-			dataHashes[i] = &blob.VersionHash
+		for _, blob := range blobsIn.Blobs {
 			// blob can be empty, UTXO chain would have verified it to be correct through mempool and so we don't need to recheck commitment
 			if len(blob.Blob) == 0 {
 				continue
@@ -229,10 +227,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if len(blobs )> 0 {
 			err := kzg.VerifyBlobs(commitments, blobs)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
-		return dataHashes, nil
+		return nil
 	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
 		if nevmBlockConnect == nil  {
@@ -254,11 +252,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				return errors.New("addBlock: Non contiguous block insert")
 			}
 		}
-		dataHashes, err := verifyData(nevmBlockConnect.Blobs)
-		if err != nil {
-			return err
-		}
-		eth.blockchain.WriteDataHashes(proposedBlockNumber, dataHashes)
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
 		_, err = eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)

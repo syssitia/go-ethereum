@@ -116,21 +116,21 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				str := strconv.FormatUint(zmq.eth.blockchain.CurrentBlock().NumberU64(), 10)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
 				zmq.rep.SendMulti(msgSend)
-			} else if strTopic == "nevmcheckblob" {
+			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
-				var nevmBlob types.NEVMBlob
-				err = nevmBlob.Deserialize(msg.Frames[1])
+				var nevmBlobs types.NEVMBlobs
+				err = nevmBlobs.Deserialize(msg.Frames[1])
 				if err != nil {
-					log.Error("nevmcheckblobSub Deserialize", "err", err)
+					log.Error("nevmcheckblobsSub Deserialize", "err", err)
 					result = err.Error()
 				} else {
-					_, err = zmq.nevmIndexer.VerifyData([]*types.NEVMBlob{&nevmBlob})
+					err = zmq.nevmIndexer.VerifyData(nevmBlobs)
 					if err != nil {
-						log.Error("nevmcheckblobSub VerifyData", "err", err)
+						log.Error("nevmcheckblobsSub VerifyData", "err", err)
 						result = err.Error()
 					}
 				}
-				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblob"), []byte(result))
+				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
@@ -140,7 +140,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					log.Error("nevmcreateblob Deserialize", "err", err)
 					nevmBlobBytes = make([]byte, 0)
 				} else {
-					_, err = zmq.nevmIndexer.VerifyData([]*types.NEVMBlob{&nevmBlob})
+					var blobs types.NEVMBlobs
+					blobs.Blobs = make([]*types.NEVMBlob, 1)
+					blobs.Blobs[0] = &nevmBlob
+					err = zmq.nevmIndexer.VerifyData(blobs)
 					if err != nil {
 						log.Error("nevmcreateblob VerifyData", "err", err)
 						nevmBlobBytes = make([]byte, 0)
