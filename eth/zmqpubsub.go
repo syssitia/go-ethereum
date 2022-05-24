@@ -124,7 +124,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					log.Error("nevmcheckblobsSub Deserialize", "err", err)
 					result = err.Error()
 				} else {
-					err = zmq.nevmIndexer.VerifyData(nevmBlobs)
+					err = nevmBlobs.Verify()
 					if err != nil {
 						log.Error("nevmcheckblobsSub VerifyData", "err", err)
 						result = err.Error()
@@ -143,7 +143,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					var blobs types.NEVMBlobs
 					blobs.Blobs = make([]*types.NEVMBlob, 1)
 					blobs.Blobs[0] = &nevmBlob
-					err = zmq.nevmIndexer.VerifyData(blobs)
+					err = blobs.Verify()
 					if err != nil {
 						log.Error("nevmcreateblob VerifyData", "err", err)
 						nevmBlobBytes = make([]byte, 0)

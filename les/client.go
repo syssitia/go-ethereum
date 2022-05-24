@@ -53,18 +53,14 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/crypto/kzg"
-	"github.com/protolambda/go-kzg/bls"
 )
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
-type LightNEVMVerifyDataFn func(types.NEVMBlobs) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
 type LightNEVMIndex struct {
 	// Callbacks
 	AddBlock    LightNEVMAddBlockFn    // Connects a new NEVM block
-	VerifyData  LightNEVMVerifyDataFn  // Verify Data Blob
 	DeleteBlock LightNEVMDeleteBlockFn // Disconnects NEVM tip
 }
 type LightEthereum struct {
@@ -213,25 +209,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
-	verifyData := func(blobsIn types.NEVMBlobs) error {
-		var blobs [][]bls.Fr
-		var commitments []*bls.G1Point
-		for _, blob := range blobsIn.Blobs {
-			// blob can be empty, UTXO chain would have verified it to be correct through mempool and so we don't need to recheck commitment
-			if len(blob.Blob) == 0 {
-				continue
-			}
-			blobs = append(blobs, blob.Blob)
-			commitments = append(commitments, blob.Commitment)
-		}
-		if len(blobs )> 0 {
-			err := kzg.VerifyBlobs(commitments, blobs)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
@@ -331,7 +308,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {
-		leth.zmqRep = NewZMQRep(stack, leth, config.NEVMPubEP, LightNEVMIndex{addBlock, verifyData, deleteBlock})
+		leth.zmqRep = NewZMQRep(stack, leth, config.NEVMPubEP, LightNEVMIndex{addBlock, deleteBlock})
 	}
 	return leth, nil
 }

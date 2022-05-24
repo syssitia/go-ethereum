@@ -58,9 +58,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	// SYSCOIN
-	"github.com/ethereum/go-ethereum/crypto/kzg"
-	"github.com/protolambda/go-kzg/bls"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -70,14 +67,12 @@ type Config = ethconfig.Config
 // SYSCOIN
 type NEVMCreateBlockFn func(*Ethereum) *types.Block
 type NEVMAddBlockFn func(*types.NEVMBlockConnect, *Ethereum) error
-type NEVMVerifyDataFn func(types.NEVMBlobs) error
 type NEVMDeleteBlockFn func(string, *Ethereum) error
 
 type NEVMIndex struct {
 	// Callbacks
 	CreateBlock NEVMCreateBlockFn // Mines a block locally
 	AddBlock    NEVMAddBlockFn    // Connects a new NEVM block
-	VerifyData  NEVMVerifyDataFn  // Verify Data Blob
 	DeleteBlock NEVMDeleteBlockFn // Disconnects NEVM tip
 }
 
@@ -304,25 +299,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		return nil
 	}
-	verifyData := func(blobsIn types.NEVMBlobs) error {
-		var blobs [][]bls.Fr
-		var commitments []*bls.G1Point
-		for _, blob := range blobsIn.Blobs {
-			// blob can be empty, UTXO chain would have verified it to be correct through mempool and so we don't need to recheck commitment
-			if len(blob.Blob) == 0 {
-				continue
-			}
-			blobs = append(blobs, blob.Blob)
-			commitments = append(commitments, blob.Commitment)
-		}
-		if len(blobs )> 0 {
-			err := kzg.VerifyBlobs(commitments, blobs)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
 		if nevmBlockConnect == nil  {
 			return errors.New("addBlock: Empty block")
@@ -441,7 +417,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil
 	}
 	if ethashConfig.PowMode == ethash.ModeNEVM {
-		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, verifyData, deleteBlock})
+		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
 	}
 	return eth, err
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	gokzg "github.com/protolambda/go-kzg"
 	"github.com/protolambda/go-kzg/bls"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math"
 	"sync"
 	"testing"
@@ -26,17 +27,19 @@ func BenchmarkBlobToKzg(b *testing.B) {
 		kzg.BlobToKzg(blob)
 	}
 }
-func BenchmarkVerifyBlobs(b *testing.B) {
-	var blobs [][]bls.Fr
-	var commitments []*bls.G1Point
+func BenchmarkVerify(b *testing.B) {
+	var blobs types.NEVMBlobs
+	blobs.Blobs = make([]*types.NEVMBlob, 32)
 	for i := 0; i < 32; i++ {
 		blob := randomBlob()
-		blobs = append(blobs, blob)
-		commitments = append(commitments, kzg.BlobToKzg(blob))
+		var nevmBlob types.NEVMBlob
+		nevmBlob.Blob = blob
+		nevmBlob.Commitment = kzg.BlobToKzg(blob)
+		blobs.Blobs[i] = &nevmBlob
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := kzg.VerifyBlobs(commitments, blobs)
+		err := blobs.Verify()
 		if err != nil {
 			b.Fatal(err)
 		}

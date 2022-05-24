@@ -82,12 +82,12 @@ func TestGoKzg(t *testing.T) {
 
 	// Create a CRS with `n` elements for `s`
 	s := "1927409816240961209460912649124"
-	kzgSetupG1, kzgSetupG2 := gokzg.GenerateTestingSetup(s, params.FieldElementsPerBlob)
+	kzgSetupG1, KzgSetupG2 := gokzg.GenerateTestingSetup(s, params.FieldElementsPerBlob)
 
 	// Wrap it all up in KZG settings
-	kzgSettings := gokzg.NewKZGSettings(fs, kzgSetupG1, kzgSetupG2)
+	kzgSettings := gokzg.NewKZGSettings(fs, kzgSetupG1, KzgSetupG2)
 
-	kzgSetupLagrange, err := fs.FFTG1(kzgSettings.SecretG1[:params.FieldElementsPerBlob], true)
+	KzgSetupLagrange, err := fs.FFTG1(kzgSettings.SecretG1[:params.FieldElementsPerBlob], true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestGoKzg(t *testing.T) {
 
 	// Get commitments to polynomial
 	commitmentByCoeffs := kzgSettings.CommitToPoly(polynomial)
-	commitmentByEval := gokzg.CommitToEvalPoly(kzgSetupLagrange, evalPoly)
+	commitmentByEval := gokzg.CommitToEvalPoly(KzgSetupLagrange, evalPoly)
 	if !bls.EqualG1(commitmentByEval, commitmentByCoeffs) {
 		t.Fatalf("expected commitments to be equal, but got:\nby eval: %s\nby coeffs: %s",
 			commitmentByEval, commitmentByCoeffs)
@@ -167,7 +167,7 @@ type JSONTestdataBlobs struct {
 }
 
 // Test the optimized VerifyBlobs function
-func TestVerifyBlobs(t *testing.T) {
+func TestVerify(t *testing.T) {
 	data, err := ioutil.ReadFile("kzg_testdata/kzg_blobs.json")
 	if err != nil {
 		t.Fatal(err)
@@ -182,7 +182,7 @@ func TestVerifyBlobs(t *testing.T) {
 	// Pack all those bytes into two blobs
 	var blob1 types.Blob
 	var blob2 types.Blob
-	for i := 0; i < params.FieldElementsPerBlob; i++ {
+	for i := 0; i < 4096; i++ {
 		// Be conservative and only pack 31 bytes per Fr element
 		copy(blob1[i][:], jsonBlobs.KzgBlob1[i*31:(i+1)*31])
 		copy(blob2[i][:], jsonBlobs.KzgBlob2[i*31:(i+1)*31])
@@ -203,26 +203,35 @@ func TestVerifyBlobs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse commitments: %v", err)
 	}
-	blobs, err := Blobs.Parse()
+	blobsParsed, err := Blobs.Parse()
 	if err != nil {
 		t.Fatalf("failed to parse blobs: %v", err)
 	}
-
+	var blobs types.NEVMBlobs
+	blobs.Blobs = make([]*types.NEVMBlob, 2)
+	var blobs0 types.NEVMBlob
+	blobs0.Blob = blobsParsed[0]
+	blobs0.Commitment = commitments[0]
+	var blobs1 types.NEVMBlob
+	blobs1.Blob = blobsParsed[1]
+	blobs1.Commitment = commitments[1]
+	blobs.Blobs[0] = &blobs0
+	blobs.Blobs[1] = &blobs1
 	// Verify the blobs against the commitments!!
-	err = kzg.VerifyBlobs(commitments, blobs)
+	err = blobs.Verify()
 	if err != nil {
 		t.Fatalf("bad verifyBlobs: %v", err)
 	}
 
 	// Now let's do a bad case:
-	// mutate a single chunk of a single blob and VerifyBlobs() must fail
+	// mutate a single chunk of a single blob and Verify() must fail
 	Blobs[0][42][1] = 0x42
-	blobs, err = Blobs.Parse()
+	blobsParsed, err = Blobs.Parse()
 	if err != nil {
 		t.Fatalf("internal blobs: %v", err)
 	}
-
-	err = kzg.VerifyBlobs(commitments, blobs)
+	blobs.Blobs[0].Blob = blobsParsed[0]
+	err = blobs.Verify()
 	if err == nil {
 		t.Fatal("bad VerifyBlobs actually succeeded, expected error")
 	}

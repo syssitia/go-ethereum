@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -11,13 +12,201 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/protolambda/go-kzg/bls"
+	"github.com/syscoin/btcd/wire"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 
 // Compressed BLS12-381 G1 element
 type KZGCommitment [48]byte
 
+type NEVMBlob struct {
+	VersionHash common.Hash
+	Commitment *bls.G1Point
+	Blob []bls.Fr
+}
+type NEVMBlobs struct {
+	Blobs []*NEVMBlob
+}
+// Verify that the list of `commitments` maps to the list of `blobs`
+//
+// This is an optimization over the naive approach (found in the EIP) of iteratively checking each blob against each
+// commitment.  The naive approach requires n*l scalar multiplications where `n` is the number of blobs and `l` is
+// FIELD_ELEMENTS_PER_BLOB to compute the commitments for all blobs.
+//
+// A more efficient approach is to build a linear combination of all blobs and commitments and check all of them in a
+// single multi-scalar multiplication.
+//
+// The MSM would look like this (for three blobs with two field elements each):
+//     r_0(b0_0*L_0 + b0_1*L_1) + r_1(b1_0*L_0 + b1_1*L_1) + r_2(b2_0*L_0 + b2_1*L_1)
+// which we would need to check against the linear combination of commitments: r_0*C_0 + r_1*C_1 + r_2*C_2
+// In the above, `r` are the random scalars of the linear combination, `b0` is the zero blob, `L` are the elements
+// of the KZG_SETUP_LAGRANGE and `C` are the commitments provided.
+//
+// By regrouping the above equation around the `L` points we can reduce the length of the MSM further
+// (down to just `n` scalar multiplications) by making it look like this:
+//     (r_0*b0_0 + r_1*b1_0 + r_2*b2_0) * L_0 + (r_0*b0_1 + r_1*b1_1 + r_2*b2_1) * L_1
+func (n *NEVMBlobs) Verify() error {
+	lenBlobs := len(n.Blobs)
+	// Prepare objects to hold our two MSMs
+	lPoints := make([]bls.G1Point, params.FieldElementsPerBlob)
+	lScalars := make([]bls.Fr, params.FieldElementsPerBlob)
+	rPoints := make([]bls.G1Point, lenBlobs)
+	rScalars := make([]bls.Fr, lenBlobs)
 
+	// Generate list of random scalars for lincomb
+	rList := make([]bls.Fr, lenBlobs)
+	for i := 0; i < lenBlobs; i++ {
+		bls.CopyFr(&rList[i], bls.RandomFr())
+	}
+
+	// Build left-side MSM:
+	//   (r_0*b0_0 + r_1*b1_0 + r_2*b2_0) * L_0 + (r_0*b0_1 + r_1*b1_1 + r_2*b2_1) * L_1
+	for c := 0; c < params.FieldElementsPerBlob; c++ {
+		var sum bls.Fr
+		for i := 0; i < lenBlobs; i++ {
+			var tmp bls.Fr
+
+			r := rList[i]
+			blob := n.Blobs[i]
+
+			bls.MulModFr(&tmp, &r, &blob.Blob[c])
+			bls.AddModFr(&sum, &sum, &tmp)
+		}
+		lScalars[c] = sum
+		lPoints[c] = kzg.KzgSetupLagrange[c]
+	}
+
+	// Build right-side MSM: r_0 * C_0 + r_1 * C_1 + r_2 * C_2 + ...
+	for i, blob := range n.Blobs {
+		rScalars[i] = rList[i]
+		rPoints[i] = *blob.Commitment
+	}
+
+	// Compute both MSMs and check equality
+	lResult := bls.LinCombG1(lPoints, lScalars)
+	rResult := bls.LinCombG1(rPoints, rScalars)
+	if !bls.EqualG1(lResult, rResult) {
+		return errors.New("VerifyBlobs failed")
+	}
+
+	// TODO: Potential improvement is to unify both MSMs into a single MSM, but you would need to batch-invert the `r`s
+	// of the right-side MSM to effectively pull them to the left side.
+
+	return nil
+}
+func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
+	var err error
+	n.VersionHash = common.BytesToHash(NEVMBlobWire.VersionHash)
+	if n.VersionHash[0] != params.BlobCommitmentVersionKZG {
+		return errors.New("invalid versioned hash")
+	}
+	var commitment KZGCommitment
+	// if commitment exists deserialize it, not required as core would have perhaps already processed it (during mempool inclusion)
+	if len(NEVMBlobWire.Commitment) == int(commitment.FixedLength()) {
+		copy(commitment[:], NEVMBlobWire.Commitment)
+		if commitment.ComputeVersionedHash() != n.VersionHash {
+			return errors.New("mismatched versioned hash")
+		}
+		n.Commitment, err = commitment.Point()
+		if err != nil {
+			return errors.New("invalid proof")
+		}
+		lenBlob := len(NEVMBlobWire.Blob)
+		if lenBlob > params.FieldElementsPerBlob {
+			return errors.New("Blob too big")
+		}
+		n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+		var inputPoint [32]byte
+		for i := 0; i < lenBlob; i++ {
+			copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
+			ok := bls.FrFrom32(&n.Blob[i], inputPoint)
+			if ok != true {
+				return errors.New("invalid chunk")
+			}
+		}
+	}
+	return nil
+}
+func (n *NEVMBlob) FromBytes(blob []byte) error {
+	lenBlob := len(blob)
+	if lenBlob == 0 {
+		return errors.New("empty blob")
+	}
+	if lenBlob > params.FieldElementsPerBlob {
+		return errors.New("Blob too big")
+	}
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	var inputPoint [32]byte
+	for i := 0; i < lenBlob; i++ {
+		copy(inputPoint[:32], blob[i*32:(i+1)*32])
+		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
+		if ok != true {
+			return errors.New("invalid chunk")
+		}
+	}
+
+	// Get versioned hash out of input points
+	n.Commitment = kzg.BlobToKzg(n.Blob)
+	// need the full field elements array above to properly calculate and validate blob to kzg, 
+	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
+	n.Blob = n.Blob[0:lenBlob]
+	var compressedCommitment KZGCommitment
+	copy(compressedCommitment[:], bls.ToCompressedG1(n.Commitment))
+	n.VersionHash = compressedCommitment.ComputeVersionedHash()
+	return nil
+}
+func (n *NEVMBlob) Deserialize(bytesIn []byte) error {
+	var NEVMBlobWire wire.NEVMBlob
+	r := bytes.NewReader(bytesIn)
+	err := NEVMBlobWire.Deserialize(r)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not deserialize", "err", err)
+		return err
+	}
+	err = n.FromWire(&NEVMBlobWire)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (n *NEVMBlob) Serialize() ([]byte, error) {
+	var NEVMBlobWire wire.NEVMBlob
+	var err error
+	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
+	copy(NEVMBlobWire.Commitment[:], bls.ToCompressedG1(n.Commitment))
+	for _, fr := range n.Blob {
+		bBytes := bls.FrTo32(&fr)
+		sliceBytes := make([]byte, 32)
+		copy(sliceBytes[:], bBytes[:])
+		NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, sliceBytes...)
+	}
+	var buffer bytes.Buffer
+	err = NEVMBlobWire.Serialize(&buffer)
+	if err != nil {
+		log.Error("NEVMBlockConnect: could not serialize", "err", err)
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+func (n *NEVMBlobs) Deserialize(bytesIn []byte) error {
+	var NEVMBlobsWire wire.NEVMBlobs
+	r := bytes.NewReader(bytesIn)
+	err := NEVMBlobsWire.Deserialize(r)
+	if err != nil {
+		log.Error("NEVMBlobs: could not deserialize", "err", err)
+		return err
+	}
+	numBlobs := len(NEVMBlobsWire.Blobs)
+	n.Blobs = make([]*NEVMBlob, numBlobs)
+	for i := 0; i < int(numBlobs); i++ {
+		err = n.Blobs[i].FromWire(NEVMBlobsWire.Blobs[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (KZGCommitment) ByteLength() uint64 {
 	return 48
 }
