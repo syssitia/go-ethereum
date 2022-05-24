@@ -102,28 +102,27 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 		return errors.New("invalid versioned hash")
 	}
 	var commitment KZGCommitment
-	// if commitment exists deserialize it, not required as core would have perhaps already processed it (during mempool inclusion)
-	if len(NEVMBlobWire.Commitment) == int(commitment.FixedLength()) {
-		copy(commitment[:], NEVMBlobWire.Commitment)
-		if commitment.ComputeVersionedHash() != n.VersionHash {
-			return errors.New("mismatched versioned hash")
-		}
-		n.Commitment, err = commitment.Point()
-		if err != nil {
-			return errors.New("invalid proof")
-		}
-		lenBlob := len(NEVMBlobWire.Blob)
-		if lenBlob > params.FieldElementsPerBlob {
-			return errors.New("Blob too big")
-		}
-		n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
-		var inputPoint [32]byte
-		for i := 0; i < lenBlob; i++ {
-			copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
-			ok := bls.FrFrom32(&n.Blob[i], inputPoint)
-			if ok != true {
-				return errors.New("invalid chunk")
-			}
+	lenCommitment := commitment.FixedLength()
+	copy(commitment[:], NEVMBlobWire.Blob[0:lenCommitment])
+	NEVMBlobWire.Blob = NEVMBlobWire.Blob[lenCommitment:]
+	if commitment.ComputeVersionedHash() != n.VersionHash {
+		return errors.New("mismatched versioned hash")
+	}
+	n.Commitment, err = commitment.Point()
+	if err != nil {
+		return errors.New("invalid proof")
+	}
+	lenBlob := len(NEVMBlobWire.Blob)
+	if lenBlob > params.FieldElementsPerBlob {
+		return errors.New("Blob too big")
+	}
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	var inputPoint [32]byte
+	for i := 0; i < lenBlob; i++ {
+		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
+		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
+		if ok != true {
+			return errors.New("invalid chunk")
 		}
 	}
 	return nil
@@ -174,7 +173,10 @@ func (n *NEVMBlob) Serialize() ([]byte, error) {
 	var NEVMBlobWire wire.NEVMBlob
 	var err error
 	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
-	copy(NEVMBlobWire.Commitment[:], bls.ToCompressedG1(n.Commitment))
+	var tmpCommit KZGCommitment
+	lenBlobData := len(n.Blob)*32
+	NEVMBlobWire.Blob = make([]byte, tmpCommit.FixedLength(), lenBlobData + int(tmpCommit.FixedLength()) )
+	copy(NEVMBlobWire.Blob[:], bls.ToCompressedG1(n.Commitment))
 	for _, fr := range n.Blob {
 		bBytes := bls.FrTo32(&fr)
 		sliceBytes := make([]byte, 32)
