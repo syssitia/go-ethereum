@@ -14,7 +14,7 @@ import (
 
 func randomBlob() []bls.Fr {
 	blob := make([]bls.Fr, params.FieldElementsPerBlob)
-	for i := 0; i < len(blob); i++ {
+	for i := 0; i < params.FieldElementsPerBlob; i++ {
 		blob[i] = *bls.RandomFr()
 	}
 	return blob
@@ -27,7 +27,7 @@ func BenchmarkBlobToKzg(b *testing.B) {
 		kzg.BlobToKzg(blob)
 	}
 }
-func BenchmarkVerify(b *testing.B) {
+func BenchmarkVerifyBlob(b *testing.B) {
 	var blobs types.NEVMBlobs
 	blobs.Blobs = make([]*types.NEVMBlob, 32)
 	for i := 0; i < 32; i++ {

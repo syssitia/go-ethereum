@@ -116,9 +116,16 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 	if lenBlob > params.FieldElementsPerBlob {
 		return errors.New("Blob too big")
 	}
+	if lenBlob < 1024 {
+		return errors.New("Blob too small")
+	}
+	if lenBlob%32 != 0 {
+		return errors.New("Blob should be a factor of 32")
+	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	numElements := lenBlob/32
 	var inputPoint [32]byte
-	for i := 0; i < lenBlob; i++ {
+	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
 		if ok != true {
@@ -135,9 +142,16 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	if lenBlob > params.FieldElementsPerBlob {
 		return errors.New("Blob too big")
 	}
+	if lenBlob < 1024 {
+		return errors.New("Blob too small")
+	}
+	if lenBlob%32 != 0 {
+		return errors.New("Blob should be a factor of 32")
+	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	numElements := lenBlob/32
 	var inputPoint [32]byte
-	for i := 0; i < lenBlob; i++ {
+	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
 		if ok != true {

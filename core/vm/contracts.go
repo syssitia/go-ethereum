@@ -1094,12 +1094,12 @@ type blobVerification struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *blobVerification) RequiredGas(input []byte) uint64 {
-	// 4096 (4096*32) is base gas (BlobVerificationGas), anything above should scale up the cost
+	// 4096 (4096*32 + 32) is base gas (BlobVerificationGas), anything above should scale up the cost
 	return params.BlobVerificationGas * (uint64(len(input))/131104)
 }
 
 func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {
-	if len(input) != 32+(32*params.FieldElementsPerBlob) {
+	if len(input) < 32+(32*32) || len(input) > 32+(32*params.FieldElementsPerBlob) {
 		return nil, errBlobVerificationInputLength
 	}
 
@@ -1110,10 +1110,14 @@ func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byt
 	}
 
 	input = input[32:] // skip forward to the input points
-
+	lenInput := len(input)
+	if (lenInput%32) != 0 {
+		return nil, errInvalidChunk
+	}
+	numElements := lenInput/32
 	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
 	var inputPoint [32]byte
-	for i := 0; i < params.FieldElementsPerBlob; i++ {
+	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], input[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&inputPoints[i], inputPoint)
 		if ok != true {
