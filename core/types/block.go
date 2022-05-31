@@ -193,8 +193,8 @@ type NEVMBlockConnect struct {
 	Blockhash       common.Hash
 	Sysblockhash    string
 	Block           *Block
+	VersionHashes   []*common.Hash
 }
-
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	var NEVMBlockWire wire.NEVMBlockWire
 	r := bytes.NewReader(bytesIn)
@@ -225,9 +225,14 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
+	numVH := len(NEVMBlockWire.VersionHashes)
+	n.VersionHashes = make([]*common.Hash, numVH)
+	for i := 0; i < int(numVH); i++ {
+		vh := common.BytesToHash(NEVMBlockWire.VersionHashes[i])
+		n.VersionHashes[i] = &vh
+	}
 	return nil
 }
-
 func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 	var NEVMBlockWire wire.NEVMBlockWire
 	var err error

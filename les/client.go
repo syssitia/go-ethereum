@@ -231,12 +231,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
-		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		_, err = eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -303,6 +304,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())
 		eth.blockchain.DeleteSYSHash(currentNumber)
+		eth.blockchain.DeleteDataHashes(currentNumber)
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {

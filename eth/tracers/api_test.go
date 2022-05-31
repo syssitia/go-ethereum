@@ -96,7 +96,9 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 func (b *testBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.chain.ReadSYSHash(uint64(number)), nil
 }
-
+func (b *testBackend) ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+	return b.chain.ReadDataHash(hash), nil
+}
 func (b *testBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	return b.chain.GetHeaderByHash(hash), nil
 }

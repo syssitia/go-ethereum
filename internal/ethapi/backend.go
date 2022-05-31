@@ -95,6 +95,7 @@ type Backend interface {
 	Engine() consensus.Engine
 	// SYSCOIN
 	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
+	ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

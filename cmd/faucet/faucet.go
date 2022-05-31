@@ -59,6 +59,7 @@ import (
 )
 
 var (
+	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")

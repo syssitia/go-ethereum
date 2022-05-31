@@ -119,7 +119,6 @@ type Ethereum struct {
 	zmqRep            *ZMQRep
 	timeLastBlock		int64
 }
-
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
@@ -337,12 +336,15 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		// do before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
-		_, err := eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))
+		_, err = eth.blockchain.InsertChain(types.Blocks([]*types.Block{nevmBlockConnect.Block}))
 		if err != nil {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
+
+
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -393,11 +395,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
 		current := eth.blockchain.CurrentBlock()
+		currentNumber := current.NumberU64()
 		if current.NumberU64() == 0 {
 			log.Warn("Trying to disconnect block 0")
 			return nil
 		}
-		parent := eth.blockchain.GetBlock(current.ParentHash(), current.NumberU64()-1)
+		parent := eth.blockchain.GetBlock(current.ParentHash(), currentNumber-1)
 		if parent == nil {
 			return errors.New("deleteBlock: NEVM tip parent block not found")
 		}
@@ -405,11 +408,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return err
 		}
-		if eth.blockchain.CurrentBlock().NumberU64() != (current.NumberU64()-1) {
+		if eth.blockchain.CurrentBlock().NumberU64() != (currentNumber-1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())
-		eth.blockchain.DeleteSYSHash(current.NumberU64())
+		eth.blockchain.DeleteSYSHash(currentNumber)
+		eth.blockchain.DeleteDataHashes(currentNumber)
 		return nil
 	}
 	if ethashConfig.PowMode == ethash.ModeNEVM {

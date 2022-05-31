@@ -507,8 +507,17 @@ func (lc *LightChain) GetCanonicalHash(number uint64) common.Hash {
 func (lc *LightChain) ReadSYSHash(n uint64) []byte {
 	return lc.hc.ReadSYSHash(n)
 }
+func (lc *LightChain) ReadDataHash(hash common.Hash) []byte {
+	return lc.hc.ReadDataHash(hash)
+}
 func (lc *LightChain) WriteSYSHash(sysBlockhash string, n uint64) {
 	lc.hc.WriteSYSHash(sysBlockhash, n)
+}
+func (lc *LightChain) WriteDataHashes(n uint64, dataHashes []*common.Hash) {
+	lc.hc.WriteDataHashes(n, dataHashes)
+}
+func (lc *LightChain) DeleteDataHashes(n uint64) {
+	lc.hc.DeleteDataHashes(n)
 }
 func (lc *LightChain) DeleteSYSHash(n uint64) {
 	lc.hc.DeleteSYSHash(n)

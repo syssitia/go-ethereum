@@ -255,6 +255,9 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 func (d *dummyChain) ReadSYSHash(uint64) []byte {
 	return []byte{}
 }
+func (d *dummyChain) ReadDataHash(common.Hash) []byte {
+	return []byte{}
+}
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
