@@ -1974,6 +1974,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	)
 	// Reduce the longer chain to the same number as the shorter one
 	if oldBlock.NumberU64() > newBlock.NumberU64() {
+		// SYSCOIN
 		newChain = append(newChain, newBlock)
 		// Old chain is longer, gather all transactions and logs as deleted ones
 		for ; oldBlock != nil && oldBlock.NumberU64() != newBlock.NumberU64(); oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1) {
