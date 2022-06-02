@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/protolambda/go-kzg/bls"
 )
@@ -103,7 +106,7 @@ type JSONTrustedSetup struct {
 }
 
 // Initialize KZG subsystem (load the trusted setup data)
-func SetupKZG() {
+func SetupKZG(loaded *bool) {
 	var parsedSetup = JSONTrustedSetup{}
 	// TODO: This is dirty. KZG setup should be loaded using an actual config file directive
 	err := json.Unmarshal([]byte(KZGSetupStr), &parsedSetup)
@@ -113,16 +116,13 @@ func SetupKZG() {
 	KzgSetupG2 = parsedSetup.SetupG2
 	KzgSetupLagrange = parsedSetup.SetupLagrange
 	KzgSetupG1 = parsedSetup.SetupG1
+	*loaded = true
+	log.Info("Setup KZG Done!")
 }
 
-/*func init() {
-	var parsedSetup = JSONTrustedSetup{}
-	// TODO: This is dirty. KZG setup should be loaded using an actual config file directive
-	err := json.Unmarshal([]byte(KZGSetupStr), &parsedSetup)
-	if err != nil {
-		panic(err)
+func init() {
+	if strings.HasSuffix(os.Args[0], ".test") {
+		loaded := false
+		SetupKZG(&loaded)
 	}
-	KzgSetupG2 = parsedSetup.SetupG2
-	KzgSetupLagrange = parsedSetup.SetupLagrange
-	KzgSetupG1 = parsedSetup.SetupG1
-}*/
+}

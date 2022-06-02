@@ -168,8 +168,6 @@ func NewZMQRep(stackIn *node.Node, ethIn *LightEthereum, NEVMPubEP string, nevmI
 	log.Info("zmq Init")
 	zmq.Init(NEVMPubEP)
 	log.Info("Setup KZG")
-	kzg.SetupKZG()
-	log.Info("Setup KZG Done!")
-	zmq.kzgloaded = true
+	go kzg.SetupKZG(&zmq.kzgloaded)
 	return zmq
 }
