@@ -1,15 +1,16 @@
 package tests
 
 import (
+	"math"
+	"runtime"
+	"sync"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/params"
 	gokzg "github.com/protolambda/go-kzg"
 	"github.com/protolambda/go-kzg/bls"
-	"math"
-	"runtime"
-	"sync"
-	"testing"
 )
 
 func randomBlob() []bls.Fr {

@@ -51,6 +51,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 )

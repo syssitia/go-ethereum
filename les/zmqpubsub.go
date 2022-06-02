@@ -19,12 +19,13 @@ package les
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
-	"strconv"
 )
 
 type ZMQRep struct {

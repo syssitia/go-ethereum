@@ -26,12 +26,14 @@ import (
 	"reflect"
 	"sync/atomic"
 	"time"
+
 	// SYSCOIN
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syscoin/btcd/wire"

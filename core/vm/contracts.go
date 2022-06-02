@@ -20,8 +20,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"

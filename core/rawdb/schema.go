@@ -20,6 +20,7 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
+
 	// SYSCOIN
 	"math/big"
 
