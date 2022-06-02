@@ -58,7 +58,7 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 	fs := gokzg.NewFFTSettings(uint8(math.Log2(params.FieldElementsPerBlob)))
 
 	// Create testing polynomial (in coefficient form)
-	polynomial := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	polynomial := make([]bls.Fr, params.FieldElementsPerBlob)
 	for i := uint64(0); i < params.FieldElementsPerBlob; i++ {
 		bls.CopyFr(&polynomial[i], bls.RandomFr())
 	}

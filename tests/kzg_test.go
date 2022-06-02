@@ -92,7 +92,7 @@ func TestGoKzg(t *testing.T) {
 	}
 
 	// Create testing polynomial (in coefficient form)
-	polynomial := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	polynomial := make([]bls.Fr, params.FieldElementsPerBlob)
 	for i := uint64(0); i < params.FieldElementsPerBlob; i++ {
 		bls.CopyFr(&polynomial[i], bls.RandomFr())
 	}
@@ -131,7 +131,7 @@ func TestKzg(t *testing.T) {
 	fs := gokzg.NewFFTSettings(uint8(math.Log2(params.FieldElementsPerBlob)))
 
 	// Create testing polynomial (in coefficient form)
-	polynomial := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	polynomial := make([]bls.Fr, params.FieldElementsPerBlob)
 	for i := uint64(0); i < params.FieldElementsPerBlob; i++ {
 		bls.CopyFr(&polynomial[i], bls.RandomFr())
 	}
@@ -240,7 +240,7 @@ func TestVerify(t *testing.T) {
 func TestBlobVerificationTestVector(t *testing.T) {
 	data := []byte(strings.Repeat("HELPMELOVEME ", 322639))[:params.FieldElementsPerBlob*32]
 	t.Logf("test-vector: %x", data)
-	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob)
 
 	var inputPoint [32]byte
 	for i := 0; i < params.FieldElementsPerBlob; i++ {
@@ -274,7 +274,7 @@ func TestPointEvaluationTestVector(t *testing.T) {
 	fs := gokzg.NewFFTSettings(uint8(math.Log2(params.FieldElementsPerBlob)))
 
 	// Create testing polynomial
-	polynomial := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	polynomial := make([]bls.Fr, params.FieldElementsPerBlob)
 	for i := uint64(0); i < params.FieldElementsPerBlob; i++ {
 		bls.CopyFr(&polynomial[i], bls.RandomFr())
 	}

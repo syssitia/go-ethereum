@@ -120,7 +120,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
-				if zmq.kzgloaded == false {
+				if !zmq.kzgloaded {
 					result = "KZG not initialized, please try again later..."
 				} else {
 					var nevmBlobs types.NEVMBlobs
@@ -134,6 +134,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 							log.Error("nevmcheckblobsSub VerifyData", "err", err)
 							result = err.Error()
 						}
+						log.Info("nevmcheckblobs verify success")
 					}
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
@@ -141,7 +142,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
 				var nevmBlob types.NEVMBlob
-				if zmq.kzgloaded == false {
+				if !zmq.kzgloaded {
 					nevmBlobBytes = make([]byte, 0)
 				} else {
 					err = nevmBlob.FromBytes(msg.Frames[1])

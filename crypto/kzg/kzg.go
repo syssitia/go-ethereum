@@ -114,6 +114,7 @@ func SetupKZG() {
 	KzgSetupLagrange = parsedSetup.SetupLagrange
 	KzgSetupG1 = parsedSetup.SetupG1
 }
+
 /*func init() {
 	var parsedSetup = JSONTrustedSetup{}
 	// TODO: This is dirty. KZG setup should be loaded using an actual config file directive
