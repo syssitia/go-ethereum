@@ -72,7 +72,7 @@ type HeaderChain struct {
 	// SYSCOIN
 	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
 	SYSHashCache  *lru.Cache // Cache for SYS hash
-	DataHashCache *lru.Cache // Cache for Data availabilty
+	DataHashCache *lru.Cache // Cache for Data availability
 	procInterrupt func() bool
 
 	rand   *mrand.Rand

@@ -237,7 +237,7 @@ func (f *BlockFetcher) Start() {
 // Stop terminates the announcement based synchroniser, canceling all pending
 // operations.
 func (f *BlockFetcher) Stop() {
-	if f.init == true {
+	if f.init {
 		f.init = false
 		close(f.quit)
 	}

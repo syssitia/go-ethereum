@@ -201,7 +201,7 @@ func (f *lightFetcher) start() {
 }
 
 func (f *lightFetcher) stop() {
-	if f.init == true {
+	if f.init {
 		f.init = false
 		close(f.closeCh)
 		f.fetcher.Stop()
