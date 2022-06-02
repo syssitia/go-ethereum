@@ -112,9 +112,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
-				if !zmq.kzgloaded {
-					result = "KZG not initialized, please try again later..."
-				} else {
+				if zmq.kzgloaded {
 					var nevmBlobs types.NEVMBlobs
 					err = nevmBlobs.Deserialize(msg.Frames[1])
 					if err != nil {
