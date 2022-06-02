@@ -507,16 +507,16 @@ func (hc *HeaderChain) ReadSYSHash(n uint64) []byte {
 }
 func (hc *HeaderChain) ReadDataHash(hash common.Hash) []byte {
 	// Should exist in cache because we store in LRU upon creating block and delete upon disconnecting we should only store latest 50k blocks (limits to querying in opcode)
-	if dataHash, ok := hc.DataHashCache.Get(hash); ok {
-		return dataHash.([]byte)
+	if hc.DataHashCache.Contains(hash) {
+		return hash.Bytes()
 	}
 	// sanity in case it doesn't exist in LRU cache
 	dataHash := rawdb.ReadDataHash(hc.chainDb, hash)
 	if len(dataHash) == 0 {
 		return []byte{}
 	}
-	hc.DataHashCache.Add(dataHash, dataHash)
-	return dataHash
+	hc.DataHashCache.Add(hash, []byte{0})
+	return hash.Bytes()
 }
 func (hc *HeaderChain) WriteSYSHash(sysBlockhash string, n uint64) {
 	rawdb.WriteSYSHash(hc.chainDb, sysBlockhash, n)
@@ -525,8 +525,7 @@ func (hc *HeaderChain) WriteSYSHash(sysBlockhash string, n uint64) {
 func (hc *HeaderChain) WriteDataHashes(n uint64, dataHashes []*common.Hash) {
 	rawdb.WriteDataHashes(hc.chainDb, hc.chainDb, n, dataHashes)
 	for _, dataHash := range dataHashes {
-		hashByte := dataHash.Bytes()
-		hc.DataHashCache.Add(hashByte, hashByte)
+		hc.DataHashCache.Add(dataHash, []byte{0})
 	}
 }
 func (hc *HeaderChain) DeleteDataHashes(n uint64) {
