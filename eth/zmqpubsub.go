@@ -135,7 +135,6 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 							log.Error("nevmcheckblobsSub VerifyData", "err", err)
 							result = err.Error()
 						}
-						log.Info("nevmcheckblobs verify success")
 					}
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))

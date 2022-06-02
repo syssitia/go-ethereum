@@ -341,7 +341,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		log.Info("addblock", "versionhashes", nevmBlockConnect.VersionHashes)
 		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
 
