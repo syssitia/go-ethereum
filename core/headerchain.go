@@ -531,10 +531,8 @@ func (hc *HeaderChain) WriteDataHashes(n uint64, dataHashes []*common.Hash) {
 }
 func (hc *HeaderChain) DeleteDataHashes(n uint64) {
 	dataHashes := rawdb.DeleteDataHashes(hc.chainDb, hc.chainDb, n)
-	if dataHashes != nil {
-		for _, dataHash := range dataHashes {
-			hc.DataHashCache.Remove(dataHash)
-		}
+	for _, dataHash := range dataHashes {
+		hc.DataHashCache.Remove(dataHash)
 	}
 }
 func (hc *HeaderChain) DeleteSYSHash(n uint64) {

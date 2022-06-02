@@ -1115,12 +1115,12 @@ func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byt
 		return nil, errInvalidChunk
 	}
 	numElements := lenInput/32
-	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob)
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], input[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&inputPoints[i], inputPoint)
-		if ok != true {
+		if !ok {
 			return nil, errInvalidChunk
 		}
 	}
@@ -1143,7 +1143,6 @@ type pointEvaluation struct{}
 
 var (
 	errPointEvaluationInputLength           = errors.New("invalid input length")
-	errPointEvaluationInvalidVersionedHash  = errors.New("invalid versioned hash")
 	errPointEvaluationInvalidX              = errors.New("invalid evaluation point")
 	errPointEvaluationInvalidY              = errors.New("invalid expected output")
 	errPointEvaluationInvalidKzg            = errors.New("invalid data kzg")
@@ -1173,14 +1172,14 @@ func (c *pointEvaluation) Run(input []byte, interpreter *EVMInterpreter) ([]byte
 	var data [32]byte
 	copy(data[:], input[32:64])
 	ok := bls.FrFrom32(&x, data)
-	if ok != true {
+	if !ok {
 		return nil, errPointEvaluationInvalidX
 	}
 
 	var y bls.Fr
 	copy(data[:], input[64:96])
 	ok = bls.FrFrom32(&y, data)
-	if ok != true {
+	if !ok {
 		return nil, errPointEvaluationInvalidY
 	}
 
@@ -1202,7 +1201,7 @@ func (c *pointEvaluation) Run(input []byte, interpreter *EVMInterpreter) ([]byte
 		return nil, errPointEvaluationInvalidProof
 	}
 
-	if kzg.VerifyKzgProof(parsedCommitment, &x, &y, parsedProof) != true {
+	if !kzg.VerifyKzgProof(parsedCommitment, &x, &y, parsedProof) {
 		return nil, errPointEvaluationBadProof
 	}
 

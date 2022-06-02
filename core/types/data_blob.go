@@ -122,13 +122,13 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 	if lenBlob%32 != 0 {
 		return errors.New("Blob should be a factor of 32")
 	}
-	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
-		if ok != true {
+		if !ok {
 			return errors.New("invalid chunk")
 		}
 	}
@@ -148,13 +148,13 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	if lenBlob%32 != 0 {
 		return errors.New("Blob should be a factor of 32")
 	}
-	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
-		if ok != true {
+		if !ok {
 			return errors.New("invalid chunk")
 		}
 	}
@@ -213,7 +213,7 @@ func (n *NEVMBlobs) Deserialize(bytesIn []byte) error {
 	}
 	numBlobs := len(NEVMBlobsWire.Blobs)
 	n.Blobs = make([]*NEVMBlob, numBlobs)
-	for i := 0; i < int(numBlobs); i++ {
+	for i := 0; i < numBlobs; i++ {
 		var blob NEVMBlob
 		err = blob.FromWire(NEVMBlobsWire.Blobs[i])
 		if err != nil {

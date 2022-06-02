@@ -27,14 +27,14 @@ func polyFactorDiv(dst *bls.Fr, a *bls.Fr, b *bls.Fr) {
 
 // Helper: Long polynomial division for two polynomials in coefficient form
 func polyLongDiv(dividend []bls.Fr, divisor []bls.Fr) []bls.Fr {
-	a := make([]bls.Fr, len(dividend), len(dividend))
+	a := make([]bls.Fr, len(dividend))
 	for i := 0; i < len(a); i++ {
 		bls.CopyFr(&a[i], &dividend[i])
 	}
 	aPos := len(a) - 1
 	bPos := len(divisor) - 1
 	diff := aPos - bPos
-	out := make([]bls.Fr, diff+1, diff+1)
+	out := make([]bls.Fr, diff+1)
 	for diff >= 0 {
 		quot := &out[diff]
 		polyFactorDiv(quot, &a[aPos], &divisor[bPos])

@@ -114,7 +114,7 @@ func main() {
 	periods := make([]string, *tiersFlag)
 	for i := 0; i < *tiersFlag; i++ {
 		// Calculate the amount for the next tier and format it
-		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
+		amount := *payoutFlag * math.Pow(2.5, float64(i))
 		amounts[i] = fmt.Sprintf("%.2f SYS", amount)
 		// Calculate the period for the next tier and format it
 		period := *minutesFlag * int(math.Pow(3, float64(i)))

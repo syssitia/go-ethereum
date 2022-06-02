@@ -227,7 +227,7 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	}
 	numVH := len(NEVMBlockWire.VersionHashes)
 	n.VersionHashes = make([]*common.Hash, numVH)
-	for i := 0; i < int(numVH); i++ {
+	for i := 0; i < numVH; i++ {
 		vh := common.BytesToHash(NEVMBlockWire.VersionHashes[i])
 		n.VersionHashes[i] = &vh
 	}
