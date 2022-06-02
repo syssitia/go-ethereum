@@ -23,15 +23,17 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"strconv"
 )
 
 type ZMQRep struct {
 	stack 	  	   *node.Node
-	leth           *LightEthereum
+	eth            *LightEthereum
 	rep            zmq4.Socket
 	nevmIndexer    LightNEVMIndex
 	inited         bool
+	kzgloaded      bool
 }
 
 func (zmq *ZMQRep) Close() {
@@ -70,7 +72,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					return
 				}
 				if string(msg.Frames[1]) == "\fstartnetwork" {
-					zmq.leth.Downloader().StartNetworkEvent()
+					zmq.eth.Downloader().StartNetworkEvent()
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcomms"), []byte("ack"))
 				zmq.rep.SendMulti(msgSend)
@@ -82,7 +84,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					log.Error("addBlockSub Deserialize", "err", err)
 					result = err.Error()
 				} else {
-					err = zmq.nevmIndexer.AddBlock(&nevmBlockConnect, zmq.leth)
+					err = zmq.nevmIndexer.AddBlock(&nevmBlockConnect, zmq.eth)
 					if err != nil {
 						log.Error("addBlockSub AddBlock", "err", err)
 						result = err.Error()
@@ -92,9 +94,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmdisconnect" {
 				result := "disconnected"
-				errMsg := zmq.nevmIndexer.DeleteBlock(string(msg.Frames[1]), zmq.leth)
-				if errMsg != nil {
-					result = errMsg.Error()
+				err := zmq.nevmIndexer.DeleteBlock(string(msg.Frames[1]), zmq.eth)
+				if err != nil {
+					log.Error("deleteBlockSub", "err", err)
+					result = err.Error()
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmdisconnect"), []byte(result))
 				zmq.rep.SendMulti(msgSend)
@@ -103,21 +106,25 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblock"), nevmBlockConnectBytes)
 				zmq.rep.SendMulti(msgSend)
 			}  else if strTopic == "nevmblockinfo" {
-				str := strconv.FormatUint(zmq.leth.blockchain.CurrentHeader().Number.Uint64(), 10)
+				str := strconv.FormatUint(zmq.eth.blockchain.CurrentHeader().Number.Uint64(), 10)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
-				var nevmBlobs types.NEVMBlobs
-				err = nevmBlobs.Deserialize(msg.Frames[1])
-				if err != nil {
-					log.Error("nevmcheckblobsSub Deserialize", "err", err)
-					result = err.Error()
+				if zmq.kzgloaded == false {
+					result = "KZG not initialized, please try again later..."
 				} else {
-					err = nevmBlobs.Verify()
+					var nevmBlobs types.NEVMBlobs
+					err = nevmBlobs.Deserialize(msg.Frames[1])
 					if err != nil {
-						log.Error("nevmcheckblobsSub VerifyData", "err", err)
+						log.Error("nevmcheckblobsSub Deserialize", "err", err)
 						result = err.Error()
+					} else {
+						err = nevmBlobs.Verify()
+						if err != nil {
+							log.Error("nevmcheckblobsSub VerifyData", "err", err)
+							result = err.Error()
+						}
 					}
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
@@ -125,43 +132,43 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
 				var nevmBlob types.NEVMBlob
-				// pass in blob and return nevm blob including kzg information
-				err = nevmBlob.FromBytes(msg.Frames[1])
-				if err != nil {
-					log.Error("nevmcreateblob Deserialize", "err", err)
+				if zmq.kzgloaded == false {
 					nevmBlobBytes = make([]byte, 0)
 				} else {
-					var blobs types.NEVMBlobs
-					blobs.Blobs = make([]*types.NEVMBlob, 1)
-					blobs.Blobs[0] = &nevmBlob
-					err = blobs.Verify()
+					err = nevmBlob.FromBytes(msg.Frames[1])
 					if err != nil {
-						log.Error("nevmcreateblob VerifyData", "err", err)
+						log.Error("nevmcreateblob Deserialize", "err", err)
 						nevmBlobBytes = make([]byte, 0)
+					} else {
+						nevmBlobBytes, err = nevmBlob.Serialize()
+						if err != nil {
+							log.Error("nevmcreateblob", "err", err)
+							nevmBlobBytes = make([]byte, 0)
+						}
 					}
-				}
-				nevmBlobBytes, err := nevmBlob.Serialize()
-				if err != nil {
-					log.Error("nevmcreateblob", "err", err)
-					nevmBlobBytes = make([]byte, 0)
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
 				zmq.rep.SendMulti(msgSend)
-			}
+			} 
 		}
 	}(zmq)
 	zmq.inited = true
 	return nil
 }
 
-func NewZMQRep(stackIn *node.Node, lethIn *LightEthereum, NEVMPubEP string, nevmIndexerIn LightNEVMIndex) *ZMQRep {
+func NewZMQRep(stackIn *node.Node, ethIn *LightEthereum, NEVMPubEP string, nevmIndexerIn LightNEVMIndex) *ZMQRep {
 	ctx := context.Background()
 	zmq := &ZMQRep{
 		stack:			stackIn,
-		leth:           lethIn,
+		eth:            ethIn,
 		rep:            zmq4.NewRep(ctx),
 		nevmIndexer:    nevmIndexerIn,
 	}
+	log.Info("zmq Init")
 	zmq.Init(NEVMPubEP)
+	log.Info("Setup KZG")
+	kzg.SetupKZG()
+	log.Info("Setup KZG Done!")
+	zmq.kzgloaded = true
 	return zmq
 }

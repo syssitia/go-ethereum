@@ -103,9 +103,8 @@ type JSONTrustedSetup struct {
 }
 
 // Initialize KZG subsystem (load the trusted setup data)
-func init() {
+func SetupKZG() {
 	var parsedSetup = JSONTrustedSetup{}
-
 	// TODO: This is dirty. KZG setup should be loaded using an actual config file directive
 	err := json.Unmarshal([]byte(KZGSetupStr), &parsedSetup)
 	if err != nil {
@@ -115,3 +114,14 @@ func init() {
 	KzgSetupLagrange = parsedSetup.SetupLagrange
 	KzgSetupG1 = parsedSetup.SetupG1
 }
+/*func init() {
+	var parsedSetup = JSONTrustedSetup{}
+	// TODO: This is dirty. KZG setup should be loaded using an actual config file directive
+	err := json.Unmarshal([]byte(KZGSetupStr), &parsedSetup)
+	if err != nil {
+		panic(err)
+	}
+	KzgSetupG2 = parsedSetup.SetupG2
+	KzgSetupLagrange = parsedSetup.SetupLagrange
+	KzgSetupG1 = parsedSetup.SetupG1
+}*/

@@ -122,7 +122,7 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 	if lenBlob%32 != 0 {
 		return errors.New("Blob should be a factor of 32")
 	}
-	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
 	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
@@ -148,7 +148,7 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	if lenBlob%32 != 0 {
 		return errors.New("Blob should be a factor of 32")
 	}
-	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob, params.FieldElementsPerBlob)
 	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
@@ -163,7 +163,7 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	n.Commitment = kzg.BlobToKzg(n.Blob)
 	// need the full field elements array above to properly calculate and validate blob to kzg, 
 	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
-	n.Blob = n.Blob[0:lenBlob]
+	n.Blob = n.Blob[0:numElements]
 	var compressedCommitment KZGCommitment
 	copy(compressedCommitment[:], bls.ToCompressedG1(n.Commitment))
 	n.VersionHash = compressedCommitment.ComputeVersionedHash()
@@ -189,13 +189,11 @@ func (n *NEVMBlob) Serialize() ([]byte, error) {
 	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
 	var tmpCommit KZGCommitment
 	lenBlobData := len(n.Blob)*32
-	NEVMBlobWire.Blob = make([]byte, tmpCommit.FixedLength(), lenBlobData + int(tmpCommit.FixedLength()) )
-	copy(NEVMBlobWire.Blob[:], bls.ToCompressedG1(n.Commitment))
+	NEVMBlobWire.Blob = make([]byte, 0, lenBlobData + int(tmpCommit.FixedLength()) )
+	NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, bls.ToCompressedG1(n.Commitment)...)
 	for _, fr := range n.Blob {
 		bBytes := bls.FrTo32(&fr)
-		sliceBytes := make([]byte, 32)
-		copy(sliceBytes[:], bBytes[:])
-		NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, sliceBytes...)
+		NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, bBytes[:]...)
 	}
 	var buffer bytes.Buffer
 	err = NEVMBlobWire.Serialize(&buffer)
@@ -216,10 +214,12 @@ func (n *NEVMBlobs) Deserialize(bytesIn []byte) error {
 	numBlobs := len(NEVMBlobsWire.Blobs)
 	n.Blobs = make([]*NEVMBlob, numBlobs)
 	for i := 0; i < int(numBlobs); i++ {
-		err = n.Blobs[i].FromWire(NEVMBlobsWire.Blobs[i])
+		var blob NEVMBlob
+		err = blob.FromWire(NEVMBlobsWire.Blobs[i])
 		if err != nil {
 			return err
 		}
+		n.Blobs[i] = &blob
 	}
 	return nil
 }
