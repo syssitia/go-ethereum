@@ -76,7 +76,6 @@ type NEVMIndex struct {
 	DeleteBlock NEVMDeleteBlockFn // Disconnects NEVM tip
 }
 
-
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
 	config *ethconfig.Config
@@ -111,14 +110,15 @@ type Ethereum struct {
 
 	p2pServer *p2p.Server
 
-	lock              sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+	lock            sync.RWMutex                   // Protects the variadic fields (e.g. gas price and etherbase)
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 	// SYSCOIN
 	wgNEVM            sync.WaitGroup
 	minedNEVMBlockSub *event.TypeMuxSubscription
 	zmqRep            *ZMQRep
-	timeLastBlock		int64
+	timeLastBlock     int64
 }
+
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
@@ -300,11 +300,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil
 	}
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
-		if nevmBlockConnect == nil  {
+		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
 		}
 		current := eth.blockchain.CurrentBlock()
-		currentNumber := current.NumberU64() 
+		currentNumber := current.NumberU64()
 		currentHash := current.Hash()
 		proposedBlockNumber := nevmBlockConnect.Block.NumberU64()
 		proposedBlockParentHash := nevmBlockConnect.Block.ParentHash()
@@ -312,8 +312,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if(currentNumber > 0) {
-			if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+		if currentNumber > 0 {
+			if (proposedBlockNumber != (currentNumber + 1)) || (proposedBlockParentHash != currentHash) {
 				log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
 					"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
 				return errors.New("addBlock: Non contiguous block insert")
@@ -341,9 +341,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
+		log.Info("addblock", "versionhashes", nevmBlockConnect.VersionHashes)
 		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
 		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
-
 
 		if !eth.handler.inited {
 			eth.lock.Lock()
@@ -376,7 +376,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 						return
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+					if time.Now().Unix()-eth.timeLastBlock >= 5 {
 						log.Info("Networking and peering start...")
 						eth.handler.Start(eth.handler.maxPeers)
 						eth.handler.peers.open()
@@ -408,7 +408,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return err
 		}
-		if eth.blockchain.CurrentBlock().NumberU64() != (currentNumber-1) {
+		if eth.blockchain.CurrentBlock().NumberU64() != (currentNumber - 1) {
 			return errors.New("deleteBlock: Block number post-write does not match")
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())

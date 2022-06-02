@@ -185,7 +185,6 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	Lifetime: 3 * time.Hour,
 }
 
-
 // sanitize checks the provided user configurations and changes anything that's
 // unreasonable or unworkable.
 func (config *TxPoolConfig) sanitize() TxPoolConfig {

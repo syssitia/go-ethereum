@@ -1,15 +1,15 @@
 package tests
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/params"
 	gokzg "github.com/protolambda/go-kzg"
 	"github.com/protolambda/go-kzg/bls"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math"
+	"runtime"
 	"sync"
 	"testing"
-	"runtime"
 )
 
 func randomBlob() []bls.Fr {
@@ -71,7 +71,7 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 
 	// Now let's start testing the kzg module
 	// Create a commitment
-	
+
 	xFr := bls.RandomFr()
 	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 

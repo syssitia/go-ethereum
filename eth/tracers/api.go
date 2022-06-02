@@ -117,6 +117,7 @@ func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.H
 	}
 	return header
 }
+
 // SYSCOIN
 func (context *chainContext) ReadSYSHash(n uint64) []byte {
 	sysBlockHash, err := context.api.backend.ReadSYSHash(context.ctx, rpc.BlockNumber(n))
@@ -132,6 +133,7 @@ func (context *chainContext) ReadDataHash(hash common.Hash) []byte {
 	}
 	return dataHash
 }
+
 // chainContext construts the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *API) chainContext(ctx context.Context) core.ChainContext {

@@ -17,6 +17,7 @@ import (
 	gokzg "github.com/protolambda/go-kzg"
 	"github.com/protolambda/go-kzg/bls"
 )
+
 // Helper: invert the divisor, then multiply
 func polyFactorDiv(dst *bls.Fr, a *bls.Fr, b *bls.Fr) {
 	// TODO: use divmod instead.
@@ -148,7 +149,7 @@ func TestKzg(t *testing.T) {
 	// Create proof for testing
 	xFr := bls.RandomFr()
 	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
-	
+
 	// Get actual evaluation at x
 	var value bls.Fr
 	bls.EvalPolyAt(&value, polynomial, xFr)
@@ -196,7 +197,7 @@ func TestVerify(t *testing.T) {
 
 	// Create the dummy object with all that data we prepared
 	BlobKzgs := types.BlobKzgs{kzg1, kzg2}
-	Blobs :=   types.Blobs{blob1, blob2}
+	Blobs := types.Blobs{blob1, blob2}
 	// Extract cryptographic material out of the blobs/commitments
 	commitments, err := BlobKzgs.Parse()
 	if err != nil {

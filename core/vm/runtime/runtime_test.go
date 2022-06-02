@@ -251,6 +251,7 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	//fmt.Printf("GetHeader(%x, %d) => header with parent %x\n", h, n, parentHash)
 	return fakeHeader(n, parentHash)
 }
+
 // SYSCOIN
 func (d *dummyChain) ReadSYSHash(uint64) []byte {
 	return []byte{}
@@ -258,6 +259,7 @@ func (d *dummyChain) ReadSYSHash(uint64) []byte {
 func (d *dummyChain) ReadDataHash(common.Hash) []byte {
 	return []byte{}
 }
+
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
@@ -306,10 +308,10 @@ func TestBlockhash(t *testing.T) {
 	input := common.Hex2Bytes("f8a8fd6d")
 	chain := &dummyChain{}
 	ret, _, err := Execute(data, input, &Config{
-		GetHashFn:   core.GetHashFn(header, chain),
+		GetHashFn: core.GetHashFn(header, chain),
 		// SYSCOIN
-		ReadSYSHashFn:   core.ReadSYSHashFn(chain),
-		BlockNumber: new(big.Int).Set(header.Number),
+		ReadSYSHashFn: core.ReadSYSHashFn(chain),
+		BlockNumber:   new(big.Int).Set(header.Number),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

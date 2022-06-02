@@ -45,6 +45,7 @@ var (
 	// eip1559Config is a chain config with EIP-1559 enabled at block 0.
 	eip1559Config *params.ChainConfig
 )
+
 // SYSCOIN
 var DefaultTxPoolConfigTest = TxPoolConfig{
 	Journal:   "transactions.rlp",
@@ -60,6 +61,7 @@ var DefaultTxPoolConfigTest = TxPoolConfig{
 
 	Lifetime: 3 * time.Hour,
 }
+
 func init() {
 	testTxPoolConfig = DefaultTxPoolConfigTest
 	testTxPoolConfig.Journal = ""

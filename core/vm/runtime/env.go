@@ -31,7 +31,7 @@ func NewEnv(cfg *Config) *vm.EVM {
 		Transfer:    core.Transfer,
 		GetHash:     cfg.GetHashFn,
 		// SYSCOIN
-		ReadSYSHash:     cfg.ReadSYSHashFn,
+		ReadSYSHash: cfg.ReadSYSHashFn,
 		Coinbase:    cfg.Coinbase,
 		BlockNumber: cfg.BlockNumber,
 		Time:        cfg.Time,

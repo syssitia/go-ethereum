@@ -417,6 +417,7 @@ func (bc *BlockChain) DeleteDataHashes(n uint64) {
 func (bc *BlockChain) DeleteSYSHash(n uint64) {
 	bc.hc.DeleteSYSHash(n)
 }
+
 // HasNEVMMapping checks if a NEVM block is present in the database or not, caching
 // it if present.
 func (bc *BlockChain) HasNEVMMapping(hash common.Hash) bool {

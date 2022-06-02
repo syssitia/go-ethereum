@@ -92,6 +92,7 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 	backend.chain = chain
 	return backend
 }
+
 // SYSCOIN
 func (b *testBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.chain.ReadSYSHash(uint64(number)), nil

@@ -492,7 +492,6 @@ func (lc *LightChain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return lc.hc.GetHeaderByHash(hash)
 }
 
-
 // HasHeader checks if a block header is present in the database or not, caching
 // it if present.
 func (lc *LightChain) HasHeader(hash common.Hash, number uint64) bool {
@@ -503,6 +502,7 @@ func (lc *LightChain) HasHeader(hash common.Hash, number uint64) bool {
 func (lc *LightChain) GetCanonicalHash(number uint64) common.Hash {
 	return lc.hc.GetCanonicalHash(number)
 }
+
 // SYSCOIN
 func (lc *LightChain) ReadSYSHash(n uint64) []byte {
 	return lc.hc.ReadSYSHash(n)
@@ -522,6 +522,7 @@ func (lc *LightChain) DeleteDataHashes(n uint64) {
 func (lc *LightChain) DeleteSYSHash(n uint64) {
 	lc.hc.DeleteSYSHash(n)
 }
+
 // SYSCOIN HasNEVMMapping checks if a NEVM block is present in the database or not, caching
 // it if present.
 func (lc *LightChain) HasNEVMMapping(hash common.Hash) bool {

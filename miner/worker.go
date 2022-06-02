@@ -737,11 +737,11 @@ func (w *worker) resultLoop() {
 			}
 			// SYSCOIN
 			if !w.chainConfig.IsSyscoin(block.Header().Number) {
-					// Commit block and state to database.
-					_, err := w.chain.WriteBlockAndSetHead(block, receipts, logs, task.state, true)
-					if err != nil {
-						log.Error("Failed writing block to chain", "err", err)
-						continue
+				// Commit block and state to database.
+				_, err := w.chain.WriteBlockAndSetHead(block, receipts, logs, task.state, true)
+				if err != nil {
+					log.Error("Failed writing block to chain", "err", err)
+					continue
 				}
 			}
 			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,

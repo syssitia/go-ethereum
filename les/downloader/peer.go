@@ -367,6 +367,7 @@ func (ps *peerSet) Register(p *peerConnection) error {
 	ps.newPeerFeed.Send(p)
 	return nil
 }
+
 // SYSCOIN
 func (ps *peerSet) Close() {
 	ps.lock.Lock()
@@ -380,6 +381,7 @@ func (ps *peerSet) Open() {
 
 	ps.closed = false
 }
+
 // Unregister removes a remote peer from the active set, disabling any further
 // actions to/from that particular entity.
 func (ps *peerSet) Unregister(id string) error {

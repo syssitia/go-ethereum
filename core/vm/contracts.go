@@ -41,7 +41,7 @@ import (
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
 type PrecompiledContract interface {
-	RequiredGas(input []byte) uint64  // RequiredPrice calculates the contract gas use
+	RequiredGas(input []byte) uint64 // RequiredPrice calculates the contract gas use
 	// SYSCOIN
 	Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) // Run runs the precompiled contract
 }
@@ -117,7 +117,7 @@ var (
 	PrecompiledAddressesIstanbul  []common.Address
 	PrecompiledAddressesByzantium []common.Address
 	PrecompiledAddressesHomestead []common.Address
-	PrecompiledAddressesSyscoin []common.Address
+	PrecompiledAddressesSyscoin   []common.Address
 )
 
 func init() {
@@ -1060,7 +1060,6 @@ func (c *bls12381MapG2) Run(input []byte, interpreter *EVMInterpreter) ([]byte, 
 	return g.EncodePoint(r), nil
 }
 
-
 // SYSCOIN datahash implements DA precompile.
 type datahash struct{}
 
@@ -1095,7 +1094,7 @@ type blobVerification struct{}
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *blobVerification) RequiredGas(input []byte) uint64 {
 	// 4096 (4096*32 + 32) is base gas (BlobVerificationGas), anything above should scale up the cost
-	return params.BlobVerificationGas * (uint64(len(input))/131104)
+	return params.BlobVerificationGas * (uint64(len(input)) / 131104)
 }
 
 func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {
@@ -1111,10 +1110,10 @@ func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byt
 
 	input = input[32:] // skip forward to the input points
 	lenInput := len(input)
-	if (lenInput%32) != 0 {
+	if (lenInput % 32) != 0 {
 		return nil, errInvalidChunk
 	}
-	numElements := lenInput/32
+	numElements := lenInput / 32
 	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob)
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
@@ -1207,4 +1206,3 @@ func (c *pointEvaluation) Run(input []byte, interpreter *EVMInterpreter) ([]byte
 
 	return []byte{}, nil
 }
-

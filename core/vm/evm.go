@@ -40,7 +40,7 @@ type (
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 	// SYSCOIN
-	ReadSYSHashFunc func(uint64) []byte
+	ReadSYSHashFunc  func(uint64) []byte
 	ReadDataHashFunc func(common.Hash) []byte
 )
 
@@ -71,7 +71,7 @@ type BlockContext struct {
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
 	// SYSCOIN
-	ReadSYSHash ReadSYSHashFunc
+	ReadSYSHash  ReadSYSHashFunc
 	ReadDataHash ReadDataHashFunc
 
 	// Block information

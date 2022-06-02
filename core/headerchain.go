@@ -72,7 +72,7 @@ type HeaderChain struct {
 	// SYSCOIN
 	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
 	SYSHashCache  *lru.Cache // Cache for SYS hash
-	DataHashCache  *lru.Cache // Cache for Data availabilty
+	DataHashCache *lru.Cache // Cache for Data availabilty
 	procInterrupt func() bool
 
 	rand   *mrand.Rand
@@ -103,8 +103,8 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 		numberCache: numberCache,
 		// SYSCOIN
 		SYSHashCache:  SYSHashCache,
-		DataHashCache:  DataHashCache,
-		NEVMCache:  NEVMCache,
+		DataHashCache: DataHashCache,
+		NEVMCache:     NEVMCache,
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
 		engine:        engine,
@@ -518,7 +518,7 @@ func (hc *HeaderChain) ReadDataHash(hash common.Hash) []byte {
 	hc.DataHashCache.Add(dataHash, dataHash)
 	return dataHash
 }
-func (hc *HeaderChain) WriteSYSHash(sysBlockhash string,  n uint64) {
+func (hc *HeaderChain) WriteSYSHash(sysBlockhash string, n uint64) {
 	rawdb.WriteSYSHash(hc.chainDb, sysBlockhash, n)
 	hc.SYSHashCache.Add(n, []byte(sysBlockhash))
 }
@@ -557,6 +557,7 @@ func (hc *HeaderChain) WriteNEVMMapping(hash common.Hash) {
 	rawdb.WriteNEVMMapping(hc.chainDb, hash)
 	hc.NEVMCache.Add(hash, []byte{0})
 }
+
 // HasHeader checks if a block header is present in the database or not.
 // In theory, if header is present in the database, all relative components
 // like td and hash->number should be present too.

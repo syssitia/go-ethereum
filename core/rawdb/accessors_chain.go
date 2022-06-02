@@ -32,10 +32,12 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
+
 const (
 	// SYSCOIN
 	DataBlockLimit = 50001
 )
+
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
 	var data []byte
@@ -856,8 +858,9 @@ func ReadDataHashesRLP(db ethdb.Reader, number uint64) rlp.RawValue {
 	data, _ = db.Get(dataHashesKey(number))
 	return data
 }
+
 // ReadRawDataHashes retrieves all the data hashes belonging to a block.
-func ReadRawDataHashes(db ethdb.Reader,  number uint64) []*common.Hash {
+func ReadRawDataHashes(db ethdb.Reader, number uint64) []*common.Hash {
 	// Retrieve the flattened datahash slice
 	data := ReadDataHashesRLP(db, number)
 	if len(data) == 0 {
@@ -870,7 +873,6 @@ func ReadRawDataHashes(db ethdb.Reader,  number uint64) []*common.Hash {
 	}
 	return dataHashes
 }
-
 
 func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataHashes []*common.Hash) {
 	bytes, err := rlp.EncodeToBytes(dataHashes)
@@ -916,6 +918,7 @@ func ReadDataHash(db ethdb.Reader, hash common.Hash) []byte {
 	}
 	return data
 }
+
 // SYSCOIN HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
 func HasNEVMMapping(db ethdb.Reader, hash common.Hash) bool {
 	if has, err := db.Has(nevmToSysKey(hash)); !has || err != nil {
@@ -933,6 +936,7 @@ func DeleteNEVMMapping(db ethdb.KeyValueWriter, hash common.Hash) {
 		log.Crit("Failed to delete nevmToSysKey", "err", err)
 	}
 }
+
 // DeleteBlock removes all block data associated with a hash.
 func DeleteBlock(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)

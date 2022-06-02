@@ -543,7 +543,7 @@ func (h *handler) Start(maxPeers int) {
 	// start sync handlers
 	h.wg.Add(1)
 	go h.chainSync.loop()
-    // SYSCOIN
+	// SYSCOIN
 	h.inited = true
 }
 

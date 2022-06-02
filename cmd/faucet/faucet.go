@@ -83,13 +83,12 @@ var (
 	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
 	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
 
-	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
-	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	goerliFlag    = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
+	rinkebyFlag   = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
 	tanenbaumFlag = flag.Bool("tanenbaum", false, "Initializes the faucet with Tanenbaum network config")
-	syscoinFlag = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
-	NEVMPubFlag    = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
-	dataDirFlag    = flag.String("datadir", "", "Datadir passthrough from syscoind")
-
+	syscoinFlag   = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
+	NEVMPubFlag   = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
+	dataDirFlag   = flag.String("datadir", "", "Datadir passthrough from syscoind")
 )
 
 var (
@@ -218,7 +217,7 @@ type faucet struct {
 	reqs     []*request           // Currently pending funding requests
 	update   chan struct{}        // Channel to signal request updates
 
-	lock sync.RWMutex // Lock protecting the faucet's internals
+	lock    sync.RWMutex // Lock protecting the faucet's internals
 	backend *les.LesApiBackend
 }
 
@@ -246,7 +245,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", port),
 			MaxPeers:         25,
-			BootstrapNodes: enodes,
+			BootstrapNodes:   enodes,
 			BootstrapNodesV5: enodes,
 		},
 	})
@@ -513,7 +512,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 				f.lock.Unlock()
 				return
 			}
-			
+
 			gasFeeCap := new(big.Int).Add(
 				gasTipCap,
 				new(big.Int).Mul(f.backend.CurrentHeader().BaseFee, big.NewInt(2)),
@@ -522,7 +521,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			txdata := &types.DynamicFeeTx{
 				To:         &address,
 				ChainID:    f.config.ChainID,
-				Nonce:      f.nonce+uint64(len(f.reqs)),
+				Nonce:      f.nonce + uint64(len(f.reqs)),
 				Gas:        21000,
 				GasFeeCap:  gasFeeCap,
 				GasTipCap:  gasTipCap,

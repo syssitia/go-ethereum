@@ -51,9 +51,9 @@ func (w *wizard) makeGenesis() {
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
-			BerlinBlock:		 big.NewInt(0),
-			LondonBlock:       	 big.NewInt(1),
-			SyscoinBlock:      	 big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(1),
+			SyscoinBlock:        big.NewInt(0),
 		},
 	}
 	// Figure out which consensus engine to choose

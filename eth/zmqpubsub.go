@@ -19,21 +19,21 @@ package eth
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"strconv"
 )
 
 type ZMQRep struct {
-	stack 	  	   *node.Node
-	eth            *Ethereum
-	rep            zmq4.Socket
-	nevmIndexer    NEVMIndex
-	inited         bool
-	kzgloaded         bool
+	stack       *node.Node
+	eth         *Ethereum
+	rep         zmq4.Socket
+	nevmIndexer NEVMIndex
+	inited      bool
+	kzgloaded   bool
 }
 
 func (zmq *ZMQRep) Close() {
@@ -64,7 +64,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				log.Error("Invalid number of message frames", "len", len(msg.Frames))
 				continue
 			}
-			strTopic := string(msg.Frames[0]) 
+			strTopic := string(msg.Frames[0])
 			if strTopic == "nevmcomms" {
 				if string(msg.Frames[1]) == "\ndisconnect" {
 					log.Info("ZMQ: exiting...")
@@ -114,7 +114,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblock"), nevmBlockConnectBytes)
 				zmq.rep.SendMulti(msgSend)
-			}  else if strTopic == "nevmblockinfo" {
+			} else if strTopic == "nevmblockinfo" {
 				str := strconv.FormatUint(zmq.eth.blockchain.CurrentBlock().NumberU64(), 10)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
 				zmq.rep.SendMulti(msgSend)
@@ -159,7 +159,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
 				zmq.rep.SendMulti(msgSend)
-			} 
+			}
 		}
 	}(zmq)
 	zmq.inited = true
@@ -169,10 +169,10 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 func NewZMQRep(stackIn *node.Node, ethIn *Ethereum, NEVMPubEP string, nevmIndexerIn NEVMIndex) *ZMQRep {
 	ctx := context.Background()
 	zmq := &ZMQRep{
-		stack:			stackIn,
-		eth:            ethIn,
-		rep:            zmq4.NewRep(ctx),
-		nevmIndexer:    nevmIndexerIn,
+		stack:       stackIn,
+		eth:         ethIn,
+		rep:         zmq4.NewRep(ctx),
+		nevmIndexer: nevmIndexerIn,
 	}
 	log.Info("zmq Init")
 	zmq.Init(NEVMPubEP)

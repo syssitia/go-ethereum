@@ -62,15 +62,15 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
 		// SYSCOIN
-		ReadSYSHash:     ReadSYSHashFn(chain),
-		ReadDataHash:    ReadDataHashFn(chain),
-		Coinbase:    beneficiary,
-		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
-		Difficulty:  new(big.Int).Set(header.Difficulty),
-		BaseFee:     baseFee,
-		GasLimit:    header.GasLimit,
-		Random:      random,
+		ReadSYSHash:  ReadSYSHashFn(chain),
+		ReadDataHash: ReadDataHashFn(chain),
+		Coinbase:     beneficiary,
+		BlockNumber:  new(big.Int).Set(header.Number),
+		Time:         new(big.Int).SetUint64(header.Time),
+		Difficulty:   new(big.Int).Set(header.Difficulty),
+		BaseFee:      baseFee,
+		GasLimit:     header.GasLimit,
+		Random:       random,
 	}
 }
 
@@ -132,6 +132,7 @@ func ReadDataHashFn(chain ChainContext) func(hash common.Hash) []byte {
 		return chain.ReadDataHash(hash)
 	}
 }
+
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {

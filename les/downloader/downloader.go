@@ -429,6 +429,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
+
 // SYSCOIN
 func (s *Downloader) Peers() *peerSet { return s.peers }
 func (d *Downloader) DoneEvent() {
@@ -438,6 +439,7 @@ func (d *Downloader) DoneEvent() {
 func (d *Downloader) StartNetworkEvent() {
 	d.mux.Post(StartNetworkEvent{})
 }
+
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {

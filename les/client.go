@@ -21,8 +21,8 @@ import (
 	// SYSCOIN
 	"errors"
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -54,6 +54,7 @@ import (
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 )
+
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
@@ -92,9 +93,9 @@ type LightEthereum struct {
 	p2pConfig  *p2p.Config
 	udpEnabled bool
 	// SYSCOIN
-	zmqRep            *ZMQRep
-	timeLastBlock		int64
-	lock              sync.RWMutex
+	zmqRep        *ZMQRep
+	timeLastBlock int64
+	lock          sync.RWMutex
 
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
@@ -210,7 +211,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
-		if nevmBlockConnect == nil  {
+		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
 		}
 		currentHeader := eth.blockchain.CurrentHeader()
@@ -222,8 +223,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if(currentNumber > 0) {
-			if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+		if currentNumber > 0 {
+			if (proposedBlockNumber != (currentNumber + 1)) || (proposedBlockParentHash != currentHash) {
 				log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
 					"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
 				return errors.New("addBlock: Non contiguous block insert")
@@ -268,7 +269,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 						return
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+					if time.Now().Unix()-eth.timeLastBlock >= 5 {
 						log.Info("Networking and peering start...")
 						eth.udpEnabled = true
 						eth.handler.start()
@@ -284,7 +285,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			}
 		}
 	}(leth)
-	
+
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
 		currentNumber := current.Number.Uint64()
