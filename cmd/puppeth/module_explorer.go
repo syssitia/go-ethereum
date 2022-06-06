@@ -37,7 +37,7 @@ ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_VERSION=4.3.0
 ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
 ARG COINSYMBOL={{.Coin}}
-ARG COINGECKO_COIN_ID={{.CoingeckoID}}
+ARG EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}}
 ARG COINNETWORK={{.Network}}
 ARG BLOCK_TRANSFORMER={{.BlockTransformer}}
 ARG CSS_PRIMARY={{.CssPrimary}}
@@ -112,7 +112,7 @@ RUN if [ "$CSS_FOOTER_BACKGROUND" != "" ]; then sed -i s/"#3c226a"/"${CSS_FOOTER
 RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#bda6e7"/"${CSS_FOOTER_TEXT}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
 RUN if [ "$CSS_FOOTER_TEXT" != "" ]; then sed -i s/"#dcc8ff"/"${CSS_FOOTER_TEXT}"/g apps/block_scout_web/assets/css/theme/_neutral_variables.scss; fi
 
-RUN if [ "$COINGECKO_COIN_ID" != "" ]; then sed -i s/"ethereum"/"${COINGECKO_COIN_ID}"/g apps/explorer/lib/explorer/exchange_rates/source/coin_gecko.ex; fi
+RUN if [ "$EXCHANGE_RATES_COINGECKO_COIN_ID" != "" ]; then sed -i s/"ethereum"/"${EXCHANGE_RATES_COINGECKO_COIN_ID}"/g apps/explorer/lib/explorer/exchange_rates/source/coin_gecko.ex; fi
 RUN sed -i s/"1 <<< 30"/"50 <<< 30"/g apps/indexer/config/config.exs
 RUN sed -i s/"1 <<< 30"/"50 <<< 30"/g apps/indexer/lib/indexer/memory/monitor.ex
 RUN sed -i s/"20_000_000"/"200_000_000"/g apps/block_scout_web/lib/block_scout_web/endpoint.ex
@@ -135,7 +135,7 @@ COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* /opt/app/.syscoin/
 COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
 ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
-    COINGECKO_COIN_ID={{.CoingeckoID}} \
+    EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}} \
     COIN={{.Coin}} \
     LOGO={{.Logo}} \
     LOGO_FOOTER={{.LogoFooter}} \
