@@ -317,6 +317,17 @@ var (
 	TestRules       = TestChainConfig.Rules(new(big.Int), false)
 )
 
+// NetworkNames are user friendly names to use in the chain spec banner.
+var NetworkNames = map[string]string{
+	MainnetChainConfig.ChainID.String(): "mainnet",
+	RopstenChainConfig.ChainID.String(): "ropsten",
+	RinkebyChainConfig.ChainID.String(): "rinkeby",
+	GoerliChainConfig.ChainID.String():  "goerli",
+	SepoliaChainConfig.ChainID.String(): "sepolia",
+	SyscoinChainConfig.ChainID.String(): "syscoin",
+	TanenbaumChainConfig.ChainID.String(): "tanenbaum",
+}
+
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
 // BloomTrie) associated with the appropriate section index and head hash. It is
 // used to start light syncing from this checkpoint and avoid downloading the
@@ -394,7 +405,7 @@ type ChainConfig struct {
 	SyscoinBlock        *big.Int `json:"syscoinBlock,omitempty"`        // Syscoin switch block (nil = no fork, 0 = already on syscoin)
 	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 1 = already on london)
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
-	MergeForkBlock      *big.Int `json:"mergeForkBlock,omitempty"`      // EIP-3675 (TheMerge) switch block (nil = no fork, 0 = already in merge proceedings)
+	MergeNetsplitBlock  *big.Int `json:"mergeNetsplitBlock,omitempty"`  // Virtual fork after The Merge to use as a network splitter
 
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
@@ -427,11 +438,27 @@ func (c *CliqueConfig) String() string {
 // String implements the fmt.Stringer interface.
 func (c *ChainConfig) String() string {
 	var engine interface{}
+	var banner string
+
+	// Create some basinc network config output
+	network := NetworkNames[c.ChainID.String()]
+	if network == "" {
+		network = "unknown"
+	}
+	banner += fmt.Sprintf("Chain ID:  %v (%s)\n", c.ChainID, network)
 	switch {
 	case c.Ethash != nil:
-		engine = c.Ethash
+		if c.TerminalTotalDifficulty == nil {
+			banner += "Consensus: Ethash (proof-of-work)\n"
+		} else {
+			banner += "Consensus: Beacon (proof-of-stake), merged from Ethash (proof-of-work)\n"
+		}
 	case c.Clique != nil:
-		engine = c.Clique
+		if c.TerminalTotalDifficulty == nil {
+			banner += "Consensus: Clique (proof-of-authority)\n"
+		} else {
+			banner += "Consensus: Beacon (proof-of-stake), merged from Clique (proof-of-authority)\n"
+		}
 	default:
 		engine = "unknown"
 	}
@@ -452,7 +479,7 @@ func (c *ChainConfig) String() string {
 		c.SyscoinBlock,
 		c.LondonBlock,
 		c.ArrowGlacierBlock,
-		c.MergeForkBlock,
+		c.MergeNetsplitBlock,
 		c.TerminalTotalDifficulty,
 		engine,
 	)
@@ -579,7 +606,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "berlinBlock", block: c.BerlinBlock},
 		{name: "londonBlock", block: c.LondonBlock},
 		{name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
-		{name: "mergeStartBlock", block: c.MergeForkBlock, optional: true},
+		{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
 	} {
 		if lastFork.name != "" {
 			// Next one must be higher number
@@ -652,8 +679,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.ArrowGlacierBlock, newcfg.ArrowGlacierBlock, head) {
 		return newCompatError("Arrow Glacier fork block", c.ArrowGlacierBlock, newcfg.ArrowGlacierBlock)
 	}
-	if isForkIncompatible(c.MergeForkBlock, newcfg.MergeForkBlock, head) {
-		return newCompatError("Merge Start fork block", c.MergeForkBlock, newcfg.MergeForkBlock)
+	if isForkIncompatible(c.MergeNetsplitBlock, newcfg.MergeNetsplitBlock, head) {
+		return newCompatError("Merge netsplit fork block", c.MergeNetsplitBlock, newcfg.MergeNetsplitBlock)
 	}
 	return nil
 }
