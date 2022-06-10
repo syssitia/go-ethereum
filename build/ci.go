@@ -46,7 +46,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -133,12 +132,12 @@ var (
 	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
 	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy, hirsuite
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.11", // EOL: 04/2024
-		"xenial":  "golang-go",   // EOL: 04/2026
-		"bionic":  "golang-go",   // EOL: 04/2028
-		"focal":   "golang-go",   // EOL: 04/2030
-		"impish":  "golang-go",   // EOL: 07/2022
-		"jammy":   "golang-go",   // EOL: 04/2032
+		"trusty": "golang-1.11", // EOL: 04/2024
+		"xenial": "golang-go",   // EOL: 04/2026
+		"bionic": "golang-go",   // EOL: 04/2028
+		"focal":  "golang-go",   // EOL: 04/2030
+		"impish": "golang-go",   // EOL: 07/2022
+		"jammy":  "golang-go",   // EOL: 04/2032
 		//"kinetic": "golang-go",   //  EOL: 07/2023
 	}
 
@@ -736,7 +735,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
 		if !common.FileExist(idfile) {
-			ioutil.WriteFile(idfile, sshkey, 0600)
+			os.WriteFile(idfile, sshkey, 0600)
 		}
 	}
 	// Upload
@@ -759,7 +758,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = ioutil.TempDir("", "geth-build-")
+		wdflag, err = os.MkdirTemp("", "geth-build-")
 	}
 	if err != nil {
 		log.Fatal(err)

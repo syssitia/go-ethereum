@@ -33,6 +33,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
+const (
+	// SYSCOIN
+	DataBlockLimit = 50001
+)
+
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
 	var data []byte
@@ -213,6 +218,22 @@ func ReadHeadFastBlockHash(db ethdb.KeyValueReader) common.Hash {
 func WriteHeadFastBlockHash(db ethdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Put(headFastBlockKey, hash.Bytes()); err != nil {
 		log.Crit("Failed to store last fast block's hash", "err", err)
+	}
+}
+
+// ReadFinalizedBlockHash retrieves the hash of the finalized block.
+func ReadFinalizedBlockHash(db ethdb.KeyValueReader) common.Hash {
+	data, _ := db.Get(headFinalizedBlockKey)
+	if len(data) == 0 {
+		return common.Hash{}
+	}
+	return common.BytesToHash(data)
+}
+
+// WriteFinalizedBlockHash stores the hash of the finalized block.
+func WriteFinalizedBlockHash(db ethdb.KeyValueWriter, hash common.Hash) {
+	if err := db.Put(headFinalizedBlockKey, hash.Bytes()); err != nil {
+		log.Crit("Failed to store last finalized block's hash", "err", err)
 	}
 }
 
@@ -832,6 +853,57 @@ func DeleteSYSHash(db ethdb.KeyValueWriter, n uint64) {
 		log.Crit("Failed to delete blockNumToSysKey", "err", err)
 	}
 }
+func ReadDataHashesRLP(db ethdb.Reader, number uint64) rlp.RawValue {
+	var data []byte
+	data, _ = db.Get(dataHashesKey(number))
+	return data
+}
+
+// ReadRawDataHashes retrieves all the data hashes belonging to a block.
+func ReadRawDataHashes(db ethdb.Reader, number uint64) []*common.Hash {
+	// Retrieve the flattened datahash slice
+	data := ReadDataHashesRLP(db, number)
+	if len(data) == 0 {
+		return nil
+	}
+	dataHashes := []*common.Hash{}
+	if err := rlp.DecodeBytes(data, &dataHashes); err != nil {
+		log.Error("Invalid datahash array RLP", "number", number, "err", err)
+		return nil
+	}
+	return dataHashes
+}
+
+func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataHashes []*common.Hash) {
+	bytes, err := rlp.EncodeToBytes(dataHashes)
+	if err != nil {
+		log.Crit("Failed to encode block dataHashes", "err", err)
+	}
+	// Store the flattened receipt slice
+	if err := dbw.Put(dataHashesKey(n), bytes); err != nil {
+		log.Crit("Failed to store block dataHashes", "err", err)
+	}
+	// prune older data hashes after a safe amount of blocks
+	if n > DataBlockLimit {
+		DeleteDataHashes(dbw, dbr, n-DataBlockLimit)
+	}
+}
+func DeleteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64) []*common.Hash {
+	dataHashes := ReadRawDataHashes(dbr, n)
+	if dataHashes == nil {
+		log.Crit("Failed to delete datahash", "n", n)
+		return nil
+	}
+	for _, dataHash := range dataHashes {
+		if err := dbw.Delete(dataHashKey(*dataHash)); err != nil {
+			log.Crit("Failed to delete dataHashKey", "err", err)
+		}
+	}
+	if err := dbw.Delete(dataHashesKey(n)); err != nil {
+		log.Crit("Failed to delete dataHashesKey", "err", err)
+	}
+	return dataHashes
+}
 func ReadSYSHash(db ethdb.Reader, n uint64) []byte {
 	data, err := db.Get(blockNumToSysKey(n))
 	if data == nil || err != nil {
@@ -839,6 +911,14 @@ func ReadSYSHash(db ethdb.Reader, n uint64) []byte {
 	}
 	return data
 }
+func ReadDataHash(db ethdb.Reader, hash common.Hash) []byte {
+	data, err := db.Get(dataHashKey(hash))
+	if data == nil || err != nil {
+		return []byte{}
+	}
+	return data
+}
+
 // SYSCOIN HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
 func HasNEVMMapping(db ethdb.Reader, hash common.Hash) bool {
 	if has, err := db.Has(nevmToSysKey(hash)); !has || err != nil {
@@ -856,6 +936,7 @@ func DeleteNEVMMapping(db ethdb.KeyValueWriter, hash common.Hash) {
 		log.Crit("Failed to delete nevmToSysKey", "err", err)
 	}
 }
+
 // DeleteBlock removes all block data associated with a hash.
 func DeleteBlock(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)

@@ -20,7 +20,6 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -46,6 +45,7 @@ var (
 	// eip1559Config is a chain config with EIP-1559 enabled at block 0.
 	eip1559Config *params.ChainConfig
 )
+
 // SYSCOIN
 var DefaultTxPoolConfigTest = TxPoolConfig{
 	Journal:   "transactions.rlp",
@@ -61,6 +61,7 @@ var DefaultTxPoolConfigTest = TxPoolConfig{
 
 	Lifetime: 3 * time.Hour,
 }
+
 func init() {
 	testTxPoolConfig = DefaultTxPoolConfigTest
 	testTxPoolConfig.Journal = ""
@@ -2257,7 +2258,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	t.Parallel()
 
 	// Create a temporary file for the journal
-	file, err := ioutil.TempFile("", "")
+	file, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temporary journal: %v", err)
 	}

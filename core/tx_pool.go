@@ -185,7 +185,6 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	Lifetime: 3 * time.Hour,
 }
 
-
 // sanitize checks the provided user configurations and changes anything that's
 // unreasonable or unworkable.
 func (config *TxPoolConfig) sanitize() TxPoolConfig {
@@ -1487,7 +1486,7 @@ func (pool *TxPool) truncateQueue() {
 			addresses = append(addresses, addressByHeartbeat{addr, pool.beats[addr]})
 		}
 	}
-	sort.Sort(addresses)
+	sort.Sort(sort.Reverse(addresses))
 
 	// Drop transactions until the total is below the limit or only locals remain
 	for drop := queued - pool.config.GlobalQueue; drop > 0 && len(addresses) > 0; {

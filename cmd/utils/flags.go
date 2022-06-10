@@ -21,7 +21,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -50,6 +49,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/ethdb/remotedb"
 	"github.com/ethereum/go-ethereum/ethstats"
 	"github.com/ethereum/go-ethereum/graphql"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -113,6 +113,10 @@ var (
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString(node.DefaultDataDir()),
+	}
+	RemoteDBFlag = cli.StringFlag{
+		Name:  "remotedb",
+		Usage: "URL for remote database",
 	}
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
@@ -575,6 +579,10 @@ var (
 		Name:  "nocompaction",
 		Usage: "Disables db compaction after import",
 	}
+	IgnoreLegacyReceiptsFlag = cli.BoolFlag{
+		Name:  "ignore-legacy-receipts",
+		Usage: "Geth will start up even if there are legacy receipts in freezer",
+	}
 	// RPC settings
 	IPCDisabledFlag = cli.BoolFlag{
 		Name:  "ipcdisable",
@@ -858,6 +866,7 @@ var (
 	DatabasePathFlags = []cli.Flag{
 		DataDirFlag,
 		AncientFlag,
+		RemoteDBFlag,
 	}
 )
 
@@ -1240,7 +1249,7 @@ func MakePasswordList(ctx *cli.Context) []string {
 	if path == "" {
 		return nil
 	}
-	text, err := ioutil.ReadFile(path)
+	text, err := os.ReadFile(path)
 	if err != nil {
 		Fatalf("Failed to read password file: %v", err)
 	}
@@ -1759,6 +1768,16 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.Genesis = core.DefaultSepoliaGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.SepoliaGenesisHash)
 	case ctx.GlobalBool(RinkebyFlag.Name):
+		log.Warn("")
+		log.Warn("--------------------------------------------------------------------------------")
+		log.Warn("Please note, Rinkeby has been deprecated. It will still work for the time being,")
+		log.Warn("but there will be no further hard-forks shipped for it. Eventually the network")
+		log.Warn("will be permanently halted after the other networks transition through the merge")
+		log.Warn("and prove stable enough. For the most future proof testnet, choose Sepolia as")
+		log.Warn("your replacement environment (--sepolia instead of --rinkeby).")
+		log.Warn("--------------------------------------------------------------------------------")
+		log.Warn("")
+
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
 		}
@@ -2001,12 +2020,14 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.
 		err     error
 		chainDb ethdb.Database
 	)
-	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
-		name := "lightchaindata"
-		chainDb, err = stack.OpenDatabase(name, cache, handles, "", readonly)
-	} else {
-		name := "chaindata"
-		chainDb, err = stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
+	switch {
+	case ctx.GlobalIsSet(RemoteDBFlag.Name):
+		log.Info("Using remote db", "url", ctx.GlobalString(RemoteDBFlag.Name))
+		chainDb, err = remotedb.New(ctx.GlobalString(RemoteDBFlag.Name))
+	case ctx.GlobalString(SyncModeFlag.Name) == "light":
+		chainDb, err = stack.OpenDatabase("lightchaindata", cache, handles, "", readonly)
+	default:
+		chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
 	}
 	if err != nil {
 		Fatalf("Could not open database: %v", err)

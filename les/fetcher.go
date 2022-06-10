@@ -154,7 +154,7 @@ type lightFetcher struct {
 
 	// Test fields or hooks
 	newHeadHook func(*types.Header)
-	init bool
+	init        bool
 }
 
 // newLightFetcher creates a light fetcher instance.
@@ -201,7 +201,7 @@ func (f *lightFetcher) start() {
 }
 
 func (f *lightFetcher) stop() {
-	if f.init == true{
+	if f.init {
 		f.init = false
 		close(f.closeCh)
 		f.fetcher.Stop()

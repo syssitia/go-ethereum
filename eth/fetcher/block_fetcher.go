@@ -195,7 +195,7 @@ type BlockFetcher struct {
 	fetchingHook       func([]common.Hash)               // Method to call upon starting a block (eth/61) or header (eth/62) fetch
 	completingHook     func([]common.Hash)               // Method to call upon starting a block body fetch (eth/62)
 	importedHook       func(*types.Header, *types.Block) // Method to call upon successful header or block import (both eth/61 and eth/62)
-	init bool
+	init               bool
 }
 
 // NewBlockFetcher creates a block fetcher to retrieve blocks based on hash announcements.
@@ -237,7 +237,7 @@ func (f *BlockFetcher) Start() {
 // Stop terminates the announcement based synchroniser, canceling all pending
 // operations.
 func (f *BlockFetcher) Stop() {
-	if f.init == true{
+	if f.init {
 		f.init = false
 		close(f.quit)
 	}

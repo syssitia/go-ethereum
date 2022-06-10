@@ -26,7 +26,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -59,6 +59,7 @@ import (
 )
 
 var (
+	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
@@ -82,13 +83,12 @@ var (
 	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
 	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
 
-	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
-	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	goerliFlag    = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
+	rinkebyFlag   = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
 	tanenbaumFlag = flag.Bool("tanenbaum", false, "Initializes the faucet with Tanenbaum network config")
-	syscoinFlag = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
-	NEVMPubFlag    = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
-	dataDirFlag    = flag.String("datadir", "", "Datadir passthrough from syscoind")
-
+	syscoinFlag   = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
+	NEVMPubFlag   = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
+	dataDirFlag   = flag.String("datadir", "", "Datadir passthrough from syscoind")
 )
 
 var (
@@ -113,7 +113,7 @@ func main() {
 	periods := make([]string, *tiersFlag)
 	for i := 0; i < *tiersFlag; i++ {
 		// Calculate the amount for the next tier and format it
-		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
+		amount := *payoutFlag * math.Pow(2.5, float64(i))
 		amounts[i] = fmt.Sprintf("%.2f SYS", amount)
 		// Calculate the period for the next tier and format it
 		period := *minutesFlag * int(math.Pow(3, float64(i)))
@@ -157,18 +157,18 @@ func main() {
 		}
 	}
 	// Load up the account key and decrypt its password
-	blob, err := ioutil.ReadFile(*accPassFlag)
+	blob, err := os.ReadFile(*accPassFlag)
 	if err != nil {
 		log.Crit("Failed to read account password contents", "file", *accPassFlag, "err", err)
 	}
 	pass := strings.TrimSuffix(string(blob), "\n")
 	// SYSCOIN override datadir if applicable
-	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet")
+	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet", "keys")
 	if *dataDirFlag != "" {
 		dataDirToUse = *dataDirFlag
 	}
-	ks := keystore.NewKeyStore(filepath.Join(dataDirToUse, "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
-	if blob, err = ioutil.ReadFile(*accJSONFlag); err != nil {
+	ks := keystore.NewKeyStore(dataDirToUse, keystore.StandardScryptN, keystore.StandardScryptP)
+	if blob, err = os.ReadFile(*accJSONFlag); err != nil {
 		log.Crit("Failed to read account key contents", "file", *accJSONFlag, "err", err)
 	}
 	acc, err := ks.Import(blob, pass, pass)
@@ -217,7 +217,7 @@ type faucet struct {
 	reqs     []*request           // Currently pending funding requests
 	update   chan struct{}        // Channel to signal request updates
 
-	lock sync.RWMutex // Lock protecting the faucet's internals
+	lock    sync.RWMutex // Lock protecting the faucet's internals
 	backend *les.LesApiBackend
 }
 
@@ -245,7 +245,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", port),
 			MaxPeers:         25,
-			BootstrapNodes: enodes,
+			BootstrapNodes:   enodes,
 			BootstrapNodesV5: enodes,
 		},
 	})
@@ -512,7 +512,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 				f.lock.Unlock()
 				return
 			}
-			
+
 			gasFeeCap := new(big.Int).Add(
 				gasTipCap,
 				new(big.Int).Mul(f.backend.CurrentHeader().BaseFee, big.NewInt(2)),
@@ -521,7 +521,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			txdata := &types.DynamicFeeTx{
 				To:         &address,
 				ChainID:    f.config.ChainID,
-				Nonce:      f.nonce+uint64(len(f.reqs)),
+				Nonce:      f.nonce + uint64(len(f.reqs)),
 				Gas:        21000,
 				GasFeeCap:  gasFeeCap,
 				GasTipCap:  gasTipCap,
@@ -769,7 +769,7 @@ func authTwitter(url string, tokenV1, tokenV2 string) (string, string, string, c
 	}
 	username := parts[len(parts)-3]
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", "", "", common.Address{}, err
 	}
@@ -895,7 +895,7 @@ func authFacebook(url string) (string, string, common.Address, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", "", common.Address{}, err
 	}

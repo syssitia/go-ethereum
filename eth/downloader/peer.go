@@ -268,6 +268,7 @@ func (ps *peerSet) Open() {
 
 	ps.closed = false
 }
+
 // Unregister removes a remote peer from the active set, disabling any further
 // actions to/from that particular entity.
 func (ps *peerSet) Unregister(id string) error {

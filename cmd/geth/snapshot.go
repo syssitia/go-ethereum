@@ -1,4 +1,4 @@
-// Copyright 2020 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of go-ethereum.
 //
 // go-ethereum is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
@@ -32,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -106,8 +104,20 @@ data, and verifies that all snapshot storage data has a corresponding account.
 `,
 			},
 			{
+				Name:      "inspect-account",
+				Usage:     "Check all snapshot layers for the a specific account",
+				ArgsUsage: "<address | hash>",
+				Action:    utils.MigrateFlags(checkAccount),
+				Category:  "MISCELLANEOUS COMMANDS",
+				Flags:     utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
+				Description: `
+geth snapshot inspect-account <address | hash> checks all snapshot layers and prints out
+information about the specified address. 
+`,
+			},
+			{
 				Name:      "traverse-state",
-				Usage:     "Traverse the state with given root hash for verification",
+				Usage:     "Traverse the state with given root hash and perform quick verification",
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(traverseState),
 				Category:  "MISCELLANEOUS COMMANDS",
@@ -123,7 +133,7 @@ It's also usable without snapshot enabled.
 			},
 			{
 				Name:      "traverse-rawstate",
-				Usage:     "Traverse the state with given root hash for verification",
+				Usage:     "Traverse the state with given root hash and perform detailed verification",
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(traverseRawState),
 				Category:  "MISCELLANEOUS COMMANDS",
@@ -223,15 +233,7 @@ func verifyState(ctx *cli.Context) error {
 		return err
 	}
 	log.Info("Verified the state", "root", root)
-	if err := checkDanglingDiskStorage(chaindb); err != nil {
-		log.Error("Dangling snap disk-storage check failed", "root", root, "err", err)
-		return err
-	}
-	if err := checkDanglingMemStorage(chaindb); err != nil {
-		log.Error("Dangling snap mem-storage check failed", "root", root, "err", err)
-		return err
-	}
-	return nil
+	return snapshot.CheckDanglingStorage(chaindb)
 }
 
 // checkDanglingStorage iterates the snap storage data, and verifies that all
@@ -240,56 +242,7 @@ func checkDanglingStorage(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 
-	chaindb := utils.MakeChainDatabase(ctx, stack, true)
-	if err := checkDanglingDiskStorage(chaindb); err != nil {
-		return err
-	}
-	return checkDanglingMemStorage(chaindb)
-
-}
-
-// checkDanglingDiskStorage checks if there is any 'dangling' storage data in the
-// disk-backed snapshot layer.
-func checkDanglingDiskStorage(chaindb ethdb.Database) error {
-	log.Info("Checking dangling snapshot disk storage")
-	var (
-		lastReport = time.Now()
-		start      = time.Now()
-		lastKey    []byte
-		it         = rawdb.NewKeyLengthIterator(chaindb.NewIterator(rawdb.SnapshotStoragePrefix, nil), 1+2*common.HashLength)
-	)
-	defer it.Release()
-	for it.Next() {
-		k := it.Key()
-		accKey := k[1:33]
-		if bytes.Equal(accKey, lastKey) {
-			// No need to look up for every slot
-			continue
-		}
-		lastKey = common.CopyBytes(accKey)
-		if time.Since(lastReport) > time.Second*8 {
-			log.Info("Iterating snap storage", "at", fmt.Sprintf("%#x", accKey), "elapsed", common.PrettyDuration(time.Since(start)))
-			lastReport = time.Now()
-		}
-		if data := rawdb.ReadAccountSnapshot(chaindb, common.BytesToHash(accKey)); len(data) == 0 {
-			log.Error("Dangling storage - missing account", "account", fmt.Sprintf("%#x", accKey), "storagekey", fmt.Sprintf("%#x", k))
-			return fmt.Errorf("dangling snapshot storage account %#x", accKey)
-		}
-	}
-	log.Info("Verified the snapshot disk storage", "time", common.PrettyDuration(time.Since(start)), "err", it.Error())
-	return nil
-}
-
-// checkDanglingMemStorage checks if there is any 'dangling' storage in the journalled
-// snapshot difflayers.
-func checkDanglingMemStorage(chaindb ethdb.Database) error {
-	start := time.Now()
-	log.Info("Checking dangling snapshot difflayer journalled storage")
-	if err := snapshot.CheckJournalStorage(chaindb); err != nil {
-		return err
-	}
-	log.Info("Verified the snapshot journalled storage", "time", common.PrettyDuration(time.Since(start)))
-	return nil
+	return snapshot.CheckDanglingStorage(utils.MakeChainDatabase(ctx, stack, true))
 }
 
 // traverseState is a helper function used for pruning verification.
@@ -325,7 +278,7 @@ func traverseState(ctx *cli.Context) error {
 		log.Info("Start traversing the state", "root", root, "number", headBlock.NumberU64())
 	}
 	triedb := trie.NewDatabase(chaindb)
-	t, err := trie.NewSecure(root, triedb)
+	t, err := trie.NewSecure(common.Hash{}, root, triedb)
 	if err != nil {
 		log.Error("Failed to open trie", "root", root, "err", err)
 		return err
@@ -346,7 +299,7 @@ func traverseState(ctx *cli.Context) error {
 			return err
 		}
 		if acc.Root != emptyRoot {
-			storageTrie, err := trie.NewSecure(acc.Root, triedb)
+			storageTrie, err := trie.NewSecure(common.BytesToHash(accIter.Key), acc.Root, triedb)
 			if err != nil {
 				log.Error("Failed to open storage trie", "root", acc.Root, "err", err)
 				return err
@@ -414,7 +367,7 @@ func traverseRawState(ctx *cli.Context) error {
 		log.Info("Start traversing the state", "root", root, "number", headBlock.NumberU64())
 	}
 	triedb := trie.NewDatabase(chaindb)
-	t, err := trie.NewSecure(root, triedb)
+	t, err := trie.NewSecure(common.Hash{}, root, triedb)
 	if err != nil {
 		log.Error("Failed to open trie", "root", root, "err", err)
 		return err
@@ -426,6 +379,8 @@ func traverseRawState(ctx *cli.Context) error {
 		codes      int
 		lastReport time.Time
 		start      = time.Now()
+		hasher     = crypto.NewKeccakState()
+		got        = make([]byte, 32)
 	)
 	accIter := t.NodeIterator(nil)
 	for accIter.Next(true) {
@@ -435,9 +390,17 @@ func traverseRawState(ctx *cli.Context) error {
 		// Check the present for non-empty hash node(embedded node doesn't
 		// have their own hash).
 		if node != (common.Hash{}) {
-			if !rawdb.HasTrieNode(chaindb, node) {
+			blob := rawdb.ReadTrieNode(chaindb, node)
+			if len(blob) == 0 {
 				log.Error("Missing trie node(account)", "hash", node)
 				return errors.New("missing account")
+			}
+			hasher.Reset()
+			hasher.Write(blob)
+			hasher.Read(got)
+			if !bytes.Equal(got, node.Bytes()) {
+				log.Error("Invalid trie node(account)", "hash", node.Hex(), "value", blob)
+				return errors.New("invalid account node")
 			}
 		}
 		// If it's a leaf node, yes we are touching an account,
@@ -450,7 +413,7 @@ func traverseRawState(ctx *cli.Context) error {
 				return errors.New("invalid account")
 			}
 			if acc.Root != emptyRoot {
-				storageTrie, err := trie.NewSecure(acc.Root, triedb)
+				storageTrie, err := trie.NewSecure(common.BytesToHash(accIter.LeafKey()), acc.Root, triedb)
 				if err != nil {
 					log.Error("Failed to open storage trie", "root", acc.Root, "err", err)
 					return errors.New("missing storage trie")
@@ -463,9 +426,17 @@ func traverseRawState(ctx *cli.Context) error {
 					// Check the present for non-empty hash node(embedded node doesn't
 					// have their own hash).
 					if node != (common.Hash{}) {
-						if !rawdb.HasTrieNode(chaindb, node) {
+						blob := rawdb.ReadTrieNode(chaindb, node)
+						if len(blob) == 0 {
 							log.Error("Missing trie node(storage)", "hash", node)
 							return errors.New("missing storage")
+						}
+						hasher.Reset()
+						hasher.Write(blob)
+						hasher.Read(got)
+						if !bytes.Equal(got, node.Bytes()) {
+							log.Error("Invalid trie node(storage)", "hash", node.Hex(), "value", blob)
+							return errors.New("invalid storage node")
 						}
 					}
 					// Bump the counter if it's leaf node.
@@ -574,5 +545,37 @@ func dumpState(ctx *cli.Context) error {
 	}
 	log.Info("Snapshot dumping complete", "accounts", accounts,
 		"elapsed", common.PrettyDuration(time.Since(start)))
+	return nil
+}
+
+// checkAccount iterates the snap data layers, and looks up the given account
+// across all layers.
+func checkAccount(ctx *cli.Context) error {
+	if ctx.NArg() != 1 {
+		return errors.New("need <address|hash> arg")
+	}
+	var (
+		hash common.Hash
+		addr common.Address
+	)
+	switch len(ctx.Args()[0]) {
+	case 40, 42:
+		addr = common.HexToAddress(ctx.Args()[0])
+		hash = crypto.Keccak256Hash(addr.Bytes())
+	case 64, 66:
+		hash = common.HexToHash(ctx.Args()[0])
+	default:
+		return errors.New("malformed address or hash")
+	}
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+	chaindb := utils.MakeChainDatabase(ctx, stack, true)
+	defer chaindb.Close()
+	start := time.Now()
+	log.Info("Checking difflayer journal", "address", addr, "hash", hash)
+	if err := snapshot.CheckJournalAccount(chaindb, hash); err != nil {
+		return err
+	}
+	log.Info("Checked the snapshot journalled storage", "time", common.PrettyDuration(time.Since(start)))
 	return nil
 }

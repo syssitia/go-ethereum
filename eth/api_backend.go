@@ -73,6 +73,9 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	if number == rpc.LatestBlockNumber {
 		return b.eth.blockchain.CurrentBlock().Header(), nil
 	}
+	if number == rpc.FinalizedBlockNumber {
+		return b.eth.blockchain.CurrentFinalizedBlock().Header(), nil
+	}
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
 
@@ -80,7 +83,9 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 func (b *EthAPIBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.eth.blockchain.ReadSYSHash(uint64(number)), nil
 }
-
+func (b *EthAPIBackend) ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+	return b.eth.blockchain.ReadDataHash(hash), nil
+}
 func (b *EthAPIBackend) HeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Header, error) {
 	if blockNr, ok := blockNrOrHash.Number(); ok {
 		return b.HeaderByNumber(ctx, blockNr)
@@ -111,6 +116,9 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 	// Otherwise resolve and return the block
 	if number == rpc.LatestBlockNumber {
 		return b.eth.blockchain.CurrentBlock(), nil
+	}
+	if number == rpc.FinalizedBlockNumber {
+		return b.eth.blockchain.CurrentFinalizedBlock(), nil
 	}
 	return b.eth.blockchain.GetBlockByNumber(uint64(number)), nil
 }

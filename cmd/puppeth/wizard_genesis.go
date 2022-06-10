@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -52,9 +51,9 @@ func (w *wizard) makeGenesis() {
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
-			BerlinBlock:		 big.NewInt(0),
-			LondonBlock:       	 big.NewInt(1),
-			SyscoinBlock:      	 big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(1),
+			SyscoinBlock:        big.NewInt(0),
 		},
 	}
 	// Figure out which consensus engine to choose
@@ -271,7 +270,7 @@ func (w *wizard) manageGenesis() {
 
 		// Export the native genesis spec used by puppeth and Geth
 		gethJson := filepath.Join(folder, fmt.Sprintf("%s.json", w.network))
-		if err := ioutil.WriteFile(gethJson, out, 0644); err != nil {
+		if err := os.WriteFile(gethJson, out, 0644); err != nil {
 			log.Error("Failed to save genesis file", "err", err)
 			return
 		}
@@ -313,7 +312,7 @@ func saveGenesis(folder, network, client string, spec interface{}) {
 	path := filepath.Join(folder, fmt.Sprintf("%s-%s.json", network, client))
 
 	out, _ := json.MarshalIndent(spec, "", "  ")
-	if err := ioutil.WriteFile(path, out, 0644); err != nil {
+	if err := os.WriteFile(path, out, 0644); err != nil {
 		log.Error("Failed to save genesis file", "client", client, "err", err)
 		return
 	}

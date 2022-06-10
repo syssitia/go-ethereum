@@ -511,6 +511,7 @@ func DefaultTanenbaumGenesisBlock() *Genesis {
 		Alloc:      decodePrealloc(syscoinAllocData),
 	}
 }
+
 // DefaultSepoliaGenesisBlock returns the Sepolia network genesis block.
 func DefaultSepoliaGenesisBlock() *Genesis {
 	return &Genesis{

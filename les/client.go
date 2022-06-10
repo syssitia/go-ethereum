@@ -1,4 +1,4 @@
-// Copyright 2016 The go-ethereum Authors
+// Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@ import (
 	// SYSCOIN
 	"errors"
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -51,9 +51,11 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 )
+
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
@@ -92,9 +94,9 @@ type LightEthereum struct {
 	p2pConfig  *p2p.Config
 	udpEnabled bool
 	// SYSCOIN
-	zmqRep            *ZMQRep
-	timeLastBlock		int64
-	lock              sync.RWMutex
+	zmqRep        *ZMQRep
+	timeLastBlock int64
+	lock          sync.RWMutex
 
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
@@ -210,7 +212,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
-		if nevmBlockConnect == nil  {
+		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
 		}
 		currentHeader := eth.blockchain.CurrentHeader()
@@ -222,8 +224,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if(currentNumber > 0) {
-			if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+		if currentNumber > 0 {
+			if (proposedBlockNumber != (currentNumber + 1)) || (proposedBlockParentHash != currentHash) {
 				log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
 					"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
 				return errors.New("addBlock: Non contiguous block insert")
@@ -231,12 +233,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
-		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		_, err = eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -267,7 +270,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 						return
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+					if time.Now().Unix()-eth.timeLastBlock >= 5 {
 						log.Info("Networking and peering start...")
 						eth.udpEnabled = true
 						eth.handler.start()
@@ -283,7 +286,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			}
 		}
 	}(leth)
-	
+
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
 		currentNumber := current.Number.Uint64()
@@ -303,6 +306,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())
 		eth.blockchain.DeleteSYSHash(currentNumber)
+		eth.blockchain.DeleteDataHashes(currentNumber)
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {

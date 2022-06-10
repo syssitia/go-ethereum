@@ -18,23 +18,25 @@
 package types
 
 import (
-	"errors"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"reflect"
 	"sync/atomic"
 	"time"
+
 	// SYSCOIN
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+
 	// SYSCOIN
-	"github.com/syscoin/btcd/wire"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/syscoin/btcd/wire"
 )
 
 var (
@@ -190,9 +192,10 @@ type Block struct {
 
 // SYSCOIN
 type NEVMBlockConnect struct {
-	Blockhash       common.Hash
-	Sysblockhash    string
-	Block           *Block
+	Blockhash     common.Hash
+	Sysblockhash  string
+	Block         *Block
+	VersionHashes []*common.Hash
 }
 
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
@@ -225,9 +228,14 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
+	numVH := len(NEVMBlockWire.VersionHashes)
+	n.VersionHashes = make([]*common.Hash, numVH)
+	for i := 0; i < numVH; i++ {
+		vh := common.BytesToHash(NEVMBlockWire.VersionHashes[i])
+		n.VersionHashes[i] = &vh
+	}
 	return nil
 }
-
 func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 	var NEVMBlockWire wire.NEVMBlockWire
 	var err error
@@ -246,7 +254,6 @@ func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 	}
 	return buffer.Bytes(), nil
 }
-
 
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {

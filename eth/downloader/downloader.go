@@ -229,6 +229,7 @@ func New(checkpoint uint64, stateDb ethdb.Database, mux *event.TypeMux, chain Bl
 	go dl.stateFetcher()
 	return dl
 }
+
 // Progress retrieves the synchronisation boundaries, specifically the origin
 // block where synchronisation started at (may have failed/suspended); the block
 // or header sync is currently at; and the latest known block which the sync targets.
@@ -438,6 +439,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td, ttd *big.Int, 
 func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
+
 // SYSCOIN
 func (s *Downloader) Peers() *peerSet { return s.peers }
 func (d *Downloader) DoneEvent() {
@@ -447,6 +449,7 @@ func (d *Downloader) DoneEvent() {
 func (d *Downloader) StartNetworkEvent() {
 	d.mux.Post(StartNetworkEvent{})
 }
+
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td, ttd *big.Int, beaconMode bool) (err error) {

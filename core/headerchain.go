@@ -72,6 +72,7 @@ type HeaderChain struct {
 	// SYSCOIN
 	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
 	SYSHashCache  *lru.Cache // Cache for SYS hash
+	DataHashCache *lru.Cache // Cache for Data availability
 	procInterrupt func() bool
 
 	rand   *mrand.Rand
@@ -86,6 +87,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	numberCache, _ := lru.New(numberCacheLimit)
 	// SYSCOIN
 	SYSHashCache, _ := lru.New(SYSBlockCacheLimit)
+	DataHashCache, _ := lru.New(SYSBlockCacheLimit)
 	NEVMCache, _ := lru.New(headerCacheLimit)
 
 	// Seed a fast but crypto originating random generator
@@ -101,7 +103,8 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 		numberCache: numberCache,
 		// SYSCOIN
 		SYSHashCache:  SYSHashCache,
-		NEVMCache:  NEVMCache,
+		DataHashCache: DataHashCache,
+		NEVMCache:     NEVMCache,
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
 		engine:        engine,
@@ -502,15 +505,38 @@ func (hc *HeaderChain) ReadSYSHash(n uint64) []byte {
 	hc.SYSHashCache.Add(n, sysBlockhash)
 	return sysBlockhash
 }
-
-func (hc *HeaderChain) WriteSYSHash(sysBlockhash string,  n uint64) {
+func (hc *HeaderChain) ReadDataHash(hash common.Hash) []byte {
+	// Should exist in cache because we store in LRU upon creating block and delete upon disconnecting we should only store latest 50k blocks (limits to querying in opcode)
+	if hc.DataHashCache.Contains(hash) {
+		return hash.Bytes()
+	}
+	// sanity in case it doesn't exist in LRU cache
+	dataHash := rawdb.ReadDataHash(hc.chainDb, hash)
+	if len(dataHash) == 0 {
+		return []byte{}
+	}
+	hc.DataHashCache.Add(hash, []byte{0})
+	return hash.Bytes()
+}
+func (hc *HeaderChain) WriteSYSHash(sysBlockhash string, n uint64) {
 	rawdb.WriteSYSHash(hc.chainDb, sysBlockhash, n)
 	hc.SYSHashCache.Add(n, []byte(sysBlockhash))
+}
+func (hc *HeaderChain) WriteDataHashes(n uint64, dataHashes []*common.Hash) {
+	rawdb.WriteDataHashes(hc.chainDb, hc.chainDb, n, dataHashes)
+	for _, dataHash := range dataHashes {
+		hc.DataHashCache.Add(dataHash, []byte{0})
+	}
+}
+func (hc *HeaderChain) DeleteDataHashes(n uint64) {
+	dataHashes := rawdb.DeleteDataHashes(hc.chainDb, hc.chainDb, n)
+	for _, dataHash := range dataHashes {
+		hc.DataHashCache.Remove(dataHash)
+	}
 }
 func (hc *HeaderChain) DeleteSYSHash(n uint64) {
 	rawdb.DeleteSYSHash(hc.chainDb, n)
 	hc.SYSHashCache.Remove(n)
-	
 }
 func (hc *HeaderChain) HasNEVMMapping(hash common.Hash) bool {
 	if hc.NEVMCache.Contains(hash) {
@@ -530,6 +556,7 @@ func (hc *HeaderChain) WriteNEVMMapping(hash common.Hash) {
 	rawdb.WriteNEVMMapping(hc.chainDb, hash)
 	hc.NEVMCache.Add(hash, []byte{0})
 }
+
 // HasHeader checks if a block header is present in the database or not.
 // In theory, if header is present in the database, all relative components
 // like td and hash->number should be present too.

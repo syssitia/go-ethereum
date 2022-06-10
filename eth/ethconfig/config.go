@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -85,7 +85,7 @@ var Defaults = Config{
 	SnapshotCache:           102,
 	Miner: miner.Config{
 		GasCeil:  8000000,
-		GasPrice: big.NewInt(5*params.Wei),
+		GasPrice: big.NewInt(5 * params.Wei),
 		Recommit: 3 * time.Second,
 	},
 	TxPool:        core.DefaultTxPoolConfig,
@@ -206,7 +206,7 @@ type Config struct {
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 
 	// SYSCOIN
-	NEVMPubEP string        `toml:",omitempty"`
+	NEVMPubEP string `toml:",omitempty"`
 
 	// Arrow Glacier block override (TODO: remove after the fork)
 	OverrideArrowGlacier *big.Int `toml:",omitempty"`
