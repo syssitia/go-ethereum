@@ -319,12 +319,12 @@ var (
 
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
-	MainnetChainConfig.ChainID.String(): "mainnet",
-	RopstenChainConfig.ChainID.String(): "ropsten",
-	RinkebyChainConfig.ChainID.String(): "rinkeby",
-	GoerliChainConfig.ChainID.String():  "goerli",
-	SepoliaChainConfig.ChainID.String(): "sepolia",
-	SyscoinChainConfig.ChainID.String(): "syscoin",
+	MainnetChainConfig.ChainID.String():   "mainnet",
+	RopstenChainConfig.ChainID.String():   "ropsten",
+	RinkebyChainConfig.ChainID.String():   "rinkeby",
+	GoerliChainConfig.ChainID.String():    "goerli",
+	SepoliaChainConfig.ChainID.String():   "sepolia",
+	SyscoinChainConfig.ChainID.String():   "syscoin",
 	TanenbaumChainConfig.ChainID.String(): "tanenbaum",
 }
 

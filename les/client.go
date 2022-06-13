@@ -21,8 +21,8 @@ import (
 	// SYSCOIN
 	"errors"
 	"fmt"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -269,7 +269,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				eth.lock.Unlock()
 				log.Info("Attempt to start networking/peering...")
 				for {
-					time.Sleep(100)
+					time.Sleep(100 * time.Millisecond)
 					eth.lock.Lock()
 					if eth.handler.inited && eth.peers.closed {
 						log.Info("Networking stopped, return without starting peering...")

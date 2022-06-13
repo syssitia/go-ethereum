@@ -374,7 +374,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				eth.lock.Unlock()
 				log.Info("Attempt to start networking/peering...")
 				for {
-					time.Sleep(100)
+					time.Sleep(100 * time.Millisecond)
 					eth.lock.Lock()
 					if eth.handler.inited && eth.handler.peers.closed {
 						log.Info("Networking stopped, return without starting peering...")
