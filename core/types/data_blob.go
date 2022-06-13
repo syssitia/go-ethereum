@@ -1,33 +1,33 @@
 package types
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/kzg"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/protolambda/go-kzg/bls"
 	"github.com/syscoin/btcd/wire"
+	"github.com/ethereum/go-ethereum/log"
 )
+
 
 // Compressed BLS12-381 G1 element
 type KZGCommitment [48]byte
 
 type NEVMBlob struct {
 	VersionHash common.Hash
-	Commitment  *bls.G1Point
-	Blob        []bls.Fr
+	Commitment *bls.G1Point
+	Blob []bls.Fr
 }
 type NEVMBlobs struct {
 	Blobs []*NEVMBlob
 }
-
 // Verify that the list of `commitments` maps to the list of `blobs`
 //
 // This is an optimization over the naive approach (found in the EIP) of iteratively checking each blob against each
@@ -123,13 +123,13 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 		return errors.New("Blob should be a factor of 32")
 	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
-	numElements := lenBlob / 32
+	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
 		if !ok {
-			return errors.New("invalid chunk")
+			return fmt.Errorf("FromWire: invalid chunk (element %d inputPoint %v)", i, inputPoint)
 		}
 	}
 	return nil
@@ -149,19 +149,19 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 		return errors.New("Blob should be a factor of 32")
 	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
-	numElements := lenBlob / 32
+	numElements := lenBlob/32
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], blob[i*32:(i+1)*32])
 		ok := bls.FrFrom32(&n.Blob[i], inputPoint)
-		if !ok {
-			return errors.New("invalid chunk")
+		if ok != true {
+			return fmt.Errorf("FromBytes: invalid chunk (element %d inputPoint %v)", i, inputPoint)
 		}
 	}
 
 	// Get versioned hash out of input points
 	n.Commitment = kzg.BlobToKzg(n.Blob)
-	// need the full field elements array above to properly calculate and validate blob to kzg,
+	// need the full field elements array above to properly calculate and validate blob to kzg, 
 	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
 	n.Blob = n.Blob[0:numElements]
 	var compressedCommitment KZGCommitment
@@ -188,8 +188,8 @@ func (n *NEVMBlob) Serialize() ([]byte, error) {
 	var err error
 	NEVMBlobWire.VersionHash = n.VersionHash.Bytes()
 	var tmpCommit KZGCommitment
-	lenBlobData := len(n.Blob) * 32
-	NEVMBlobWire.Blob = make([]byte, 0, lenBlobData+int(tmpCommit.FixedLength()))
+	lenBlobData := len(n.Blob)*32
+	NEVMBlobWire.Blob = make([]byte, 0, lenBlobData + int(tmpCommit.FixedLength()) )
 	NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, bls.ToCompressedG1(n.Commitment)...)
 	for _, fr := range n.Blob {
 		bBytes := bls.FrTo32(&fr)
@@ -231,6 +231,7 @@ func (KZGCommitment) FixedLength() uint64 {
 	return 48
 }
 
+
 func (p KZGCommitment) MarshalText() ([]byte, error) {
 	return []byte("0x" + hex.EncodeToString(p[:])), nil
 }
@@ -269,6 +270,7 @@ func (p *BLSFieldElement) UnmarshalText(text []byte) error {
 
 // Blob data
 type Blob [params.FieldElementsPerBlob]BLSFieldElement
+
 
 func (blob *Blob) ByteLength() (out uint64) {
 	return params.FieldElementsPerBlob * 32
@@ -358,6 +360,7 @@ func (li BlobKzgs) Parse() ([]*bls.G1Point, error) {
 	}
 	return out, nil
 }
+
 
 func (li BlobKzgs) ByteLength() uint64 {
 	return uint64(len(li)) * 48
