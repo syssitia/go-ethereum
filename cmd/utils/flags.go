@@ -150,7 +150,7 @@ var (
 	}
 	RopstenFlag = cli.BoolFlag{
 		Name:  "ropsten",
-		Usage: "Ropsten network: pre-configured proof-of-work test network",
+		Usage: "Ropsten network: pre-configured proof-of-stake test network",
 	}
 	SyscoinFlag = cli.BoolFlag{
 		Name:  "syscoin",
