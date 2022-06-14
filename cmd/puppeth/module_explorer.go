@@ -164,9 +164,9 @@ RUN \
 	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
     echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
     echo 'sleep 5' >> explorer.sh && \
-	echo 'if [ -f ~/explorer_init.sh ]; then' >> explorer.sh && \
+	echo 'if [ ! -f /opt/app/.syscoin/explorer_init_done.sh ]; then' >> explorer.sh && \
 	echo '    . ~/explorer_init.sh' >> explorer.sh && \
-	echo '    mv ~/explorer_init.sh ~/explorer_init_done.sh' >> explorer.sh && \
+	echo '    mv ~/explorer_init.sh /opt/app/.syscoin/explorer_init_done.sh' >> explorer.sh && \
 	echo 'fi' >> explorer.sh && \
     echo 'mix phx.server' >> explorer.sh && \
 	echo '# only re-create the database on fresh container start' >> explorer_init.sh && \
