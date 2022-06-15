@@ -50,7 +50,7 @@ ADD account.pass /account.pass
 
 EXPOSE 8080 {{.EthPort}} {{.EthPort}}/udp
 
-RUN echo $'exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
+RUN echo $'exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
 
 ENTRYPOINT ["/bin/sh", "faucet.sh"]
 `
@@ -69,7 +69,7 @@ services:
       - "{{.EthPort}}:{{.EthPort}}/udp"{{if not .VHost}}
       - "{{.ApiPort}}:8080"{{end}}
     volumes:
-      - {{.Datadir}}:/root/.faucet
+      - {{.Datadir}}:/home/syscoin/.syscoin
     environment:
       - ETH_PORT={{.EthPort}}
       - ETH_NAME={{.EthName}}
@@ -240,7 +240,7 @@ func checkFaucet(client *sshClient, network string) (*faucetInfos, error) {
 	// Container available, assemble and return the useful infos
 	return &faucetInfos{
 		node: &nodeInfos{
-			datadir:  infos.volumes["/root/.faucet"],
+			datadir:  infos.volumes["/home/syscoin/.syscoin"],
 			port:     infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
 			ethstats: infos.envvars["ETH_NAME"],
 			keyJSON:  keyJSON,
