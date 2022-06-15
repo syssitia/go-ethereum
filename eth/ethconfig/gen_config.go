@@ -61,8 +61,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
 		// SYSCOIN
 		NEVMPubEP                       string   `toml:",omitempty"`
-		OverrideArrowGlacier            *big.Int `toml:",omitempty"`
-		OverrideTerminalTotalDifficulty *big.Int `toml:",omitempty"`
+		OverrideGrayGlacier             *big.Int                       `toml:",omitempty"`
+		OverrideTerminalTotalDifficulty *big.Int                       `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -107,7 +107,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.Checkpoint = c.Checkpoint
 	enc.CheckpointOracle = c.CheckpointOracle
 	enc.NEVMPubEP = c.NEVMPubEP
-	enc.OverrideArrowGlacier = c.OverrideArrowGlacier
+	enc.OverrideGrayGlacier = c.OverrideGrayGlacier
 	enc.OverrideTerminalTotalDifficulty = c.OverrideTerminalTotalDifficulty
 	return &enc, nil
 }
@@ -158,7 +158,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		CheckpointOracle        *params.CheckpointOracleConfig `toml:",omitempty"`
 		// SYSCOIN
 		NEVMPubEP                       *string  `toml:",omitempty"`
-		OverrideArrowGlacier            *big.Int `toml:",omitempty"`
+		OverrideGrayGlacier            *big.Int `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty *big.Int `toml:",omitempty"`
 	}
 	var dec Config
@@ -288,8 +288,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.CheckpointOracle != nil {
 		c.CheckpointOracle = dec.CheckpointOracle
 	}
-	if dec.OverrideArrowGlacier != nil {
-		c.OverrideArrowGlacier = dec.OverrideArrowGlacier
+	if dec.OverrideGrayGlacier != nil {
+		c.OverrideGrayGlacier = dec.OverrideGrayGlacier
 	}
 	if dec.OverrideTerminalTotalDifficulty != nil {
 		c.OverrideTerminalTotalDifficulty = dec.OverrideTerminalTotalDifficulty
