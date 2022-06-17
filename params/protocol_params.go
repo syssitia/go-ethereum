@@ -162,7 +162,6 @@ const (
 	SYSDataHashGas uint64 = 1400 // The cost of data hash retrieval
 
 	FieldElementsPerBlob            = 65536 // each field element is 32 bytes
-	BlobVerificationGas      uint64 = 1800000
 	BlobCommitmentVersionKZG uint8  = 0x01
 	PointEvaluationGas       uint64 = 50000
 )

@@ -1078,65 +1078,9 @@ func (c *datahash) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error
 }
 
 var PrecompiledContractsDanksharding = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{0x13}): &blobVerification{},
 	common.BytesToAddress([]byte{0x14}): &pointEvaluation{},
 }
 
-var (
-	errBlobVerificationInputLength = errors.New("invalid input length")
-	errInvalidVersionedHash        = errors.New("invalid versioned hash")
-	errInvalidChunk                = errors.New("invalid chunk")
-	errBadBlobCommitment           = errors.New("versioned hash did not match")
-)
-
-// DOCDOC
-type blobVerification struct{}
-
-// RequiredGas returns the gas required to execute the pre-compiled contract.
-func (c *blobVerification) RequiredGas(input []byte) uint64 {
-	// 4096 (4096*32 + 32) is base gas (BlobVerificationGas), anything above should scale up the cost
-	return params.BlobVerificationGas * (uint64(len(input)) / 131104)
-}
-
-func (c *blobVerification) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) {
-	if len(input) < 32+(32*32) || len(input) > 32+(32*params.FieldElementsPerBlob) {
-		return nil, errBlobVerificationInputLength
-	}
-
-	var expectedVersionedHash [32]byte
-	copy(expectedVersionedHash[:], input[:32])
-	if expectedVersionedHash[0] != params.BlobCommitmentVersionKZG {
-		return nil, errInvalidVersionedHash
-	}
-
-	input = input[32:] // skip forward to the input points
-	lenInput := len(input)
-	if (lenInput % 32) != 0 {
-		return nil, errInvalidChunk
-	}
-	numElements := lenInput / 32
-	inputPoints := make([]bls.Fr, params.FieldElementsPerBlob)
-	var inputPoint [32]byte
-	for i := 0; i < numElements; i++ {
-		copy(inputPoint[:32], input[i*32:(i+1)*32])
-		ok := bls.FrFrom32(&inputPoints[i], inputPoint)
-		if !ok {
-			return nil, errInvalidChunk
-		}
-	}
-
-	// Get versioned hash out of input points
-	commitment := kzg.BlobToKzg(inputPoints)
-	var compressedCommitment types.KZGCommitment
-	copy(compressedCommitment[:], bls.ToCompressedG1(commitment))
-
-	versionedHash := compressedCommitment.ComputeVersionedHash()
-	if versionedHash != expectedVersionedHash {
-		return nil, errBadBlobCommitment
-	}
-
-	return []byte{}, nil
-}
 
 // DOCDOC
 type pointEvaluation struct{}
@@ -1149,6 +1093,7 @@ var (
 	errPointEvaluationInvalidProof          = errors.New("invalid proof")
 	errPointEvaluationMismatchVersionedHash = errors.New("mismatched versioned hash")
 	errPointEvaluationBadProof              = errors.New("bad proof")
+	errInvalidVersionedHash        = errors.New("invalid versioned hash")
 )
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
