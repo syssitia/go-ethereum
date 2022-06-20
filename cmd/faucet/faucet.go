@@ -85,6 +85,7 @@ var (
 
 	goerliFlag    = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
 	rinkebyFlag   = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	sepoliaFlag = flag.Bool("sepolia", false, "Initializes the faucet with Sepolia network config")
 	tanenbaumFlag = flag.Bool("tanenbaum", false, "Initializes the faucet with Tanenbaum network config")
 	syscoinFlag   = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
 	NEVMPubFlag   = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
@@ -143,7 +144,7 @@ func main() {
 		log.Crit("Failed to render the faucet template", "err", err)
 	}
 	// Load and parse the genesis block requested by the user
-	genesis, err := getGenesis(*genesisFlag, *goerliFlag, *rinkebyFlag, *tanenbaumFlag, *syscoinFlag)
+	genesis, err := getGenesis(*genesisFlag, *goerliFlag, *rinkebyFlag, *sepoliaFlag, *tanenbaumFlag, *syscoinFlag)
 	if err != nil {
 		log.Crit("Failed to parse genesis config", "err", err)
 	}
@@ -924,7 +925,7 @@ func authNoAuth(url string) (string, string, common.Address, error) {
 }
 
 // getGenesis returns a genesis based on input args
-func getGenesis(genesisFlag string, goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syscoinFlag bool) (*core.Genesis, error) {
+func getGenesis(genesisFlag string, goerliFlag bool, rinkebyFlag bool, sepoliaFlag bool, tanenbaumFlag bool, syscoinFlag bool) (*core.Genesis, error) {
 	switch {
 	case genesisFlag != "":
 		var genesis core.Genesis
@@ -938,6 +939,8 @@ func getGenesis(genesisFlag string, goerliFlag bool, rinkebyFlag bool, tanenbaum
 		return core.DefaultTanenbaumGenesisBlock(), nil
 	case syscoinFlag:
 		return core.DefaultSyscoinGenesisBlock(), nil
+	case sepoliaFlag:
+		return core.DefaultSepoliaGenesisBlock(), nil
 	default:
 		return nil, fmt.Errorf("no genesis flag provided")
 	}
