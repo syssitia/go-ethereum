@@ -89,7 +89,7 @@ type LightEthereum struct {
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
-	netRPCService  *ethapi.PublicNetAPI
+	netRPCService  *ethapi.NetAPI
 
 	p2pServer  *p2p.Server
 	p2pConfig  *p2p.Config
@@ -208,7 +208,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		leth.blockchain.DisableCheckFreq()
 	}
 
-	leth.netRPCService = ethapi.NewPublicNetAPI(leth.p2pServer, leth.config.NetworkId)
+	leth.netRPCService = ethapi.NewNetAPI(leth.p2pServer, leth.config.NetworkId)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(leth.APIs())
@@ -420,12 +420,12 @@ func (s *LightEthereum) APIs() []rpc.API {
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.handler.downloader, s.eventMux),
+			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
 			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true, 5*time.Minute),
+			Service:   filters.NewFilterAPI(s.ApiBackend, true, 5*time.Minute),
 			Public:    true,
 		}, {
 			Namespace: "net",
@@ -435,7 +435,7 @@ func (s *LightEthereum) APIs() []rpc.API {
 		}, {
 			Namespace: "les",
 			Version:   "1.0",
-			Service:   NewPrivateLightAPI(&s.lesCommons),
+			Service:   NewLightAPI(&s.lesCommons),
 			Public:    false,
 		}, {
 			Namespace: "vflux",
