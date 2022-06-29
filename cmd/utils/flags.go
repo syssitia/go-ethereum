@@ -1106,8 +1106,11 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.TanenbaumBootnodes
 	case ctx.Bool(KilnFlag.Name):
 		urls = params.KilnBootnodes
-	case cfg.BootstrapNodes != nil:
-		return // already set, don't apply defaults.
+	}
+
+	// don't apply defaults if BootstrapNodes is already set
+	if cfg.BootstrapNodes != nil {
+		return
 	}
 
 	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
