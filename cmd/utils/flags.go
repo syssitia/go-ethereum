@@ -1801,7 +1801,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	godebug.SetGCPercent(int(gogc))
 	// SYSCOIN
 	if ctx.IsSet(NEVMPubFlag.Name) {
-		cfg.NEVMPubEP = ctx.GlobalString(NEVMPubFlag.Name)
+		cfg.NEVMPubEP = ctx.String(NEVMPubFlag.Name)
 	}
 
 	if ctx.IsSet(SyncModeFlag.Name) {
