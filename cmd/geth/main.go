@@ -318,7 +318,7 @@ func prepare(ctx *cli.Context) {
 		log.Info("Starting Geth on Ethereum mainnet...")
 	}
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance
-	if ctx.String(utils.SyncModeFlag.Name) != "light" && !ctx.String(utils.CacheFlag.Name) && !ctx.String(utils.NetworkIdFlag.Name) {
+	if ctx.String(utils.SyncModeFlag.Name) != "light" && !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {
 		// SYSCOIN Make sure we're not on any supported preconfigured testnet either
 		if !ctx.IsSet(utils.RopstenFlag.Name) &&
 			!ctx.IsSet(utils.SepoliaFlag.Name) &&
