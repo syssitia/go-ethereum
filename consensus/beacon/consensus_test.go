@@ -36,7 +36,8 @@ func (m *mockChain) GetHeader(hash common.Hash, number uint64) *types.Header {
 func (m *mockChain) GetHeaderByNumber(number uint64) *types.Header { panic("not implemented") }
 
 func (m *mockChain) GetHeaderByHash(hash common.Hash) *types.Header { panic("not implemented") }
-
+// SYSCOIN
+func (m *mockChain) HasNEVMMapping(hash common.Hash) bool           { panic("not implemented") }
 func (m *mockChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	num, ok := m.tds[number]
 	if ok {
