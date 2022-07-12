@@ -114,6 +114,8 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 		net = "syscoin"
 	case TanenbaumGenesisHash:
 		net = "tanenbaum"
+	case SepoliaGenesisHash:
+		net = "sepolia"
 	default:
 		return ""
 	}
