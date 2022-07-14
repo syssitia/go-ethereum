@@ -20,6 +20,7 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
+
 	// SYSCOIN
 	"math/big"
 
@@ -40,6 +41,9 @@ var (
 
 	// headFastBlockKey tracks the latest known incomplete block's hash during fast sync.
 	headFastBlockKey = []byte("LastFast")
+
+	// headFinalizedBlockKey tracks the latest known finalized block hash.
+	headFinalizedBlockKey = []byte("LastFinalized")
 
 	// lastPivotKey tracks the last pivot block used by fast sync (to reenable on sethead).
 	lastPivotKey = []byte("LastPivot")
@@ -65,6 +69,9 @@ var (
 	// snapshotSyncStatusKey tracks the snapshot sync status across restarts.
 	snapshotSyncStatusKey = []byte("SnapshotSyncStatus")
 
+	// skeletonSyncStatusKey tracks the skeleton sync status across restarts.
+	skeletonSyncStatusKey = []byte("SkeletonSyncStatus")
+
 	// txIndexTailKey tracks the oldest block whose transactions have been indexed.
 	txIndexTailKey = []byte("TransactionIndexTail")
 
@@ -77,6 +84,9 @@ var (
 	// uncleanShutdownKey tracks the list of local crashes
 	uncleanShutdownKey = []byte("unclean-shutdown") // config prefix for the db
 
+	// transitionStatusKey tracks the eth2 transition status.
+	transitionStatusKey = []byte("eth2-transition")
+
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	headerPrefix       = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
 	headerTDSuffix     = []byte("t") // headerPrefix + num (uint64 big endian) + hash + headerTDSuffix -> td
@@ -86,16 +96,20 @@ var (
 	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
 	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
 
-	txLookupPrefix        = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
-	bloomBitsPrefix       = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
-	SnapshotAccountPrefix = []byte("a") // SnapshotAccountPrefix + account hash -> account trie value
-	SnapshotStoragePrefix = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
-	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
-	nevmToSysPrefix       = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
-	blockNumToSysKeyPrefix= []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
+	txLookupPrefix         = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
+	bloomBitsPrefix        = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
+	SnapshotAccountPrefix  = []byte("a") // SnapshotAccountPrefix + account hash -> account trie value
+	SnapshotStoragePrefix  = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
+	CodePrefix             = []byte("c") // CodePrefix + code hash -> account code
+	nevmToSysPrefix        = []byte("x") // nevmToSysPrefix + nevm block hash -> nevmBlock
+	blockNumToSysKeyPrefix = []byte("z") // blockNumToSysKeyPrefix + block number -> SYS block hash
+	dataHashesKeyPrefix    = []byte("y") // dataHashesKeyPrefix + block number -> versioned hashes
+	dataHashKeyPrefix      = []byte("w") // dataHashKeyPrefix + versioned hash -> versioned hash
+	skeletonHeaderPrefix   = []byte("S") // skeletonHeaderPrefix + num (uint64 big endian) -> header
 
-	PreimagePrefix = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
-	configPrefix   = []byte("ethereum-config-") // config prefix for the db
+	PreimagePrefix = []byte("secure-key-")       // PreimagePrefix + hash -> preimage
+	configPrefix   = []byte("ethereum-config-")  // config prefix for the db
+	genesisPrefix  = []byte("ethereum-genesis-") // genesis state prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
@@ -211,6 +225,11 @@ func bloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
 	return key
 }
 
+// skeletonHeaderKey = skeletonHeaderPrefix + num (uint64 big endian)
+func skeletonHeaderKey(number uint64) []byte {
+	return append(skeletonHeaderPrefix, encodeBlockNumber(number)...)
+}
+
 // preimageKey = PreimagePrefix + hash
 func preimageKey(hash common.Hash) []byte {
 	return append(PreimagePrefix, hash.Bytes()...)
@@ -234,12 +253,25 @@ func IsCodeKey(key []byte) (bool, []byte) {
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
 }
+
 // SYSCOIN
 // nevmToSysKey = nevmToSysPrefix + hash
 func nevmToSysKey(hash common.Hash) []byte {
 	return append(nevmToSysPrefix, hash.Bytes()...)
 }
+
 // blockNumToSysKey = blockNumToSysKeyPrefix + blocknumber
 func blockNumToSysKey(n uint64) []byte {
 	return append(blockNumToSysKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)
+}
+func dataHashesKey(n uint64) []byte {
+	return append(dataHashesKeyPrefix, []byte(new(big.Int).SetUint64(n).String())...)
+}
+func dataHashKey(hash common.Hash) []byte {
+	return append(dataHashKeyPrefix, hash.Bytes()...)
+}
+
+// genesisKey = genesisPrefix + hash
+func genesisKey(hash common.Hash) []byte {
+	return append(genesisPrefix, hash.Bytes()...)
 }

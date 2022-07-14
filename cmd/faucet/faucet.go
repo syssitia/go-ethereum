@@ -17,18 +17,16 @@
 // faucet is an Ether faucet backed by a light client.
 package main
 
-//go:generate go-bindata -nometadata -o website.go faucet.html
-//go:generate gofmt -w -s website.go
-
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -61,6 +59,7 @@ import (
 )
 
 var (
+	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
@@ -84,13 +83,13 @@ var (
 	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
 	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
 
-	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
-	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	goerliFlag    = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
+	rinkebyFlag   = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	sepoliaFlag = flag.Bool("sepolia", false, "Initializes the faucet with Sepolia network config")
 	tanenbaumFlag = flag.Bool("tanenbaum", false, "Initializes the faucet with Tanenbaum network config")
-	syscoinFlag = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
-	NEVMPubFlag    = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
-	dataDirFlag    = flag.String("datadir", "", "Datadir passthrough from syscoind")
-
+	syscoinFlag   = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
+	NEVMPubFlag   = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
+	dataDirFlag   = flag.String("datadir", "", "Datadir passthrough from syscoind")
 )
 
 var (
@@ -102,6 +101,9 @@ var (
 	gitDate   = "" // Git commit date YYYYMMDD of the release (set via linker flags)
 )
 
+//go:embed faucet.html
+var websiteTmpl string
+
 func main() {
 	// Parse the flags and set up the logger to print everything requested
 	flag.Parse()
@@ -112,7 +114,7 @@ func main() {
 	periods := make([]string, *tiersFlag)
 	for i := 0; i < *tiersFlag; i++ {
 		// Calculate the amount for the next tier and format it
-		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
+		amount := *payoutFlag * math.Pow(2.5, float64(i))
 		amounts[i] = fmt.Sprintf("%.2f SYS", amount)
 		// Calculate the period for the next tier and format it
 		period := *minutesFlag * int(math.Pow(3, float64(i)))
@@ -130,13 +132,8 @@ func main() {
 			periods[i] = strings.TrimSuffix(periods[i], "s")
 		}
 	}
-	// Load up and render the faucet website
-	tmpl, err := Asset("faucet.html")
-	if err != nil {
-		log.Crit("Failed to load the faucet template", "err", err)
-	}
 	website := new(bytes.Buffer)
-	err = template.Must(template.New("").Parse(string(tmpl))).Execute(website, map[string]interface{}{
+	err := template.Must(template.New("").Parse(websiteTmpl)).Execute(website, map[string]interface{}{
 		"Network":   *netnameFlag,
 		"Amounts":   amounts,
 		"Periods":   periods,
@@ -147,7 +144,7 @@ func main() {
 		log.Crit("Failed to render the faucet template", "err", err)
 	}
 	// Load and parse the genesis block requested by the user
-	genesis, err := getGenesis(*goerliFlag, *rinkebyFlag, *tanenbaumFlag, *syscoinFlag)
+	genesis, err := getGenesis(*genesisFlag, *goerliFlag, *rinkebyFlag, *sepoliaFlag, *tanenbaumFlag, *syscoinFlag)
 	if err != nil {
 		log.Crit("Failed to parse genesis config", "err", err)
 	}
@@ -161,18 +158,18 @@ func main() {
 		}
 	}
 	// Load up the account key and decrypt its password
-	blob, err := ioutil.ReadFile(*accPassFlag)
+	blob, err := os.ReadFile(*accPassFlag)
 	if err != nil {
 		log.Crit("Failed to read account password contents", "file", *accPassFlag, "err", err)
 	}
 	pass := strings.TrimSuffix(string(blob), "\n")
 	// SYSCOIN override datadir if applicable
-	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet")
+	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet", "keys")
 	if *dataDirFlag != "" {
 		dataDirToUse = *dataDirFlag
 	}
-	ks := keystore.NewKeyStore(filepath.Join(dataDirToUse, "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
-	if blob, err = ioutil.ReadFile(*accJSONFlag); err != nil {
+	ks := keystore.NewKeyStore(dataDirToUse, keystore.StandardScryptN, keystore.StandardScryptP)
+	if blob, err = os.ReadFile(*accJSONFlag); err != nil {
 		log.Crit("Failed to read account key contents", "file", *accJSONFlag, "err", err)
 	}
 	acc, err := ks.Import(blob, pass, pass)
@@ -221,7 +218,7 @@ type faucet struct {
 	reqs     []*request           // Currently pending funding requests
 	update   chan struct{}        // Channel to signal request updates
 
-	lock sync.RWMutex // Lock protecting the faucet's internals
+	lock    sync.RWMutex // Lock protecting the faucet's internals
 	backend *les.LesApiBackend
 }
 
@@ -249,7 +246,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", port),
 			MaxPeers:         25,
-			BootstrapNodes: enodes,
+			BootstrapNodes:   enodes,
 			BootstrapNodesV5: enodes,
 		},
 	})
@@ -516,7 +513,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 				f.lock.Unlock()
 				return
 			}
-			
+
 			gasFeeCap := new(big.Int).Add(
 				gasTipCap,
 				new(big.Int).Mul(f.backend.CurrentHeader().BaseFee, big.NewInt(2)),
@@ -525,7 +522,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			txdata := &types.DynamicFeeTx{
 				To:         &address,
 				ChainID:    f.config.ChainID,
-				Nonce:      f.nonce+uint64(len(f.reqs)),
+				Nonce:      f.nonce + uint64(len(f.reqs)),
 				Gas:        21000,
 				GasFeeCap:  gasFeeCap,
 				GasTipCap:  gasTipCap,
@@ -773,7 +770,7 @@ func authTwitter(url string, tokenV1, tokenV2 string) (string, string, string, c
 	}
 	username := parts[len(parts)-3]
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", "", "", common.Address{}, err
 	}
@@ -899,14 +896,14 @@ func authFacebook(url string) (string, string, common.Address, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", "", common.Address{}, err
 	}
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
 		//lint:ignore ST1005 This error is to be displayed in the browser
-		return "", "", common.Address{}, errors.New("No NEVM address found to fund")
+		return "", "", common.Address{}, errors.New("No NEVM address found to fund. Please check the post URL and verify that it can be viewed publicly.")
 	}
 	var avatar string
 	if parts = regexp.MustCompile(`src="([^"]+fbcdn\.net[^"]+)"`).FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -928,8 +925,12 @@ func authNoAuth(url string) (string, string, common.Address, error) {
 }
 
 // getGenesis returns a genesis based on input args
-func getGenesis(goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syscoinFlag bool) (*core.Genesis, error) {
+func getGenesis(genesisFlag string, goerliFlag bool, rinkebyFlag bool, sepoliaFlag bool, tanenbaumFlag bool, syscoinFlag bool) (*core.Genesis, error) {
 	switch {
+	case genesisFlag != "":
+		var genesis core.Genesis
+		err := common.LoadJSON(genesisFlag, &genesis)
+		return &genesis, err
 	case goerliFlag:
 		return core.DefaultGoerliGenesisBlock(), nil
 	case rinkebyFlag:
@@ -938,6 +939,8 @@ func getGenesis(goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syscoinFl
 		return core.DefaultTanenbaumGenesisBlock(), nil
 	case syscoinFlag:
 		return core.DefaultSyscoinGenesisBlock(), nil
+	case sepoliaFlag:
+		return core.DefaultSepoliaGenesisBlock(), nil
 	default:
 		return nil, fmt.Errorf("no genesis flag provided")
 	}

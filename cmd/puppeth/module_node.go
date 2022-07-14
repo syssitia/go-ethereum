@@ -122,7 +122,7 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Etherbase": config.etherbase,
 		"GasTarget": uint64(1000000 * config.gasTarget),
 		"GasLimit":  uint64(1000000 * config.gasLimit),
-		"GasPrice":  uint64(1000000000 * config.gasPrice),
+		"GasPrice":  uint64(config.gasPrice),
 		"Unlock":    config.keyJSON != "",
 	})
 	files[filepath.Join(workdir, "Dockerfile")] = dockerfile.Bytes()
@@ -198,7 +198,7 @@ func (info *nodeInfos) Report() map[string]string {
 	}
 	if info.gasTarget > 0 {
 		// Miner or signer node
-		report["Gas price (minimum accepted)"] = fmt.Sprintf("%0.3f GWei", info.gasPrice)
+		report["Gas price (minimum accepted)"] = fmt.Sprintf("%0.3f Wei", info.gasPrice)
 		report["Gas floor (baseline target)"] = fmt.Sprintf("%0.3f MGas", info.gasTarget)
 		report["Gas ceil  (target maximum)"] = fmt.Sprintf("%0.3f MGas", info.gasLimit)
 

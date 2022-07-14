@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -184,7 +183,7 @@ func (tt *TestCmd) ExpectRegexp(regex string) (*regexp.Regexp, []string) {
 func (tt *TestCmd) ExpectExit() {
 	var output []byte
 	tt.withKillTimeout(func() {
-		output, _ = ioutil.ReadAll(tt.stdout)
+		output, _ = io.ReadAll(tt.stdout)
 	})
 	tt.WaitExit()
 	if tt.Cleanup != nil {
@@ -238,7 +237,8 @@ func (tt *TestCmd) Kill() {
 }
 
 func (tt *TestCmd) withKillTimeout(fn func()) {
-	timeout := time.AfterFunc(5*time.Second, func() {
+	// SYSCOIN extend timeout
+	timeout := time.AfterFunc(60*time.Second, func() {
 		tt.Log("killing the child process (timeout)")
 		tt.Kill()
 	})

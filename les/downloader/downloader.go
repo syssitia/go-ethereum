@@ -40,7 +40,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
 )
 
 var (
@@ -97,8 +96,7 @@ type Downloader struct {
 	queue      *queue   // Scheduler for selecting the hashes to download
 	peers      *peerSet // Set of active peers from which download can proceed
 
-	stateDB    ethdb.Database  // Database to state sync into (and deduplicate via)
-	stateBloom *trie.SyncBloom // Bloom filter for fast trie node and contract code existence checks
+	stateDB ethdb.Database // Database to state sync into (and deduplicate via)
 
 	// Statistics
 	syncStatsChainOrigin uint64 // Origin block number where syncing started at
@@ -208,13 +206,12 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
+func New(checkpoint uint64, stateDb ethdb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
 	if lightchain == nil {
 		lightchain = chain
 	}
 	dl := &Downloader{
 		stateDB:        stateDb,
-		stateBloom:     stateBloom,
 		mux:            mux,
 		checkpoint:     checkpoint,
 		queue:          newQueue(blockCacheMaxItems, blockCacheInitialItems),
@@ -232,9 +229,9 @@ func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, 
 		stateCh:        make(chan dataPack),
 		SnapSyncer:     snap.NewSyncer(stateDb),
 		stateSyncStart: make(chan *stateSync),
-		syncStatsState: stateSyncStats{
-			processed: rawdb.ReadFastTrieProgress(stateDb),
-		},
+		//syncStatsState: stateSyncStats{
+		//	processed: rawdb.ReadFastTrieProgress(stateDb),
+		//},
 		trackStateReq: make(chan *stateReq),
 	}
 	go dl.stateFetcher()
@@ -269,8 +266,8 @@ func (d *Downloader) Progress() ethereum.SyncProgress {
 		StartingBlock: d.syncStatsChainOrigin,
 		CurrentBlock:  current,
 		HighestBlock:  d.syncStatsChainHeight,
-		PulledStates:  d.syncStatsState.processed,
-		KnownStates:   d.syncStatsState.processed + d.syncStatsState.pending,
+		//PulledStates:  d.syncStatsState.processed,
+		//KnownStates:   d.syncStatsState.processed + d.syncStatsState.pending,
 	}
 }
 
@@ -368,12 +365,6 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 	if atomic.CompareAndSwapInt32(&d.notified, 0, 1) {
 		log.Info("Block synchronisation started")
 	}
-	// If we are already full syncing, but have a fast-sync bloom filter laying
-	// around, make sure it doesn't use memory any more. This is a special case
-	// when the user attempts to fast sync a new empty network.
-	if mode == FullSync && d.stateBloom != nil {
-		d.stateBloom.Close()
-	}
 	// If snap sync was requested, create the snap scheduler and switch to fast
 	// sync mode. Long term we could drop fast sync or merge the two together,
 	// but until snap becomes prevalent, we should support both. TODO(karalabe).
@@ -438,6 +429,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
+
 // SYSCOIN
 func (s *Downloader) Peers() *peerSet { return s.peers }
 func (d *Downloader) DoneEvent() {
@@ -447,6 +439,7 @@ func (d *Downloader) DoneEvent() {
 func (d *Downloader) StartNetworkEvent() {
 	d.mux.Post(StartNetworkEvent{})
 }
+
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
@@ -636,9 +629,6 @@ func (d *Downloader) Terminate() {
 	case <-d.quitCh:
 	default:
 		close(d.quitCh)
-	}
-	if d.stateBloom != nil {
-		d.stateBloom.Close()
 	}
 	d.quitLock.Unlock()
 
@@ -1939,15 +1929,6 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 		return err
 	}
 	atomic.StoreInt32(&d.committed, 1)
-
-	// If we had a bloom filter for the state sync, deallocate it now. Note, we only
-	// deallocate internally, but keep the empty wrapper. This ensures that if we do
-	// a rollback after committing the pivot and restarting fast sync, we don't end
-	// up using a nil bloom. Empty bloom is fine, it just returns that it does not
-	// have the info we need, so reach down to the database instead.
-	if d.stateBloom != nil {
-		d.stateBloom.Close()
-	}
 	return nil
 }
 

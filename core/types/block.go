@@ -18,23 +18,25 @@
 package types
 
 import (
-	"errors"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"reflect"
 	"sync/atomic"
 	"time"
+
 	// SYSCOIN
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+
 	// SYSCOIN
-	"github.com/syscoin/btcd/wire"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/syscoin/btcd/wire"
 )
 
 var (
@@ -69,13 +71,14 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
+//go:generate go run github.com/fjl/gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
+//go:generate go run ../../rlp/rlpgen -type Header -out gen_header_rlp.go
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
-	Coinbase    common.Address `json:"miner"            gencodec:"required"`
+	Coinbase    common.Address `json:"miner"`
 	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
@@ -91,6 +94,12 @@ type Header struct {
 
 	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
 	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+
+	/*
+		TODO (MariusVanDerWijden) Add this field once needed
+		// Random was added during the merge and contains the BeaconState randomness
+		Random common.Hash `json:"random" rlp:"optional"`
+	*/
 }
 
 // field type overrides for gencodec
@@ -171,10 +180,6 @@ type Block struct {
 	hash atomic.Value
 	size atomic.Value
 
-	// Td is used by package core to store the total difficulty
-	// of the chain up to and including the block.
-	td *big.Int
-
 	// These fields are used by package eth to track
 	// inter-peer block relay.
 	ReceivedAt   time.Time
@@ -183,9 +188,10 @@ type Block struct {
 
 // SYSCOIN
 type NEVMBlockConnect struct {
-	Blockhash       common.Hash
-	Sysblockhash    string
-	Block           *Block
+	Blockhash     common.Hash
+	Sysblockhash  string
+	Block         *Block
+	VersionHashes []*common.Hash
 }
 
 func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
@@ -218,9 +224,14 @@ func (n *NEVMBlockConnect) Deserialize(bytesIn []byte) error {
 	if n.Blockhash != block.Hash() {
 		return errors.New("Blockhash mismatch")
 	}
+	numVH := len(NEVMBlockWire.VersionHashes)
+	n.VersionHashes = make([]*common.Hash, numVH)
+	for i := 0; i < numVH; i++ {
+		vh := common.BytesToHash(NEVMBlockWire.VersionHashes[i])
+		n.VersionHashes[i] = &vh
+	}
 	return nil
 }
-
 func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 	var NEVMBlockWire wire.NEVMBlockWire
 	var err error
@@ -240,7 +251,6 @@ func (n *NEVMBlockConnect) Serialize(block *Block) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
 	Header *Header
@@ -256,7 +266,7 @@ type extblock struct {
 // are ignored and set to values derived from the given txs, uncles
 // and receipts.
 func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt, hasher TrieHasher) *Block {
-	b := &Block{header: CopyHeader(header), td: new(big.Int)}
+	b := &Block{header: CopyHeader(header)}
 
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
@@ -449,3 +459,21 @@ func (b *Block) Hash() common.Hash {
 }
 
 type Blocks []*Block
+
+// HeaderParentHashFromRLP returns the parentHash of an RLP-encoded
+// header. If 'header' is invalid, the zero hash is returned.
+func HeaderParentHashFromRLP(header []byte) common.Hash {
+	// parentHash is the first list element.
+	listContent, _, err := rlp.SplitList(header)
+	if err != nil {
+		return common.Hash{}
+	}
+	parentHash, _, err := rlp.SplitString(listContent)
+	if err != nil {
+		return common.Hash{}
+	}
+	if len(parentHash) != 32 {
+		return common.Hash{}
+	}
+	return common.BytesToHash(parentHash)
+}

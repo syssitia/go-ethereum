@@ -19,6 +19,7 @@ package eth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -72,6 +73,9 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	if number == rpc.LatestBlockNumber {
 		return b.eth.blockchain.CurrentBlock().Header(), nil
 	}
+	if number == rpc.FinalizedBlockNumber {
+		return b.eth.blockchain.CurrentFinalizedBlock().Header(), nil
+	}
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
 
@@ -79,7 +83,9 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 func (b *EthAPIBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.eth.blockchain.ReadSYSHash(uint64(number)), nil
 }
-
+func (b *EthAPIBackend) ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+	return b.eth.blockchain.ReadDataHash(hash), nil
+}
 func (b *EthAPIBackend) HeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Header, error) {
 	if blockNr, ok := blockNrOrHash.Number(); ok {
 		return b.HeaderByNumber(ctx, blockNr)
@@ -110,6 +116,9 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 	// Otherwise resolve and return the block
 	if number == rpc.LatestBlockNumber {
 		return b.eth.blockchain.CurrentBlock(), nil
+	}
+	if number == rpc.FinalizedBlockNumber {
+		return b.eth.blockchain.CurrentFinalizedBlock(), nil
 	}
 	return b.eth.blockchain.GetBlockByNumber(uint64(number)), nil
 }
@@ -190,11 +199,11 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 	db := b.eth.ChainDb()
 	number := rawdb.ReadHeaderNumber(db, hash)
 	if number == nil {
-		return nil, errors.New("failed to get block number from hash")
+		return nil, fmt.Errorf("failed to get block number for hash %#x", hash)
 	}
 	logs := rawdb.ReadLogs(db, hash, *number, b.eth.blockchain.Config())
 	if logs == nil {
-		return nil, errors.New("failed to get logs for block")
+		return nil, fmt.Errorf("failed to get logs for block #%d (0x%s)", *number, hash.TerminalString())
 	}
 	return logs, nil
 }
@@ -358,7 +367,7 @@ func (b *EthAPIBackend) StartMining(threads int) error {
 }
 
 func (b *EthAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, checkLive, preferDisk bool) (*state.StateDB, error) {
-	return b.eth.stateAtBlock(block, reexec, base, checkLive, preferDisk)
+	return b.eth.StateAtBlock(block, reexec, base, checkLive, preferDisk)
 }
 
 func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error) {

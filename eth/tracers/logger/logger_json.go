@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -47,7 +47,10 @@ func (l *JSONLogger) CaptureStart(env *vm.EVM, from, to common.Address, create b
 	l.env = env
 }
 
-func (l *JSONLogger) CaptureFault(uint64, vm.OpCode, uint64, uint64, *vm.ScopeContext, int, error) {}
+func (l *JSONLogger) CaptureFault(pc uint64, op vm.OpCode, gas uint64, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+	// TODO: Add rData to this interface as well
+	l.CaptureState(pc, op, gas, cost, scope, nil, depth, err)
+}
 
 // CaptureState outputs state information on the logger.
 func (l *JSONLogger) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
@@ -95,3 +98,7 @@ func (l *JSONLogger) CaptureEnter(typ vm.OpCode, from common.Address, to common.
 }
 
 func (l *JSONLogger) CaptureExit(output []byte, gasUsed uint64, err error) {}
+
+func (l *JSONLogger) CaptureTxStart(gasLimit uint64) {}
+
+func (l *JSONLogger) CaptureTxEnd(restGas uint64) {}

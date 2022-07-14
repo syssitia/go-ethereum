@@ -22,7 +22,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -251,10 +250,15 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	//fmt.Printf("GetHeader(%x, %d) => header with parent %x\n", h, n, parentHash)
 	return fakeHeader(n, parentHash)
 }
+
 // SYSCOIN
 func (d *dummyChain) ReadSYSHash(uint64) []byte {
 	return []byte{}
 }
+func (d *dummyChain) ReadDataHash(common.Hash) []byte {
+	return []byte{}
+}
+
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
@@ -303,10 +307,10 @@ func TestBlockhash(t *testing.T) {
 	input := common.Hex2Bytes("f8a8fd6d")
 	chain := &dummyChain{}
 	ret, _, err := Execute(data, input, &Config{
-		GetHashFn:   core.GetHashFn(header, chain),
+		GetHashFn: core.GetHashFn(header, chain),
 		// SYSCOIN
-		ReadSYSHashFn:   core.ReadSYSHashFn(chain),
-		BlockNumber: new(big.Int).Set(header.Number),
+		ReadSYSHashFn: core.ReadSYSHashFn(chain),
+		BlockNumber:   new(big.Int).Set(header.Number),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -330,25 +334,6 @@ func TestBlockhash(t *testing.T) {
 	if exp, got := 255, chain.counter; exp != got {
 		t.Errorf("suboptimal; too much chain iteration, expected %d, got %d", exp, got)
 	}
-}
-
-type stepCounter struct {
-	inner *logger.JSONLogger
-	steps int
-}
-
-func (s *stepCounter) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
-}
-
-func (s *stepCounter) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
-}
-
-func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {}
-
-func (s *stepCounter) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
-	s.steps++
-	// Enable this for more output
-	//s.inner.CaptureState(env, pc, op, gas, cost, memory, stack, rStack, contract, depth, err)
 }
 
 // benchmarkNonModifyingCode benchmarks code, but if the code modifies the
@@ -529,7 +514,7 @@ func TestEip2929Cases(t *testing.T) {
 		it := asm.NewInstructionIterator(code)
 		for it.Next() {
 			if it.Arg() != nil && 0 < len(it.Arg()) {
-				instrs = append(instrs, fmt.Sprintf("%v 0x%x", it.Op(), it.Arg()))
+				instrs = append(instrs, fmt.Sprintf("%v %#x", it.Op(), it.Arg()))
 			} else {
 				instrs = append(instrs, fmt.Sprintf("%v", it.Op()))
 			}
@@ -537,7 +522,7 @@ func TestEip2929Cases(t *testing.T) {
 		ops := strings.Join(instrs, ", ")
 		fmt.Printf("### Case %d\n\n", id)
 		id++
-		fmt.Printf("%v\n\nBytecode: \n```\n0x%x\n```\nOperations: \n```\n%v\n```\n\n",
+		fmt.Printf("%v\n\nBytecode: \n```\n%#x\n```\nOperations: \n```\n%v\n```\n\n",
 			comment,
 			code, ops)
 		Execute(code, nil, &Config{
@@ -758,7 +743,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294935775,6,12"`, `"1,1,4294935775,6,0"`},
+			results: []string{`"1,1,952855,6,12"`, `"1,1,952855,6,0"`},
 		},
 		{
 			// CREATE2
@@ -774,7 +759,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE2),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294935766,6,13"`, `"1,1,4294935766,6,0"`},
+			results: []string{`"1,1,952846,6,13"`, `"1,1,952846,6,0"`},
 		},
 		{
 			// CALL
@@ -787,7 +772,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964716,6,13"`, `"1,1,4294964716,6,0"`},
+			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
 		},
 		{
 			// CALLCODE
@@ -800,7 +785,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CALLCODE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964716,6,13"`, `"1,1,4294964716,6,0"`},
+			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
 		},
 		{
 			// STATICCALL
@@ -812,7 +797,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.STATICCALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964719,6,12"`, `"1,1,4294964719,6,0"`},
+			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
 		{
 			// DELEGATECALL
@@ -824,7 +809,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.DELEGATECALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964719,6,12"`, `"1,1,4294964719,6,0"`},
+			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
 		{
 			// CALL self-destructing contract
@@ -865,7 +850,8 @@ func TestRuntimeJSTracer(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, _, err = Call(main, nil, &Config{
-				State: statedb,
+				GasLimit: 1000000,
+				State:    statedb,
 				EVMConfig: vm.Config{
 					Debug:  true,
 					Tracer: tracer,

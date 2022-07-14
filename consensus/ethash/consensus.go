@@ -48,6 +48,11 @@ var (
 	// SYSCOIN
 	allowedFutureBlockTimeSeconds = int64(150) // Max seconds from current time allowed for blocks, before they're considered future blocks
 
+	// calcDifficultyEip5133 is the difficulty adjustment algorithm as specified by EIP 5133.
+	// It offsets the bomb a total of 11.4M blocks.
+	// Specification EIP-5133: https://eips.ethereum.org/EIPS/eip-5133
+	calcDifficultyEip5133 = makeDifficultyCalculator(big.NewInt(11_400_000))
+
 	// calcDifficultyEip4345 is the difficulty adjustment algorithm as specified by EIP 4345.
 	// It offsets the bomb a total of 10.7M blocks.
 	// Specification EIP-4345: https://eips.ethereum.org/EIPS/eip-4345
@@ -300,9 +305,8 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
 	}
 	// Verify that the gas limit is <= 2^63-1
-	cap := uint64(0x7fffffffffffffff)
-	if header.GasLimit > cap {
-		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, cap)
+	if header.GasLimit > params.MaxGasLimit {
+		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
 	// Verify that the gasUsed is <= gasLimit
 	if header.GasUsed > header.GasLimit {
@@ -357,6 +361,8 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	// SYSCOIN
 	case config.IsSyscoin(next):
 		return big.NewInt(1)
+	case config.IsGrayGlacier(next):
+		return calcDifficultyEip5133(time, parent)
 	case config.IsArrowGlacier(next):
 		return calcDifficultyEip4345(time, parent)
 	case config.IsLondon(next):
@@ -530,8 +536,8 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 }
 
 // Exported for fuzzing
-var FrontierDifficultyCalulator = calcDifficultyFrontier
-var HomesteadDifficultyCalulator = calcDifficultyHomestead
+var FrontierDifficultyCalculator = calcDifficultyFrontier
+var HomesteadDifficultyCalculator = calcDifficultyHomestead
 var DynamicDifficultyCalculator = makeDifficultyCalculator
 
 // verifySeal checks whether a block satisfies the PoW difficulty requirements,

@@ -1,4 +1,4 @@
-// Copyright 2016 The go-ethereum Authors
+// Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,8 +21,9 @@ import (
 	// SYSCOIN
 	"errors"
 	"fmt"
-	"time"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,6 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
+	"github.com/ethereum/go-ethereum/internal/shutdowncheck"
 	"github.com/ethereum/go-ethereum/les/downloader"
 	"github.com/ethereum/go-ethereum/les/vflux"
 	vfc "github.com/ethereum/go-ethereum/les/vflux/client"
@@ -50,9 +52,11 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	// SYSCOIN
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 )
+
 // SYSCOIN
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
@@ -76,6 +80,7 @@ type LightEthereum struct {
 	serverPool         *vfc.ServerPool
 	serverPoolIterator enode.Iterator
 	pruner             *pruner
+	merger             *consensus.Merger
 
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
@@ -84,15 +89,17 @@ type LightEthereum struct {
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
-	netRPCService  *ethapi.PublicNetAPI
+	netRPCService  *ethapi.NetAPI
 
 	p2pServer  *p2p.Server
 	p2pConfig  *p2p.Config
 	udpEnabled bool
 	// SYSCOIN
-	zmqRep            *ZMQRep
-	timeLastBlock		int64
-	lock              sync.RWMutex
+	zmqRep        *ZMQRep
+	timeLastBlock int64
+	lock          sync.RWMutex
+
+	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
 
 // New creates an instance of the light client.
@@ -105,13 +112,20 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.OverrideArrowGlacier)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.OverrideGrayGlacier, config.OverrideTerminalTotalDifficulty)
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}
-	log.Info("Initialised chain configuration", "config", chainConfig)
+	log.Info("")
+	log.Info(strings.Repeat("-", 153))
+	for _, line := range strings.Split(chainConfig.String(), "\n") {
+		log.Info(line)
+	}
+	log.Info(strings.Repeat("-", 153))
+	log.Info("")
 
 	peers := newServerPeerSet()
+	merger := consensus.NewMerger(chainDb)
 	leth := &LightEthereum{
 		lesCommons: lesCommons{
 			genesis:     genesisHash,
@@ -122,16 +136,18 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			lesDb:       lesDb,
 			closeCh:     make(chan struct{}),
 		},
-		peers:          peers,
-		eventMux:       stack.EventMux(),
-		reqDist:        newRequestDistributor(peers, &mclock.System{}),
-		accountManager: stack.AccountManager(),
-		engine:         ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb),
-		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
-		p2pServer:      stack.Server(),
-		p2pConfig:      &stack.Config().P2P,
-		udpEnabled:     stack.Config().P2P.DiscoveryV5,
+		peers:           peers,
+		eventMux:        stack.EventMux(),
+		reqDist:         newRequestDistributor(peers, &mclock.System{}),
+		accountManager:  stack.AccountManager(),
+		merger:          merger,
+		engine:          ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb),
+		bloomRequests:   make(chan chan *bloombits.Retrieval),
+		bloomIndexer:    core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
+		p2pServer:       stack.Server(),
+		p2pConfig:       &stack.Config().P2P,
+		udpEnabled:      stack.Config().P2P.DiscoveryV5,
+		shutdownTracker: shutdowncheck.NewShutdownTracker(chainDb),
 	}
 
 	var prenegQuery vfc.QueryFunc
@@ -192,29 +208,18 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		leth.blockchain.DisableCheckFreq()
 	}
 
-	leth.netRPCService = ethapi.NewPublicNetAPI(leth.p2pServer, leth.config.NetworkId)
+	leth.netRPCService = ethapi.NewNetAPI(leth.p2pServer, leth.config.NetworkId)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(leth.APIs())
 	stack.RegisterProtocols(leth.Protocols())
 	stack.RegisterLifecycle(leth)
 
-	// Check for unclean shutdown
-	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
-		log.Error("Could not update unclean-shutdown-marker list", "error", err)
-	} else {
-		if discards > 0 {
-			log.Warn("Old unclean shutdowns found", "count", discards)
-		}
-		for _, tstamp := range uncleanShutdowns {
-			t := time.Unix(int64(tstamp), 0)
-			log.Warn("Unclean shutdown detected", "booted", t,
-				"age", common.PrettyAge(t))
-		}
-	}
+	// Successful startup; push a marker and check previous unclean shutdowns.
+	leth.shutdownTracker.MarkStartup()
 	// SYSCOIN
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
-		if nevmBlockConnect == nil  {
+		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
 		}
 		currentHeader := eth.blockchain.CurrentHeader()
@@ -226,8 +231,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect.Block == nil {
 			return errors.New("addBlock: empty block")
 		}
-		if(currentNumber > 0) {
-			if (proposedBlockNumber != (currentNumber+1)) || (proposedBlockParentHash != currentHash) {
+		if currentNumber > 0 {
+			if (proposedBlockNumber != (currentNumber + 1)) || (proposedBlockParentHash != currentHash) {
 				log.Error("Non contiguous block insert", "number", proposedBlockNumber, "hash", proposedBlockHash,
 					"parent", proposedBlockParentHash, "prevnumber", currentNumber, "prevhash", currentHash)
 				return errors.New("addBlock: Non contiguous block insert")
@@ -235,12 +240,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		// add before potentially inserting into chain (verifyHeader depends on the mapping), we will delete if anything is wrong
 		eth.blockchain.WriteNEVMMapping(proposedBlockHash)
-		_, err := eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
+		_, err = eth.blockchain.InsertHeaderChain([]*types.Header{nevmBlockConnect.Block.Header()}, 0)
 		if err != nil {
 			eth.blockchain.DeleteNEVMMapping(proposedBlockHash)
 			return err
 		}
-		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, nevmBlockConnect.Block.NumberU64())
+		eth.blockchain.WriteDataHashes(proposedBlockNumber, nevmBlockConnect.VersionHashes)
+		eth.blockchain.WriteSYSHash(nevmBlockConnect.Sysblockhash, proposedBlockNumber)
 		if !eth.handler.inited {
 			eth.lock.Lock()
 			eth.timeLastBlock = time.Now().Unix()
@@ -263,7 +269,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 				eth.lock.Unlock()
 				log.Info("Attempt to start networking/peering...")
 				for {
-					time.Sleep(100)
+					time.Sleep(100 * time.Millisecond)
 					eth.lock.Lock()
 					if eth.handler.inited && eth.peers.closed {
 						log.Info("Networking stopped, return without starting peering...")
@@ -271,7 +277,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 						return
 					}
 					// ensure 5 seconds has passed between blocks before we start peering so we are sure sync has finished
-					if time.Now().Unix() - eth.timeLastBlock >= 5 {
+					if time.Now().Unix()-eth.timeLastBlock >= 5 {
 						log.Info("Networking and peering start...")
 						eth.udpEnabled = true
 						eth.handler.start()
@@ -287,7 +293,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 			}
 		}
 	}(leth)
-	
+
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
 		current := eth.blockchain.CurrentHeader()
 		currentNumber := current.Number.Uint64()
@@ -307,6 +313,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		}
 		eth.blockchain.DeleteNEVMMapping(current.Hash())
 		eth.blockchain.DeleteSYSHash(currentNumber)
+		eth.blockchain.DeleteDataHashes(currentNumber)
 		return nil
 	}
 	if config.Ethash.PowMode == ethash.ModeNEVM {
@@ -407,34 +414,22 @@ func (s *LightEthereum) APIs() []rpc.API {
 	return append(apis, []rpc.API{
 		{
 			Namespace: "eth",
-			Version:   "1.0",
 			Service:   &LightDummyAPI{},
-			Public:    true,
 		}, {
 			Namespace: "eth",
-			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.handler.downloader, s.eventMux),
-			Public:    true,
+			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
 		}, {
 			Namespace: "eth",
-			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true, 5*time.Minute),
-			Public:    true,
+			Service:   filters.NewFilterAPI(s.ApiBackend, true, 5*time.Minute),
 		}, {
 			Namespace: "net",
-			Version:   "1.0",
 			Service:   s.netRPCService,
-			Public:    true,
 		}, {
 			Namespace: "les",
-			Version:   "1.0",
-			Service:   NewPrivateLightAPI(&s.lesCommons),
-			Public:    false,
+			Service:   NewLightAPI(&s.lesCommons),
 		}, {
 			Namespace: "vflux",
-			Version:   "1.0",
 			Service:   s.serverPool.API(),
-			Public:    false,
 		},
 	}...)
 }
@@ -449,6 +444,7 @@ func (s *LightEthereum) Engine() consensus.Engine           { return s.engine }
 func (s *LightEthereum) LesVersion() int                    { return int(ClientProtocolVersions[0]) }
 func (s *LightEthereum) Downloader() *downloader.Downloader { return s.handler.downloader }
 func (s *LightEthereum) EventMux() *event.TypeMux           { return s.eventMux }
+func (s *LightEthereum) Merger() *consensus.Merger          { return s.merger }
 
 // Protocols returns all the currently configured network protocols to start.
 func (s *LightEthereum) Protocols() []p2p.Protocol {
@@ -464,6 +460,9 @@ func (s *LightEthereum) Protocols() []p2p.Protocol {
 // light ethereum protocol implementation.
 func (s *LightEthereum) Start() error {
 	log.Warn("Light client mode is an experimental feature")
+
+	// Regularly update shutdown marker
+	s.shutdownTracker.Start()
 
 	if s.udpEnabled && s.p2pServer.DiscV5 == nil {
 		s.udpEnabled = false
@@ -511,7 +510,9 @@ func (s *LightEthereum) Stop() error {
 	s.engine.Close()
 	s.pruner.close()
 	s.eventMux.Stop()
-	rawdb.PopUncleanShutdownMarker(s.chainDb)
+	// Clean shutdown marker as the last thing before closing db
+	s.shutdownTracker.Stop()
+
 	s.chainDb.Close()
 	s.lesDb.Close()
 	s.wg.Wait()

@@ -31,10 +31,11 @@ type ChainContext interface {
 	// Engine retrieves the chain's consensus engine.
 	Engine() consensus.Engine
 
-	// GetHeader returns the hash corresponding to their hash.
+	// GetHeader returns the header corresponding to the hash/number argument pair.
 	GetHeader(common.Hash, uint64) *types.Header
 	// SYSCOIN
 	ReadSYSHash(uint64) []byte
+	ReadDataHash(common.Hash) []byte
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
@@ -42,6 +43,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	var (
 		beneficiary common.Address
 		baseFee     *big.Int
+		random      *common.Hash
 	)
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	if author == nil {
@@ -52,18 +54,23 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	if header.BaseFee != nil {
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
+	if header.Difficulty.Cmp(common.Big0) == 0 {
+		random = &header.MixDigest
+	}
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
 		// SYSCOIN
-		ReadSYSHash:     ReadSYSHashFn(chain),
-		Coinbase:    beneficiary,
-		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
-		Difficulty:  new(big.Int).Set(header.Difficulty),
-		BaseFee:     baseFee,
-		GasLimit:    header.GasLimit,
+		ReadSYSHash:  ReadSYSHashFn(chain),
+		ReadDataHash: ReadDataHashFn(chain),
+		Coinbase:     beneficiary,
+		BlockNumber:  new(big.Int).Set(header.Number),
+		Time:         new(big.Int).SetUint64(header.Time),
+		Difficulty:   new(big.Int).Set(header.Difficulty),
+		BaseFee:      baseFee,
+		GasLimit:     header.GasLimit,
+		Random:       random,
 	}
 }
 
@@ -82,6 +89,11 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 	var cache []common.Hash
 
 	return func(n uint64) common.Hash {
+		if ref.Number.Uint64() <= n {
+			// This situation can happen if we're doing tracing and using
+			// block overrides.
+			return common.Hash{}
+		}
 		// If there's no hash cache yet, make one
 		if len(cache) == 0 {
 			cache = append(cache, ref.ParentHash)
@@ -113,6 +125,11 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 func ReadSYSHashFn(chain ChainContext) func(n uint64) []byte {
 	return func(n uint64) []byte {
 		return chain.ReadSYSHash(n)
+	}
+}
+func ReadDataHashFn(chain ChainContext) func(hash common.Hash) []byte {
+	return func(hash common.Hash) []byte {
+		return chain.ReadDataHash(hash)
 	}
 }
 
