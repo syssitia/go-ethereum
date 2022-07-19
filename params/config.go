@@ -574,6 +574,7 @@ func (c *ChainConfig) IsTerminalPoWBlock(parentTotalDiff *big.Int, totalDiff *bi
 // SYSCOIN IsSyscoin returns whether num is either equal to the Syscoin fork block or greater.
 func (c *ChainConfig) IsSyscoin(num *big.Int) bool {
 	return isForked(c.SyscoinBlock, num)
+}
 // IsShanghai returns whether num is either equal to the Shanghai fork block or greater.
 func (c *ChainConfig) IsShanghai(num *big.Int) bool {
 	return isForked(c.ShanghaiBlock, num)
