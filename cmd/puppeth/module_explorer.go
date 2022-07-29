@@ -275,7 +275,7 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"SysPort1":    8369,
 		"SysPort2":    18369,
 		"SysPort3":    18444,
-		"EthName":     config.node.ethstats[:strings.Index(config.node.ethstats, ":")],
+		"EthName":     getEthName(config.node.ethstats),
 		"WebPort":     config.port,
 		"Transformer": transformer,
 	})
