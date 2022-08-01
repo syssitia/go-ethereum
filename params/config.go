@@ -146,23 +146,24 @@ var (
 
 	// RopstenChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	RopstenChainConfig = &ChainConfig{
-		ChainID:                 big.NewInt(3),
-		HomesteadBlock:          big.NewInt(0),
-		DAOForkBlock:            nil,
-		DAOForkSupport:          true,
-		EIP150Block:             big.NewInt(0),
-		EIP150Hash:              common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d"),
-		EIP155Block:             big.NewInt(10),
-		EIP158Block:             big.NewInt(10),
-		ByzantiumBlock:          big.NewInt(1_700_000),
-		ConstantinopleBlock:     big.NewInt(4_230_000),
-		PetersburgBlock:         big.NewInt(4_939_394),
-		IstanbulBlock:           big.NewInt(6_485_846),
-		MuirGlacierBlock:        big.NewInt(7_117_117),
-		BerlinBlock:             big.NewInt(9_812_189),
-		LondonBlock:             big.NewInt(10_499_401),
-		TerminalTotalDifficulty: new(big.Int).SetUint64(50000000000000000),
-		Ethash:                  new(EthashConfig),
+		ChainID:                       big.NewInt(3),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  nil,
+		DAOForkSupport:                true,
+		EIP150Block:                   big.NewInt(0),
+		EIP150Hash:                    common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d"),
+		EIP155Block:                   big.NewInt(10),
+		EIP158Block:                   big.NewInt(10),
+		ByzantiumBlock:                big.NewInt(1_700_000),
+		ConstantinopleBlock:           big.NewInt(4_230_000),
+		PetersburgBlock:               big.NewInt(4_939_394),
+		IstanbulBlock:                 big.NewInt(6_485_846),
+		MuirGlacierBlock:              big.NewInt(7_117_117),
+		BerlinBlock:                   big.NewInt(9_812_189),
+		LondonBlock:                   big.NewInt(10_499_401),
+		TerminalTotalDifficulty:       new(big.Int).SetUint64(50_000_000_000_000_000),
+		TerminalTotalDifficultyPassed: true,
+		Ethash:                        new(EthashConfig),
 	}
 
 	// RopstenTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -307,16 +308,16 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(EthashConfig), nil}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(EthashConfig), nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), nil, nil, nil, nil, nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), nil, nil, nil, nil, nil, nil, false, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(EthashConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(EthashConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int), false)
 )
 
@@ -417,6 +418,11 @@ type ChainConfig struct {
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
 
+	// TerminalTotalDifficultyPassed is a flag specifying that the network already
+	// passed the terminal total difficulty. Its purpose is to disable legacy sync
+	// even without having seen the TTD locally (safer long term).
+	TerminalTotalDifficultyPassed bool `json:"terminalTotalDifficultyPassed,omitempty"`
+
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
@@ -456,12 +462,16 @@ func (c *ChainConfig) String() string {
 	case c.Ethash != nil:
 		if c.TerminalTotalDifficulty == nil {
 			banner += "Consensus: Ethash (proof-of-work)\n"
+		} else if !c.TerminalTotalDifficultyPassed {
+			banner += "Consensus: Beacon (proof-of-stake), merging from Ethash (proof-of-work)\n"
 		} else {
 			banner += "Consensus: Beacon (proof-of-stake), merged from Ethash (proof-of-work)\n"
 		}
 	case c.Clique != nil:
 		if c.TerminalTotalDifficulty == nil {
 			banner += "Consensus: Clique (proof-of-authority)\n"
+		} else if !c.TerminalTotalDifficultyPassed {
+			banner += "Consensus: Beacon (proof-of-stake), merging from Clique (proof-of-authority)\n"
 		} else {
 			banner += "Consensus: Beacon (proof-of-stake), merged from Clique (proof-of-authority)\n"
 		}
