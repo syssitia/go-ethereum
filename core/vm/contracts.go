@@ -111,6 +111,16 @@ var PrecompiledContractsBLS = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{18}): &bls12381MapG2{},
 }
 var PrecompiledContractsSyscoin = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{eip2565: true},
+	common.BytesToAddress([]byte{6}): &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{9}): &blake2F{},
+	common.BytesToAddress([]byte{20}): &pointEvaluation{},
 	common.BytesToAddress([]byte{99}): &datahash{},
 }
 var (
@@ -135,9 +145,6 @@ func init() {
 		PrecompiledAddressesBerlin = append(PrecompiledAddressesBerlin, k)
 	}
 	for k := range PrecompiledContractsSyscoin {
-		PrecompiledAddressesSyscoin = append(PrecompiledAddressesSyscoin, k)
-	}
-	for k := range PrecompiledContractsDanksharding {
 		PrecompiledAddressesSyscoin = append(PrecompiledAddressesSyscoin, k)
 	}
 }
@@ -1075,10 +1082,6 @@ func (c *datahash) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error
 	}
 
 	return interpreter.evm.Context.ReadDataHash(common.BytesToHash(input)), nil
-}
-
-var PrecompiledContractsDanksharding = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{0x14}): &pointEvaluation{},
 }
 
 
