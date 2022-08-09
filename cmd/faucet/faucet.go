@@ -263,7 +263,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 	if NEVMPub != "" {
 		cfg.NEVMPubEP = NEVMPub
 	}
-	utils.SetDNSDiscoveryDefaults(&cfg, genesis.ToBlock(nil).Hash())
+	utils.SetDNSDiscoveryDefaults(&cfg, genesis.ToBlock().Hash())
 
 	lesBackend, err := les.New(stack, &cfg)
 	if err != nil {

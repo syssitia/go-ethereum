@@ -244,7 +244,7 @@ func dataHashKey(hash common.Hash) []byte {
 	return append(dataHashKeyPrefix, hash.Bytes()...)
 }
 
-// genesisKey = genesisPrefix + hash
-func genesisKey(hash common.Hash) []byte {
+// genesisStateSpecKey = genesisPrefix + hash
+func genesisStateSpecKey(hash common.Hash) []byte {
 	return append(genesisPrefix, hash.Bytes()...)
 }
