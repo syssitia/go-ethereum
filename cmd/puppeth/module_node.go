@@ -41,8 +41,7 @@ ADD genesis.json /genesis.json
 	ADD signer.pass /signer.pass
 {{end}}
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_VERSION=4.3.0
-ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+ENV SYSCOIN_PREFIX=/opt/syscoin
 
 COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
 COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
