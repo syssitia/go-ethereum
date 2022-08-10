@@ -33,7 +33,7 @@ import (
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
-FROM alpine:3.14
+FROM bitwalker/alpine-elixir-phoenix:1.13.1
 
 ADD genesis.json /genesis.json
 {{if .Unlock}}
@@ -45,7 +45,15 @@ ENV SYSCOIN_PREFIX=/opt/syscoin
 
 COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
 COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
-
+RUN apk --no-cache add \
+  boost-filesystem \
+  boost-system \
+  boost-thread \
+  libevent \
+  libzmq \
+  su-exec \
+  ca-certificates \
+  gmp
 RUN \
     {{if .Unlock}}
 	echo 'mkdir -p ${SYSCOIN_DATA}/{{if eq .NetworkID 5700}}testnet3/{{end}}geth/keystore/ && cp /signer.json ${SYSCOIN_DATA}/{{if eq .NetworkID 5700}}testnet3/{{end}}geth/keystore/' >> geth.sh && \{{end}}

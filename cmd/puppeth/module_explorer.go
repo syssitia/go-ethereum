@@ -153,7 +153,18 @@ ENV NETWORK={{.Network}} \
     ENABLE_SOURCIFY_INTEGRATION=true \
     DISPLAY_TOKEN_ICONS=true \
     GAS_PRICE=1 \
+    SHOW_TESTNET_LABEL={.ShowTestnetLabel} \
     ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT='15s'
+
+RUN apk --no-cache add \
+  boost-filesystem \
+  boost-system \
+  boost-thread \
+  libevent \
+  libzmq \
+  su-exec \
+  ca-certificates \
+  gmp
 
 RUN \
 	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
@@ -213,10 +224,12 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	subNetwork := ""
 	showPriceChart := "true"
 	disableExchangeRates := "false"
+	showTestnetLabel := "false"
 	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://explorer.syscoin.org"}]`
 	if config.node.network == 5700 {
 		subNetwork = "Tanenbaum"
-		disableExchangeRates = "false"
+		disableExchangeRates = "true"
+		showTestnetLabel = "true"
 		showPriceChart = "true"
 	}
 	protocol := "https"
@@ -247,6 +260,7 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"ShowTxChart":                "true",
 		"DisableExchangeRates":       disableExchangeRates,
 		"ShowPriceChart":             showPriceChart,
+		"ShowTestnetLabel":			  showTestnetLabel,
 		"CssPrimary":                 "#243066",
 		"CssSecondary":               "#87e1a9",
 		"CssTertiary":                "#344180",

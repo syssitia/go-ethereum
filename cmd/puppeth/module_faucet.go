@@ -34,7 +34,7 @@ import (
 // grant crypto tokens based on GitHub authentications.
 var faucetDockerfile = `
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
-FROM alpine:3.14
+FROM bitwalker/alpine-elixir-phoenix:1.13.1
 
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_PREFIX=/opt/syscoin
@@ -48,7 +48,15 @@ ADD account.json /account.json
 ADD account.pass /account.pass
 
 EXPOSE 8080 {{.EthPort}} {{.EthPort}}/udp
-
+RUN apk --no-cache add \
+  boost-filesystem \
+  boost-system \
+  boost-thread \
+  libevent \
+  libzmq \
+  su-exec \
+  ca-certificates \
+  gmp
 RUN echo $'exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
 
 ENTRYPOINT ["/bin/sh", "faucet.sh"]
