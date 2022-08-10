@@ -33,7 +33,7 @@ import (
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
-FROM bitwalker/alpine-elixir-phoenix:1.13.1
+FROM alpine:3.15
 
 ADD genesis.json /genesis.json
 {{if .Unlock}}

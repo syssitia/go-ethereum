@@ -34,7 +34,7 @@ import (
 // grant crypto tokens based on GitHub authentications.
 var faucetDockerfile = `
 FROM sidhujag/syscoin-core:latest as syscoin-alpine
-FROM bitwalker/alpine-elixir-phoenix:1.13.1
+FROM alpine:3.15
 
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_PREFIX=/opt/syscoin
