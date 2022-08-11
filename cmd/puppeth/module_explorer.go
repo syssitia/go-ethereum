@@ -153,7 +153,7 @@ ENV NETWORK={{.Network}} \
     ENABLE_SOURCIFY_INTEGRATION=true \
     DISPLAY_TOKEN_ICONS=true \
     GAS_PRICE=1 \
-    SHOW_TESTNET_LABEL={.ShowTestnetLabel} \
+    SHOW_TESTNET_LABEL={{.ShowTestnetLabel}} \
     ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT='15s'
 
 RUN apk --no-cache add \
@@ -230,7 +230,7 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		subNetwork = "Tanenbaum"
 		disableExchangeRates = "true"
 		showTestnetLabel = "true"
-		showPriceChart = "true"
+		showPriceChart = "false"
 	}
 	protocol := "https"
 	host := config.host
