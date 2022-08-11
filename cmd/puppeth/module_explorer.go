@@ -154,7 +154,10 @@ ENV NETWORK={{.Network}} \
     DISPLAY_TOKEN_ICONS=true \
     GAS_PRICE=1 \
     SHOW_TESTNET_LABEL={{.ShowTestnetLabel}} \
-    ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT='15s'
+    ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT='15s' \
+    FOOTER_CHAT_LINK={{.FooterChat}} \
+    FOOTER_FORUM_LINK={{.FooterForum}} \
+    FOOTER_GITHUB_LINK={{.FooterGithub}}
 
 RUN apk --no-cache add \
   boost-filesystem \
@@ -225,6 +228,9 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	showPriceChart := "true"
 	disableExchangeRates := "false"
 	showTestnetLabel := "false"
+	footerChat := "https://discord.gg/syscoin"
+	footerForum := "https://support.syscoin.org/"
+	footerGithub := "https://github.com/syscoin/syscoin"
 	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://explorer.syscoin.org"}]`
 	if config.node.network == 5700 {
 		subNetwork = "Tanenbaum"
@@ -251,6 +257,9 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"Coin":                       "SYS",
 		"Logo":                       "/images/sys_logo.svg",
 		"LogoFooter":                 "/images/sys_logo.svg",
+		"FooterChat":				  footerChat,
+		"FooterForum":                footerForum,
+		"FooterGithub":               footerGithub,
 		"LogoText":                   "NEVM",
 		"HealthyBlockPeriod":         34500000,
 		"SupportedChains":            supportedChains,
