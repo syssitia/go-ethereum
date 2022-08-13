@@ -53,6 +53,8 @@ func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 		precompiles = PrecompiledContractsIstanbul
 	case evm.chainRules.IsByzantium:
 		precompiles = PrecompiledContractsByzantium
+	case evm.chainRules.IsSyscoin:
+		precompiles = PrecompiledContractsSyscoin
 	default:
 		precompiles = PrecompiledContractsHomestead
 	}
