@@ -127,7 +127,6 @@ RUN cd apps/explorer/ && \
 RUN mix phx.digest
 
 RUN rm /usr/local/bin/geth
-COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* /opt/app/.syscoin/
 COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
 ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
