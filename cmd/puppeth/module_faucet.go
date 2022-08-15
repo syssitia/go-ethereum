@@ -40,7 +40,8 @@ ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_PREFIX=/opt/syscoin
 
 COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/faucet ${SYSCOIN_DATA}/sysgeth
+RUN rm /usr/local/bin/sysgeth
+COPY --from=syscoin-alpine /usr/local/bin/faucet /usr/local/bin/sysgeth
 
 ADD account.json /account.json
 ADD account.pass /account.pass
