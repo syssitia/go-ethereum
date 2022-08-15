@@ -42,7 +42,9 @@ ADD genesis.json /genesis.json
 {{end}}
 ENV SYSCOIN_DATA=/home/syscoin/.syscoin
 ENV SYSCOIN_PREFIX=/opt/syscoin
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoind /usr/local/bin/syscoind
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoin-cli /usr/local/bin/syscoin-cli
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
 RUN apk --no-cache add \
   boost-filesystem \
   boost-system \

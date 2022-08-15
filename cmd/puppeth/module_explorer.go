@@ -127,7 +127,9 @@ RUN cd apps/explorer/ && \
 RUN mix phx.digest
 
 RUN rm /usr/local/bin/geth
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoind /usr/local/bin/syscoind
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoin-cli /usr/local/bin/syscoin-cli
+COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
 ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
     EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}} \
