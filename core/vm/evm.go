@@ -47,14 +47,16 @@ type (
 func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 	var precompiles map[common.Address]PrecompiledContract
 	switch {
+	case evm.chainRules.IsRollux:
+		precompiles = PrecompiledContractsRollux
+	case evm.chainRules.IsSyscoin:
+		precompiles = PrecompiledContractsSyscoin
 	case evm.chainRules.IsBerlin:
 		precompiles = PrecompiledContractsBerlin
 	case evm.chainRules.IsIstanbul:
 		precompiles = PrecompiledContractsIstanbul
 	case evm.chainRules.IsByzantium:
 		precompiles = PrecompiledContractsByzantium
-	case evm.chainRules.IsSyscoin:
-		precompiles = PrecompiledContractsSyscoin
 	default:
 		precompiles = PrecompiledContractsHomestead
 	}
@@ -374,7 +376,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 			evm.Config.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
 	}
-
+	
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
 		// SYSCOIN
 		ret, gas, err = RunPrecompiledContract(p, input, gas, evm.interpreter)

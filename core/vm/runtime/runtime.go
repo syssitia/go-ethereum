@@ -72,6 +72,7 @@ func setDefaults(cfg *Config) {
 			LondonBlock:         new(big.Int),
 			// SYSCOIN
 			SyscoinBlock: new(big.Int),
+			RolluxBlock:  new(big.Int),
 		}
 	}
 

@@ -287,7 +287,7 @@ func TestPointEvaluationTestVector(t *testing.T) {
 
 	t.Logf("test-vector: %x", calldata)
 
-	precompile := vm.PrecompiledContractsSyscoin[common.BytesToAddress([]byte{0x14})]
+	precompile := vm.PrecompiledContractsRollux[common.BytesToAddress([]byte{0x14})]
 	if _, err := precompile.Run(calldata, nil); err != nil {
 		t.Fatalf("expected point verification to succeed")
 	}

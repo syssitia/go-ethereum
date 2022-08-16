@@ -891,7 +891,7 @@ func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataH
 func DeleteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64) []*common.Hash {
 	dataHashes := ReadRawDataHashes(dbr, n)
 	if dataHashes == nil {
-		log.Crit("Failed to delete datahash", "n", n)
+		log.Info("Failed to delete datahash", "n", n)
 		return nil
 	}
 	for _, dataHash := range dataHashes {
