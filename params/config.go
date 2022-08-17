@@ -731,6 +731,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.CancunBlock, newcfg.CancunBlock, head) {
 		return newCompatError("Cancun fork block", c.CancunBlock, newcfg.CancunBlock)
 	}
+	if isForkIncompatible(c.RolluxBlock, newcfg.RolluxBlock, head) {
+		return newCompatError("Rollux fork block", c.RolluxBlock, newcfg.RolluxBlock)
+	}
 	return nil
 }
 
