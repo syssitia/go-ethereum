@@ -110,17 +110,6 @@ var PrecompiledContractsBLS = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{17}): &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}): &bls12381MapG2{},
 }
-var PrecompiledContractsSyscoin = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-	common.BytesToAddress([]byte{5}): &bigModExp{eip2565: true},
-	common.BytesToAddress([]byte{6}): &bn256AddIstanbul{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
-	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
-	common.BytesToAddress([]byte{9}): &blake2F{},
-}
 var PrecompiledContractsRollux = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}): &ecrecover{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
@@ -156,9 +145,6 @@ func init() {
 	for k := range PrecompiledContractsBerlin {
 		PrecompiledAddressesBerlin = append(PrecompiledAddressesBerlin, k)
 	}
-	for k := range PrecompiledContractsSyscoin {
-		PrecompiledAddressesSyscoin = append(PrecompiledAddressesSyscoin, k)
-	}
 	for k := range PrecompiledContractsRollux {
 		PrecompiledAddressesRollux = append(PrecompiledAddressesRollux, k)
 	}
@@ -169,8 +155,6 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 	switch {
 	case rules.IsRollux:
 		return PrecompiledAddressesRollux
-	case rules.IsSyscoin:
-		return PrecompiledAddressesSyscoin
 	case rules.IsBerlin:
 		return PrecompiledAddressesBerlin
 	case rules.IsIstanbul:

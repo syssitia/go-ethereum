@@ -49,8 +49,6 @@ func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 	switch {
 	case evm.chainRules.IsRollux:
 		precompiles = PrecompiledContractsRollux
-	case evm.chainRules.IsSyscoin:
-		precompiles = PrecompiledContractsSyscoin
 	case evm.chainRules.IsBerlin:
 		precompiles = PrecompiledContractsBerlin
 	case evm.chainRules.IsIstanbul:
