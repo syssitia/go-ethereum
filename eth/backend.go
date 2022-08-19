@@ -42,7 +42,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
 	"github.com/ethereum/go-ethereum/eth/protocols/snap"
@@ -464,9 +463,6 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "eth",
 			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
-		}, {
-			Namespace: "eth",
-			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
 		}, {
 			Namespace: "admin",
 			Service:   NewAdminAPI(s),
