@@ -63,6 +63,13 @@ func TestDefaults(t *testing.T) {
 	if cfg.GetHashFn == nil {
 		t.Error("expected time to be non nil")
 	}
+	// SYSCOIN
+	if cfg.ReadSYSHashFn == nil {
+		t.Error("expected time to be non nil")
+	}
+	if cfg.ReadDataHashFn == nil {
+		t.Error("expected time to be non nil")
+	}	
 	if cfg.BlockNumber == nil {
 		t.Error("expected block number to be non nil")
 	}
@@ -310,6 +317,7 @@ func TestBlockhash(t *testing.T) {
 		GetHashFn: core.GetHashFn(header, chain),
 		// SYSCOIN
 		ReadSYSHashFn: core.ReadSYSHashFn(chain),
+		ReadDataHashFn: core.ReadDataHashFn(chain),
 		BlockNumber:   new(big.Int).Set(header.Number),
 	})
 	if err != nil {

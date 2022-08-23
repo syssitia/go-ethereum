@@ -49,6 +49,7 @@ type Config struct {
 	GetHashFn func(n uint64) common.Hash
 	// SYSCOIN
 	ReadSYSHashFn func(n uint64) []byte
+	ReadDataHashFn func(hash common.Hash) []byte
 }
 
 // sets defaults on the config
@@ -103,6 +104,11 @@ func setDefaults(cfg *Config) {
 	if cfg.ReadSYSHashFn == nil {
 		cfg.ReadSYSHashFn = func(n uint64) []byte {
 			return []byte(new(big.Int).SetUint64(n).String())
+		}
+	}
+	if cfg.ReadDataHashFn == nil {
+		cfg.ReadDataHashFn = func(hash common.Hash) []byte {
+			return hash.Bytes()
 		}
 	}
 	if cfg.BaseFee == nil {

@@ -67,6 +67,7 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{17}):   &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}):   &bls12381MapG2{},
 	common.BytesToAddress([]byte{0x14}): &pointEvaluation{},
+	common.BytesToAddress([]byte{0x63}): &datahash{},
 }
 
 // EIP-152 test vectors
@@ -92,12 +93,11 @@ var blake2FMalformedInputTests = []precompiledFailureTest{
 		Name:          "vector 3: malformed final block indicator flag",
 	},
 }
-
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	p := allPrecompiles[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
-	env := NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+	env := NewEVM(BlockContext{ReadDataHash: func(common.Hash) []byte { return []byte{} }}, TxContext{}, nil, params.TestChainConfig, Config{})
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
 		// SYSCOIN
 		if res, _, err := RunPrecompiledContract(p, in, gas, env.interpreter); err != nil {
@@ -120,7 +120,7 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 	p := allPrecompiles[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in) - 1
-	env := NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+	env := NewEVM(BlockContext{ReadDataHash: func(common.Hash) []byte { return []byte{} }}, TxContext{}, nil, params.TestChainConfig, Config{})
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
 		_, _, err := RunPrecompiledContract(p, in, gas, env.interpreter)
 		if err.Error() != "out of gas" {
@@ -138,7 +138,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	p := allPrecompiles[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
-	env := NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+	env := NewEVM(BlockContext{ReadDataHash: func(common.Hash) []byte { return []byte{} }}, TxContext{}, nil, params.TestChainConfig, Config{})
 	t.Run(test.Name, func(t *testing.T) {
 		_, _, err := RunPrecompiledContract(p, in, gas, env.interpreter)
 		if err.Error() != test.ExpectedError {
@@ -165,7 +165,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		err  error
 		data = make([]byte, len(in))
 	)
-	env := NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+	env := NewEVM(BlockContext{ReadDataHash: func(common.Hash) []byte { return []byte{} }}, TxContext{}, nil, params.TestChainConfig, Config{})
 	bench.Run(fmt.Sprintf("%s-Gas=%d", test.Name, reqGas), func(bench *testing.B) {
 		bench.ReportAllocs()
 		start := time.Now()
@@ -398,3 +398,4 @@ func BenchmarkPrecompiledBLS12381G2MultiExpWorstCase(b *testing.B) {
 }
 
 func TestPrecompiledPointEvaluation(t *testing.T)  { testJson("pointEvaluation", "0x14", t) }
+func TestPrecompiledDataHashEvaluation(t *testing.T)  { testJson("dataHash", "0x63", t) }
