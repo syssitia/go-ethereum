@@ -1082,7 +1082,7 @@ func (c *datahash) Run(input []byte, interpreter *EVMInterpreter) ([]byte, error
 		return nil, errDataHashInvalidInputLength
 	}
 
-	return interpreter.evm.Context.ReadDataHash(common.BytesToHash(input)), nil
+	return interpreter.evm.Context.ReadDataHash(common.HexToHash(string(input))), nil
 }
 
 
