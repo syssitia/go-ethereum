@@ -875,6 +875,9 @@ func ReadRawDataHashes(db ethdb.Reader, number uint64) []*common.Hash {
 }
 
 func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataHashes []*common.Hash) {
+	if len(dataHashes) == 0 {
+		return
+	}
 	bytes, err := rlp.EncodeToBytes(dataHashes)
 	if err != nil {
 		log.Crit("Failed to encode block dataHashes", "err", err)
@@ -895,8 +898,7 @@ func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataH
 }
 func DeleteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64) []*common.Hash {
 	dataHashes := ReadRawDataHashes(dbr, n)
-	if dataHashes == nil {
-		log.Info("Failed to delete datahash", "n", n)
+	if dataHashes == nil || len(dataHashes) == 0 {
 		return nil
 	}
 	for _, dataHash := range dataHashes {
