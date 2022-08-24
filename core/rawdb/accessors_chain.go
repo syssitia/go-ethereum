@@ -879,9 +879,14 @@ func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataH
 	if err != nil {
 		log.Crit("Failed to encode block dataHashes", "err", err)
 	}
-	// Store the flattened receipt slice
+	// Store the flattened datahash slice
 	if err := dbw.Put(dataHashesKey(n), bytes); err != nil {
 		log.Crit("Failed to store block dataHashes", "err", err)
+	}
+	for _, dataHash := range dataHashes {
+		if err := dbw.Put(dataHashKey(*dataHash), []byte{0}); err != nil {
+			log.Crit("Failed to write dataHash", "err", err)
+		}
 	}
 	// prune older data hashes after a safe amount of blocks
 	if n > DataBlockLimit {
@@ -916,7 +921,7 @@ func ReadDataHash(db ethdb.Reader, hash common.Hash) []byte {
 	if data == nil || err != nil {
 		return []byte{}
 	}
-	return data
+	return hash.Bytes()
 }
 
 // SYSCOIN HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
