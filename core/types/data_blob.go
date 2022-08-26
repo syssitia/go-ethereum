@@ -113,9 +113,6 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 		return errors.New("invalid proof")
 	}
 	lenBlob := len(NEVMBlobWire.Blob)
-	if lenBlob > params.FieldElementsPerBlob {
-		return errors.New("Blob too big")
-	}
 	if lenBlob < 1024 {
 		return errors.New("Blob too small")
 	}
@@ -124,6 +121,9 @@ func (n *NEVMBlob) FromWire(NEVMBlobWire *wire.NEVMBlob) error {
 	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 	numElements := lenBlob / 32
+	if numElements > params.FieldElementsPerBlob {
+		return errors.New("Blob too big")
+	}
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
@@ -139,9 +139,6 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	if lenBlob == 0 {
 		return errors.New("empty blob")
 	}
-	if lenBlob > params.FieldElementsPerBlob {
-		return errors.New("Blob too big")
-	}
 	if lenBlob < 1024 {
 		return errors.New("Blob too small")
 	}
@@ -150,6 +147,9 @@ func (n *NEVMBlob) FromBytes(blob []byte) error {
 	}
 	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
 	numElements := lenBlob / 32
+	if numElements > params.FieldElementsPerBlob {
+		return errors.New("Blob too big")
+	}
 	var inputPoint [32]byte
 	for i := 0; i < numElements; i++ {
 		copy(inputPoint[:32], blob[i*32:(i+1)*32])
