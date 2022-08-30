@@ -269,7 +269,8 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 	if err != nil {
 		return nil, fmt.Errorf("Failed to register the NEVM service: %w", err)
 	}
-
+	// SYSCOIN
+	utils.RegisterFilterAPI(stack, lesBackend.ApiBackend, &cfg)
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := ethstats.New(stack, lesBackend.ApiBackend, lesBackend.Engine(), stats); err != nil {
