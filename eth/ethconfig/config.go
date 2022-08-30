@@ -221,19 +221,19 @@ type Config struct {
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, cliqueConfig *params.CliqueConfig, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	var engine consensus.Engine
-	if chainConfig.Clique != nil {
-		engine = clique.New(chainConfig.Clique, db)
+	if cliqueConfig != nil {
+		engine = clique.New(cliqueConfig, db)
 	} else {
 		// SYSCOIN
 		if chainConfig.ChainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
 			if chainConfig.ChainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainConfig.ChainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
-				config.PowMode = ethash.ModeNEVM
+				ethashConfig.PowMode = ethash.ModeNEVM
 			}
 		}
-		switch config.PowMode {
+		switch ethashConfig.PowMode {
 		case ethash.ModeFake:
 			log.Warn("Ethash used in fake mode")
 		case ethash.ModeTest:
@@ -245,16 +245,16 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 			log.Warn("Ethash used in NEVM mode")
 		}
 		engine = ethash.New(ethash.Config{
-			PowMode:          config.PowMode,
-			CacheDir:         stack.ResolvePath(config.CacheDir),
-			CachesInMem:      config.CachesInMem,
-			CachesOnDisk:     config.CachesOnDisk,
-			CachesLockMmap:   config.CachesLockMmap,
-			DatasetDir:       config.DatasetDir,
-			DatasetsInMem:    config.DatasetsInMem,
-			DatasetsOnDisk:   config.DatasetsOnDisk,
-			DatasetsLockMmap: config.DatasetsLockMmap,
-			NotifyFull:       config.NotifyFull,
+			PowMode:          ethashConfig.PowMode,
+			CacheDir:         stack.ResolvePath(ethashConfig.CacheDir),
+			CachesInMem:      ethashConfig.CachesInMem,
+			CachesOnDisk:     ethashConfig.CachesOnDisk,
+			CachesLockMmap:   ethashConfig.CachesLockMmap,
+			DatasetDir:       ethashConfig.DatasetDir,
+			DatasetsInMem:    ethashConfig.DatasetsInMem,
+			DatasetsOnDisk:   ethashConfig.DatasetsOnDisk,
+			DatasetsLockMmap: ethashConfig.DatasetsLockMmap,
+			NotifyFull:       ethashConfig.NotifyFull,
 		}, notify, noverify)
 		engine.(*ethash.Ethash).SetThreads(-1) // Disable CPU mining
 	}
