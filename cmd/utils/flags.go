@@ -572,6 +572,7 @@ var (
 		Name:  "nevmpub",
 		Usage: "NEVM ZMQ REP Endpoint",
 	}
+
 	// Account settings
 	UnlockedAccountFlag = &cli.StringFlag{
 		Name:     "unlock",

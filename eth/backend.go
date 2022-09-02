@@ -159,7 +159,11 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// SYSCOIN
-	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, config.Genesis.Config.ChainID, cliqueConfig, config.Miner.Notify, config.Miner.Noverify, chainDb)
+	var chainID *big.Int = nil
+	if config.Genesis != nil && config.Genesis.Config != nil && config.Genesis.Config.ChainID != nil {
+		chainID = config.Genesis.Config.ChainID
+	}
+	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, chainID, cliqueConfig, config.Miner.Notify, config.Miner.Noverify, chainDb)
 
 	eth := &Ethereum{
 		config:            config,
@@ -418,7 +422,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if ethashConfig.PowMode == ethash.ModeNEVM {
 		eth.zmqRep = NewZMQRep(stack, eth, config.NEVMPubEP, NEVMIndex{createBlock, addBlock, deleteBlock})
 	}
-	return eth, err
+	return eth, nil
 }
 
 func makeExtraData(extra []byte) []byte {
