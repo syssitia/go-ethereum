@@ -158,7 +158,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, cliqueConfig, config.Miner.Notify, config.Miner.Noverify, chainDb)
+	// SYSCOIN
+	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, config.Genesis.Config.ChainID, cliqueConfig, config.Miner.Notify, config.Miner.Noverify, chainDb)
 
 	eth := &Ethereum{
 		config:            config,

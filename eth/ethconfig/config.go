@@ -221,15 +221,15 @@ type Config struct {
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, cliqueConfig *params.CliqueConfig, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, chainID* big.Int, cliqueConfig *params.CliqueConfig, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	var engine consensus.Engine
 	if cliqueConfig != nil {
 		engine = clique.New(cliqueConfig, db)
 	} else {
 		// SYSCOIN
-		if chainConfig.ChainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
-			if chainConfig.ChainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainConfig.ChainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
+		if chainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
+			if chainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
 				ethashConfig.PowMode = ethash.ModeNEVM
 			}
 		}
