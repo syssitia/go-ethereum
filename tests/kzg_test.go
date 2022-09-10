@@ -56,20 +56,13 @@ func polyLongDiv(dividend []bls.Fr, divisor []bls.Fr) []bls.Fr {
 }
 
 // Helper: Compute proof for polynomial
-func ComputeProof(poly []bls.Fr, xFr *bls.Fr, crsG1 []bls.G1Point) *bls.G1Point {
+func ComputeProof(poly []bls.Fr, xFr* bls.Fr, crsG1 []bls.G1Point) *bls.G1Point {
 	// divisor = [-x, 1]
 	divisor := [2]bls.Fr{}
 	bls.SubModFr(&divisor[0], &bls.ZERO, xFr)
 	bls.CopyFr(&divisor[1], &bls.ONE)
-	//for i := 0; i < 2; i++ {
-	//	fmt.Printf("div poly %d: %s\n", i, FrStr(&divisor[i]))
-	//}
 	// quot = poly / divisor
 	quotientPolynomial := polyLongDiv(poly, divisor[:])
-	//for i := 0; i < len(quotientPolynomial); i++ {
-	//	fmt.Printf("quot poly %d: %s\n", i, FrStr(&quotientPolynomial[i]))
-	//}
-
 	// evaluate quotient poly at shared secret, in G1
 	return bls.LinCombG1(crsG1[:len(quotientPolynomial)], quotientPolynomial)
 }
@@ -82,12 +75,12 @@ func TestGoKzg(t *testing.T) {
 
 	// Create a CRS with `n` elements for `s`
 	s := "1927409816240961209460912649124"
-	kzgSetupG1, KzgSetupG2 := gokzg.GenerateTestingSetup(s, params.FieldElementsPerBlob)
+	kzgSetupG1, kzgSetupG2 := gokzg.GenerateTestingSetup(s, params.FieldElementsPerBlob)
 
 	// Wrap it all up in KZG settings
-	kzgSettings := gokzg.NewKZGSettings(fs, kzgSetupG1, KzgSetupG2)
+	kzgSettings := gokzg.NewKZGSettings(fs, kzgSetupG1, kzgSetupG2)
 
-	KzgSetupLagrange, err := fs.FFTG1(kzgSettings.SecretG1[:params.FieldElementsPerBlob], true)
+	kzgSetupLagrange, err := fs.FFTG1(kzgSettings.SecretG1[:params.FieldElementsPerBlob], true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +99,7 @@ func TestGoKzg(t *testing.T) {
 
 	// Get commitments to polynomial
 	commitmentByCoeffs := kzgSettings.CommitToPoly(polynomial)
-	commitmentByEval := gokzg.CommitToEvalPoly(KzgSetupLagrange, evalPoly)
+	commitmentByEval := gokzg.CommitToEvalPoly(kzgSetupLagrange, evalPoly)
 	if !bls.EqualG1(commitmentByEval, commitmentByCoeffs) {
 		t.Fatalf("expected commitments to be equal, but got:\nby eval: %s\nby coeffs: %s",
 			commitmentByEval, commitmentByCoeffs)
@@ -142,6 +135,7 @@ func TestKzg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Now let's start testing the kzg module
 	// Create a commitment
 	commitment := kzg.BlobToKzg(evalPoly)
@@ -167,7 +161,7 @@ type JSONTestdataBlobs struct {
 }
 
 // Test the optimized VerifyBlobs function
-func TestVerify(t *testing.T) {
+func TestVerifyBlobs(t *testing.T) {
 	data, err := ioutil.ReadFile("kzg_testdata/kzg_blobs.json")
 	if err != nil {
 		t.Fatal(err)
@@ -180,8 +174,8 @@ func TestVerify(t *testing.T) {
 	}
 
 	// Pack all those bytes into two blobs
-	var blob1 types.Blob
-	var blob2 types.Blob
+	var blob1 types.Blob = make([]types.BLSFieldElement, params.FieldElementsPerBlob)
+	var blob2 types.Blob = make([]types.BLSFieldElement, params.FieldElementsPerBlob)
 	for i := 0; i < 4096; i++ {
 		// Be conservative and only pack 31 bytes per Fr element
 		copy(blob1[i][:], jsonBlobs.KzgBlob1[i*31:(i+1)*31])
@@ -189,54 +183,46 @@ func TestVerify(t *testing.T) {
 	}
 
 	// Compute KZG commitments for both of the blobs above
-	kzg1, ok1 := blob1.ComputeCommitment()
-	kzg2, ok2 := blob2.ComputeCommitment()
+	kzg1, _, ok1 := blob1.ComputeCommitment()
+	kzg2, _, ok2 := blob2.ComputeCommitment()
 	if ok1 == false || ok2 == false {
 		panic("failed to compute commitments")
 	}
 
 	// Create the dummy object with all that data we prepared
-	BlobKzgs := types.BlobKzgs{kzg1, kzg2}
-	Blobs := types.Blobs{blob1, blob2}
-	// Extract cryptographic material out of the blobs/commitments
-	commitments, err := BlobKzgs.Parse()
-	if err != nil {
-		t.Fatalf("failed to parse commitments: %v", err)
+	blobData := types.BlobTxWrapper{
+		BlobKzgs: []types.KZGCommitment{kzg1, kzg2},
+		Blobs:    []types.Blob{blob1, blob2},
 	}
-	blobsParsed, err := Blobs.Parse()
-	if err != nil {
-		t.Fatalf("failed to parse blobs: %v", err)
+
+	var hashes []common.Hash
+	for i := 0; i < len(blobData.BlobKzgs); i++ {
+		hashes = append(hashes, blobData.BlobKzgs[i].ComputeVersionedHash())
 	}
-	var blobs types.NEVMBlobs
-	blobs.Blobs = make([]*types.NEVMBlob, 2)
-	var blobs0 types.NEVMBlob
-	blobs0.Blob = blobsParsed[0]
-	blobs0.Commitment = commitments[0]
-	var blobs1 types.NEVMBlob
-	blobs1.Blob = blobsParsed[1]
-	blobs1.Commitment = commitments[1]
-	blobs.Blobs[0] = &blobs0
-	blobs.Blobs[1] = &blobs1
+	_, _, aggregatedProof, err := blobData.Blobs.ComputeCommitmentsAndAggregatedProof()
+	if err != nil {
+		t.Fatalf("bad CommitmentsAndAggregatedProof: %v", err)
+	}
+	wrapData := &types.BlobTxWrapper{
+		BlobKzgs:           blobData.BlobKzgs,
+		Blobs:              blobData.Blobs,
+		KzgAggregatedProof: aggregatedProof,
+		BlobVersionedHashes: hashes,
+	}
 	// Verify the blobs against the commitments!!
-	err = blobs.Verify()
+	err = wrapData.Verify()
 	if err != nil {
 		t.Fatalf("bad verifyBlobs: %v", err)
 	}
 
 	// Now let's do a bad case:
-	// mutate a single chunk of a single blob and Verify() must fail
-	Blobs[0][42][1] = 0x42
-	blobsParsed, err = Blobs.Parse()
-	if err != nil {
-		t.Fatalf("internal blobs: %v", err)
-	}
-	blobs.Blobs[0].Blob = blobsParsed[0]
-	err = blobs.Verify()
+	// mutate a single chunk of a single blob and VerifyBlobs() must fail
+	wrapData.Blobs[0][42][1] = 0x42
+	err = wrapData.Verify()
 	if err == nil {
 		t.Fatal("bad VerifyBlobs actually succeeded, expected error")
 	}
 }
-
 
 // Helper: Create test vector for the PointEvaluation precompile
 func TestPointEvaluationTestVector(t *testing.T) {

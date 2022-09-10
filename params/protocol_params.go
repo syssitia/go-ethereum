@@ -161,6 +161,7 @@ const (
 	// SYSCOIN
 	SYSDataHashGas uint64 = 1400 // The cost of data hash retrieval
 
+	MaxBlobsPerBlock     = 32
 	FieldElementsPerBlob            = 65536 // each field element is 32 bytes
 	BlobCommitmentVersionKZG uint8  = 0x01
 	PointEvaluationGas       uint64 = 50000
