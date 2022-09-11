@@ -113,7 +113,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
 				if zmq.kzgloaded {
-					var nevmBlobs types.NEVMBlobs
+					var nevmBlobs types.BlobTxWrapper
 					err = nevmBlobs.Deserialize(msg.Frames[1])
 					if err != nil {
 						log.Error("nevmcheckblobsSub Deserialize", "err", err)
@@ -121,7 +121,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 					} else {
 						err = nevmBlobs.Verify()
 						if err != nil {
-							log.Error("nevmcheckblobsSub VerifyData", "err", err)
+							log.Error("nevmcheckblobsSub Verify", "err", err)
 							result = err.Error()
 						}
 					}
@@ -130,7 +130,7 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
-				var nevmBlob types.NEVMBlob
+				var nevmBlob types.BlobTxWrapperSingle
 				if !zmq.kzgloaded {
 					nevmBlobBytes = make([]byte, 0)
 				} else {

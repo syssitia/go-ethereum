@@ -1,21 +1,20 @@
 package tests
 
 import (
-	"math"
+	"testing"
 	"runtime"
 	"sync"
-	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/params"
-	gokzg "github.com/protolambda/go-kzg"
 	"github.com/protolambda/go-kzg/bls"
 )
 
 func randomBlob() []bls.Fr {
 	blob := make([]bls.Fr, params.FieldElementsPerBlob)
-	for i := 0; i < params.FieldElementsPerBlob; i++ {
+	for i := 0; i < len(blob); i++ {
 		blob[i] = *bls.RandomFr()
 	}
 	return blob
@@ -28,70 +27,64 @@ func BenchmarkBlobToKzg(b *testing.B) {
 		kzg.BlobToKzg(blob)
 	}
 }
-func BenchmarkVerifyBlob(b *testing.B) {
-	var blobs types.NEVMBlobs
-	blobs.Blobs = make([]*types.NEVMBlob, 32)
-	for i := 0; i < 32; i++ {
-		blob := randomBlob()
-		var nevmBlob types.NEVMBlob
-		nevmBlob.Blob = blob
-		nevmBlob.Commitment = kzg.BlobToKzg(blob)
-		blobs.Blobs[i] = &nevmBlob
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := blobs.Verify()
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-func verifykzg(commitment bls.G1Point, xFr bls.Fr, value bls.Fr, proof bls.G1Point, wg *sync.WaitGroup, result *bool) {
-	defer wg.Done()
-	resultKzg := kzg.VerifyKzgProof(&commitment, &xFr, &value, &proof)
-	if resultKzg != true {
-		*result = false
-	}
-}
+
+// the strategy is to use single verification because its massively parallelizable each kzg check can be in its own thread without locking
+// so we would calculate KZG commitment in evaluation form using FFT, use fiat shamir strategy on X, compute proof at X, evaluate to get Y
+// prover can publically store commitment to polynomial (in evaluation form), Y evaluated point, and the proof of point X on the polynomial
+// the verifier will recompute X using FS (sha256 of blob + commitment) and verify against commitment/proof/X/Y 
 func BenchmarkVerifyKzgProof(b *testing.B) {
 	runtime.GOMAXPROCS(0)
 	// First let's do some go-kzg preparations to be able to convert polynomial between coefficient and evaluation form
-	fs := gokzg.NewFFTSettings(uint8(math.Log2(params.FieldElementsPerBlob)))
-
-	// Create testing polynomial (in coefficient form)
-	polynomial := make([]bls.Fr, params.FieldElementsPerBlob)
-	for i := uint64(0); i < params.FieldElementsPerBlob; i++ {
-		bls.CopyFr(&polynomial[i], bls.RandomFr())
+	var blobs []types.Blob
+	var commitments []types.KZGCommitment
+	var proofs []types.KZGProof
+	var yFrs []types.BLSFieldElement
+	var versionhashes []common.Hash
+	for i := 0; i < params.MaxBlobsPerBlock; i++ {
+		var blob types.Blob = make([]types.BLSFieldElement, params.FieldElementsPerBlob)
+		polynomial := randomBlob()
+		for j := range polynomial {
+			blob[j] = bls.FrTo32(&polynomial[j])
+		}
+		// Get polynomial in evaluation form
+		evalPoly, err := kzg.FFTSettings.FFT(polynomial, false)
+		if err != nil {
+			b.Fatal(err)
+		}
+		blobs = append(blobs, blob)
+		// Create a commitment
+		commitment := kzg.BlobToKzg(evalPoly)
+		// create challenges
+		var blobKzg types.KZGCommitment
+		copy(blobKzg[:], bls.ToCompressedG1(commitment))
+		commitments = append(commitments, blobKzg)
+		sum, err := types.SszHash(&types.BlobAndCommitment{Blob: &blob, BlobKzg: &blobKzg})
+		if err != nil {
+			b.Fatal(err)
+		}
+		var xFr bls.Fr
+		var yFr bls.Fr
+		types.HashToFr(&xFr, sum)
+		var proof types.KZGProof
+		copy(proof[:], bls.ToCompressedG1(kzg.ComputeProof(polynomial, &xFr, kzg.KzgSetupG1)))
+		proofs = append(proofs, proof)
+		bls.EvalPolyAt(&yFr, polynomial, &xFr)
+		yFrs = append(yFrs, bls.FrTo32(&yFr))
+		versionhashes = append(versionhashes, blobKzg.ComputeVersionedHash())
 	}
-
-	// Get polynomial in evaluation form
-	evalPoly, err := fs.FFT(polynomial, false)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	// Now let's start testing the kzg module
-	// Create a commitment
-
-	xFr := bls.RandomFr()
-	proof := ComputeProof(polynomial, xFr, kzg.KzgSetupG1)
 
 	// Get actual evaluation at x
-	var value bls.Fr
-	bls.EvalPolyAt(&value, polynomial, xFr)
-	commitment := kzg.BlobToKzg(evalPoly)
-	// Create proof for testing
 	result := true
 	var wg sync.WaitGroup
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for j := 0; j < 23; j++ {
+		for i := 0; i < params.MaxBlobsPerBlock; i++ {
 			wg.Add(1)
-			go verifykzg(*commitment, *xFr, value, *proof, &wg, &result)
+			go types.VerifyKZG(&versionhashes[i], &blobs[i], &commitments[i], &yFrs[i], &proofs[i], &wg, &result)
 		}
+		wg.Wait()
 		if result != true {
 			b.Fatal("failed proof verification")
 		}
-		wg.Wait()
 	}
 }

@@ -18,7 +18,10 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"sync"
+
+	"github.com/protolambda/ztyp/codec"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -110,4 +113,15 @@ func DeriveSha(list DerivableList, hasher TrieHasher) common.Hash {
 		hasher.Update(indexBuf, value)
 	}
 	return hasher.Hash()
+}
+
+// sszHash returns the hash ot the raw serialized ssz-container (i.e. without merkelization)
+func SszHash(c codec.Serializable) ([32]byte, error) {
+	sha := sha256.New()
+	if err := c.Serialize(codec.NewEncodingWriter(sha)); err != nil {
+		return [32]byte{}, err
+	}
+	var sum [32]byte
+	copy(sum[:], sha.Sum(nil))
+	return sum, nil
 }
