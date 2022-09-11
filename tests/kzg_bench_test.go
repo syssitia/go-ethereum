@@ -72,10 +72,86 @@ func BenchmarkVerifyKzgProof(b *testing.B) {
 		yFrs = append(yFrs, bls.FrTo32(&yFr))
 		versionhashes = append(versionhashes, blobKzg.ComputeVersionedHash())
 	}
-
-	// Get actual evaluation at x
-	result := true
 	var wg sync.WaitGroup
+	var prevByte byte
+	// manipulate all the fields to make sure its caught in verification
+	// manipulate VH
+	result := true
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[0], &blobs[0], &commitments[0], &yFrs[0], &proofs[0], &wg, &result)
+	if result != true {
+		b.Fatal("failed proof verification")
+	}
+	prevByte = versionhashes[0][1]
+	versionhashes[0][1] = prevByte+1
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[0], &blobs[0], &commitments[0], &yFrs[0], &proofs[0], &wg, &result)
+	if result != false {
+		b.Fatal("proof verification failure expected but was successful - versionhash")
+	}
+	versionhashes[0][1] = prevByte
+	// manipulate blob
+	result = true
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[5], &blobs[5], &commitments[5], &yFrs[5], &proofs[5], &wg, &result)
+	if result != true {
+		b.Fatal("failed proof verification")
+	}
+	prevByte = blobs[5][1][0]
+	blobs[5][1][0] = prevByte+1
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[5], &blobs[5], &commitments[5], &yFrs[5], &proofs[5], &wg, &result)
+	if result != false {
+		b.Fatal("proof verification failure expected but was successful - blob")
+	}
+	blobs[5][1][0] = prevByte
+	// manipulate commitment
+	result = true
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[6], &blobs[6], &commitments[6], &yFrs[6], &proofs[6], &wg, &result)
+	if result != true {
+		b.Fatal("failed proof verification")
+	}
+	prevByte = commitments[6][1]
+	commitments[6][1] = prevByte+1
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[6], &blobs[6], &commitments[6], &yFrs[6], &proofs[6], &wg, &result)
+	if result != false {
+		b.Fatal("proof verification failure expected but was successful - commitment")
+	}
+	commitments[6][1] = prevByte
+	// manipulate yFr
+	result = true
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[7], &blobs[7], &commitments[7], &yFrs[7], &proofs[7], &wg, &result)
+	if result != true {
+		b.Fatal("failed proof verification")
+	}
+	prevByte = yFrs[7][1]
+	yFrs[7][1] = prevByte+1
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[7], &blobs[7], &commitments[7], &yFrs[7], &proofs[7], &wg, &result)
+	if result != false {
+		b.Fatal("proof verification failure expected but was successful - yFr")
+	}
+	yFrs[7][1] = prevByte
+	// manipulate proof
+	result = true
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[10], &blobs[10], &commitments[10], &yFrs[10], &proofs[10], &wg, &result)
+	if result != true {
+		b.Fatal("failed proof verification")
+	}
+	prevByte = proofs[10][1]
+	proofs[10][1] = prevByte+1
+	wg.Add(1)
+	types.VerifyKZG(&versionhashes[10], &blobs[10], &commitments[10], &yFrs[10], &proofs[10], &wg, &result)
+	if result != false {
+		b.Fatal("proof verification failure expected but was successful - proof")
+	}
+	proofs[10][1] = prevByte
+	// Get actual evaluation at x
+	result = true
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for i := 0; i < params.MaxBlobsPerBlock; i++ {
