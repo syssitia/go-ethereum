@@ -137,24 +137,6 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
 				zmq.rep.SendMulti(msgSend)
-			} else if strTopic == "nevmcheckblob" {
-				result := "success"
-				if zmq.kzgloaded {
-					var nevmBlob types.BlobTxWrapperSingle
-					err = nevmBlob.Deserialize(msg.Frames[1])
-					if err != nil {
-						log.Error("nevmcheckblobSub Deserialize", "err", err)
-						result = err.Error()
-					} else {
-						err = nevmBlob.Verify()
-						if err != nil {
-							log.Error("nevmcheckblobSub Verify", "err", err)
-							result = err.Error()
-						}
-					}
-				}
-				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
-				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
 				var nevmBlob types.BlobTxWrapperSingle
@@ -166,47 +148,17 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 						log.Error("nevmcreateblob Deserialize", "err", err)
 						nevmBlobBytes = make([]byte, 0)
 					} else {
-						err = nevmBlob.Verify()
+						nevmBlobBytes, err = nevmBlob.Serialize()
 						if err != nil {
-							log.Error("nevmcreateblob Verify", "err", err)
+							log.Error("nevmcreateblob", "err", err)
 							nevmBlobBytes = make([]byte, 0)
-							} else {
-								nevmBlobBytes, err = nevmBlob.Serialize()
-								if err != nil {
-									log.Error("nevmcreateblob", "err", err)
-									nevmBlobBytes = make([]byte, 0)
-								}
-							}
 						}
 					}
 					msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
 					zmq.rep.SendMulti(msgSend)
-				} else if strTopic == "nevmcreateblobaggproof" {
-					var aggProof types.KZGProof
-					if zmq.kzgloaded {
-						var nevmBlobs types.BlobTxWrapper
-						err = nevmBlobs.Deserialize(msg.Frames[1])
-						if err != nil {
-							log.Error("nevmcreateblobaggproofSub Deserialize", "err", err)
-							aggProof = types.KZGProof{}
-						} else {
-							aggProof, err = nevmBlobs.ComputeAggregatedProof()
-							if err != nil {
-								log.Error("nevmcreateblobaggproofSub ComputeAggregatedProof", "err", err)
-								aggProof = types.KZGProof{}
-							} else {
-								err = nevmBlobs.Verify()
-								if err != nil {
-									log.Error("nevmcreateblobaggproofSub Verify", "err", err)
-									aggProof = types.KZGProof{}
-								}
-							}
-						}
-					}
-					msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblobaggproof"), []byte(aggProof[:]))
-					zmq.rep.SendMulti(msgSend)
 				}
 			}
+		}
 	}(zmq)
 	zmq.inited = true
 	return nil

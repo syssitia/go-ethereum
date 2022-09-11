@@ -2,12 +2,9 @@ package kzg
 
 import (
 	"math/big"
-	"bytes"
-	"io"
 
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/protolambda/go-kzg/bls"
-	"github.com/protolambda/ztyp/codec"
 )
 
 var (
@@ -31,75 +28,6 @@ func initDomain() {
 	}
 }
 
-func MatrixLinComb(vectors [][]bls.Fr, scalars []bls.Fr) []bls.Fr {
-	r := make([]bls.Fr, len(vectors[0]))
-	for i := 0; i < len(vectors); i++ {
-		var tmp bls.Fr
-		for j := 0; j < len(r); j++ {
-			bls.MulModFr(&tmp, &vectors[i][j], &scalars[i])
-			bls.AddModFr(&r[j], &r[j], &tmp)
-		}
-	}
-	return r
-}
-
-// EvaluatePolyInEvaluationForm evaluates the polynomial using the barycentric formula:
-// f(x) = (1 - x**WIDTH) / WIDTH  *  sum_(i=0)^WIDTH  (f(DOMAIN[i]) * DOMAIN[i]) / (x - DOMAIN[i])
-func EvaluatePolyInEvaluationForm(yFr *bls.Fr, poly []bls.Fr, x *bls.Fr) {
-	if len(poly) != params.FieldElementsPerBlob {
-		panic("invalid polynomial length")
-	}
-
-	width := big.NewInt(int64(params.FieldElementsPerBlob))
-	var inverseWidth big.Int
-	blsModInv(&inverseWidth, width)
-
-	// Precomputing the mod inverses as a batch is alot faster
-	invDenom := make([]bls.Fr, params.FieldElementsPerBlob)
-	for i := range invDenom {
-		bls.SubModFr(&invDenom[i], x, &DomainFr[i])
-	}
-	bls.BatchInvModFr(invDenom)
-
-	var y bls.Fr
-	for i := 0; i < params.FieldElementsPerBlob; i++ {
-		var num bls.Fr
-		bls.MulModFr(&num, &poly[i], &DomainFr[i])
-
-		var denom bls.Fr
-		bls.SubModFr(&denom, x, &DomainFr[i])
-
-		var div bls.Fr
-		bls.MulModFr(&div, &num, &invDenom[i])
-
-		var tmp bls.Fr
-		bls.AddModFr(&tmp, &y, &div)
-		bls.CopyFr(&y, &tmp)
-	}
-
-	xB := new(big.Int)
-	frToBig(xB, x)
-	powB := new(big.Int).Exp(xB, width, BLSModulus)
-	powB.Sub(powB, big.NewInt(1))
-
-	// TODO: add ExpModFr to go-kzg
-	var yB big.Int
-	frToBig(&yB, &y)
-	yB.Mul(&yB, new(big.Int).Mul(powB, &inverseWidth))
-	yB.Mod(&yB, BLSModulus)
-	bls.SetFr(yFr, yB.String())
-}
-
-func frToBig(b *big.Int, val *bls.Fr) {
-	//b.SetBytes((*kilicbls.Fr)(val).RedToBytes())
-	// silly double conversion
-	v := bls.FrTo32(val)
-	for i := 0; i < 16; i++ {
-		v[31-i], v[i] = v[i], v[31-i]
-	}
-	b.SetBytes(v[:])
-}
-
 func BigToFr(out *bls.Fr, in *big.Int) bool {
 	var b [32]byte
 	inb := in.Bytes()
@@ -111,23 +39,52 @@ func BigToFr(out *bls.Fr, in *big.Int) bool {
 	return bls.FrFrom32(out, b)
 }
 
-func blsModInv(out *big.Int, x *big.Int) {
-	if len(x.Bits()) != 0 { // if non-zero
-		out.ModInverse(x, BLSModulus)
+
+// Helper: invert the divisor, then multiply
+func polyFactorDiv(dst *bls.Fr, a *bls.Fr, b *bls.Fr) {
+	// TODO: use divmod instead.
+	var tmp bls.Fr
+	bls.InvModFr(&tmp, b)
+	bls.MulModFr(dst, &tmp, a)
+}
+
+// Helper: Long polynomial division for two polynomials in coefficient form
+func polyLongDiv(dividend []bls.Fr, divisor []bls.Fr) []bls.Fr {
+	a := make([]bls.Fr, len(dividend))
+	for i := 0; i < len(a); i++ {
+		bls.CopyFr(&a[i], &dividend[i])
 	}
+	aPos := len(a) - 1
+	bPos := len(divisor) - 1
+	diff := aPos - bPos
+	out := make([]bls.Fr, diff+1)
+	for diff >= 0 {
+		quot := &out[diff]
+		polyFactorDiv(quot, &a[aPos], &divisor[bPos])
+		var tmp, tmp2 bls.Fr
+		for i := bPos; i >= 0; i-- {
+			// In steps: a[diff + i] -= b[i] * quot
+			// tmp =  b[i] * quot
+			bls.MulModFr(&tmp, quot, &divisor[i])
+			// tmp2 = a[diff + i] - tmp
+			bls.SubModFr(&tmp2, &a[diff+i], &tmp)
+			// a[diff + i] = tmp2
+			bls.CopyFr(&a[diff+i], &tmp2)
+		}
+		aPos -= 1
+		diff -= 1
+	}
+	return out
 }
 
-// faster than using big.Int ModDiv
-func blsDiv(out *big.Int, a *big.Int, b *big.Int) {
-	var bInv big.Int
-	blsModInv(&bInv, b)
-	out.Mod(new(big.Int).Mul(a, &bInv), BLSModulus)
-}
-
-func DecodeSSZ(data []byte, dest codec.Deserializable) error {
-	return dest.Deserialize(codec.NewDecodingReader(bytes.NewReader(data), uint64(len(data))))
-}
-
-func EncodeSSZ(w io.Writer, obj codec.Serializable) error {
-	return obj.Serialize(codec.NewEncodingWriter(w))
+// Helper: Compute proof for polynomial
+func ComputeProof(poly []bls.Fr, xFr* bls.Fr, crsG1 []bls.G1Point) *bls.G1Point {
+	// divisor = [-x, 1]
+	divisor := [2]bls.Fr{}
+	bls.SubModFr(&divisor[0], &bls.ZERO, xFr)
+	bls.CopyFr(&divisor[1], &bls.ONE)
+	// quot = poly / divisor
+	quotientPolynomial := polyLongDiv(poly, divisor[:])
+	// evaluate quotient poly at shared secret, in G1
+	return bls.LinCombG1(crsG1[:len(quotientPolynomial)], quotientPolynomial)
 }
