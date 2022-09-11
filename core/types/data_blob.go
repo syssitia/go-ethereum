@@ -142,7 +142,7 @@ func (n *BlobTxWrapperSingle) FromBytes(blobIn []byte) error {
 	if numElements > params.FieldElementsPerBlob {
 		return errors.New("Blob too big")
 	}
-	n.Blob = make([]BLSFieldElement, params.FieldElementsPerBlob)
+	n.Blob = make(Blob, numElements)
 	for i := 0; i < numElements; i++ {
 		copy(n.Blob[i][:32], blobIn[i*32:(i+1)*32])
 	}
@@ -157,9 +157,6 @@ func (n *BlobTxWrapperSingle) FromBytes(blobIn []byte) error {
 	}
 	// Get versioned hash out of input points
 	copy(n.BlobKzg[:], bls.ToCompressedG1(kzg.BlobToKzg(evalPoly)))
-	// need the full field elements array above to properly calculate and validate blob to kzg,
-	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
-	n.Blob = n.Blob[0:numElements]
 	n.BlobVersionedHash = n.BlobKzg.ComputeVersionedHash()
 
 	// create challenges
@@ -231,7 +228,7 @@ func (n *BlobTxWrapper) FromWire(NEVMBlobWire *wire.NEVMBlob, i int) error {
 	if numElements > params.FieldElementsPerBlob {
 		return errors.New("Blob too big")
 	}
-	n.Blobs = make(Blobs, params.FieldElementsPerBlob)
+	n.Blobs[i] = make(Blob, numElements)
 	for j := 0; j < numElements; j++ {
 		copy(n.Blobs[i][j][:32], NEVMBlobWire.Blob[j*32:(j+1)*32])
 	}
@@ -248,8 +245,8 @@ func (n *BlobTxWrapper) Deserialize(bytesIn []byte) error {
 	}
 	numBlobs := len(NEVMBlobsWire.Blobs)
 	n.BlobVersionedHashes = make([]common.Hash, numBlobs)
-	n.BlobKzgs = make([]KZGCommitment, numBlobs)
-	n.Blobs = make([]Blob, numBlobs)
+	n.BlobKzgs = make(BlobKzgs, numBlobs)
+	n.Blobs = make(Blobs, numBlobs)
 	n.KZGProofs = make([]KZGProof, numBlobs)
 	n.yFrs = make([]BLSFieldElement, numBlobs)
 	for i := 0; i < numBlobs; i++ {
