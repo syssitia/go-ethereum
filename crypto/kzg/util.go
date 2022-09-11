@@ -86,5 +86,7 @@ func ComputeProof(poly []bls.Fr, xFr* bls.Fr, crsG1 []bls.G1Point) *bls.G1Point 
 	// quot = poly / divisor
 	quotientPolynomial := polyLongDiv(poly, divisor[:])
 	// evaluate quotient poly at shared secret, in G1
-	return bls.LinCombG1(crsG1[:len(quotientPolynomial)], quotientPolynomial)
+	res := bls.LinCombG1(crsG1[:len(quotientPolynomial)], quotientPolynomial)
+	quotientPolynomial = nil
+	return res
 }

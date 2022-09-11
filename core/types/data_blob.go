@@ -170,6 +170,8 @@ func (n *BlobTxWrapperSingle) FromBytes(blobIn []byte) error {
 	var yFr bls.Fr
 	bls.EvalPolyAt(&yFr, polynomial, &xFr)
 	n.yFr = bls.FrTo32(&yFr)
+	polynomial =  nil
+	evalPoly = nil
 	return nil
 }
 
@@ -197,6 +199,7 @@ func (n *BlobTxWrapperSingle) Serialize() ([]byte, error) {
 		log.Error("NEVMBlockConnect: could not serialize", "err", err)
 		return nil, err
 	}
+	NEVMBlobWire.Blob = nil
 	return buffer.Bytes(), nil
 }
 
@@ -232,6 +235,7 @@ func (n *BlobTxWrapper) FromWire(NEVMBlobWire *wire.NEVMBlob, i int) error {
 	for j := 0; j < numElements; j++ {
 		copy(n.Blobs[i][j][:32], NEVMBlobWire.Blob[j*32:(j+1)*32])
 	}
+	NEVMBlobWire.Blob = nil
 	return nil
 }
 
@@ -285,7 +289,16 @@ func (b *BlobTxWrapper) Verify() error {
 	if result != true {
 		return errors.New("failed proof verification")
 	}
-	
+	for i := 0; i < len(b.BlobVersionedHashes); i++ {
+		b.BlobVersionedHashes = nil
+		b.BlobKzgs = nil
+		for j := 0; j < len(b.Blobs); j++ {
+			b.Blobs[j] = nil
+		}
+		b.Blobs = nil
+		b.KZGProofs = nil
+		b.yFrs = nil
+	}
 	return nil
 }
 
@@ -324,6 +337,8 @@ func VerifyKZG(blobVersionedHash *common.Hash, blob *Blob, blobKzg *KZGCommitmen
 	if resultKzg != true {
 		*result = false
 	}
+	parsedCommitment = nil
+	parsedProof = nil
 }
 
 func HashToFr(out *bls.Fr, h [32]byte) {
