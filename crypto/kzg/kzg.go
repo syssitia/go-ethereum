@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
-	"math"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/protolambda/go-kzg/bls"
-	gokzg "github.com/protolambda/go-kzg"
 )
 
 // KZG CRS for G2
@@ -23,7 +21,6 @@ var kzgSetupLagrange []bls.G1Point
 // KZG CRS for G1 (only used in tests (for proof creation))
 var KzgSetupG1 []bls.G1Point
 
-var FFTSettings *gokzg.FFTSettings
 // Convert polynomial in evaluation form to KZG commitment
 func BlobToKzg(eval []bls.Fr) *bls.G1Point {
 	return bls.LinCombG1(kzgSetupLagrange, eval)
@@ -131,7 +128,6 @@ func SetupKZG(loaded *bool) {
 	kzgSetupG2 = parsedSetup.SetupG2
 	kzgSetupLagrange = parsedSetup.SetupLagrange
 	KzgSetupG1 = parsedSetup.SetupG1
-	FFTSettings = gokzg.NewFFTSettings(uint8(math.Log2(params.FieldElementsPerBlob)))
 	*loaded = true
 	log.Info("Setup KZG Done!")
 }
