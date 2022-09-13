@@ -128,6 +128,9 @@ func (n *BlobTxWrapperSingle) FromBytes(blobIn []byte) error {
 	}
 	// Get versioned hash out of input points
 	copy(n.BlobKzg[:], bls.ToCompressedG1(kzg.BlobToKzg(n.Blob)))
+	// need the full field elements array above to properly calculate and validate blob to kzg,
+	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
+	n.Blob = n.Blob[0:numElements]
 	return nil
 }
 
@@ -179,7 +182,7 @@ func (n *BlobTxWrapper) FromWire(NEVMBlobWire *wire.NEVMBlob, i int) error {
 	n.Blobs[i] = make([]bls.Fr, params.FieldElementsPerBlob)
 	var inputPoint [32]byte
 	for j := 0; j < numElements; j++ {
-		copy(inputPoint[:32], NEVMBlobWire.Blob[i*32:(i+1)*32])
+		copy(inputPoint[:32], NEVMBlobWire.Blob[j*32:(j+1)*32])
 		ok := bls.FrFrom32(&n.Blobs[i][j], inputPoint)
 		if !ok {
 			return fmt.Errorf("FromWire: invalid chunk (element %d inputPoint %v)", i, inputPoint)
