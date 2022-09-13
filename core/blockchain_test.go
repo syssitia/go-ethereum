@@ -1158,37 +1158,53 @@ func TestLogRebirth(t *testing.T) {
 	blockchain.SubscribeLogsEvent(newLogCh)
 	blockchain.SubscribeRemovedLogsEvent(rmLogsCh)
 
-	// This chain contains a single log.
-	genDb, chain, _ := GenerateChainWithGenesis(gspec, engine, 2, func(i int, gen *BlockGen) {
-		if i == 1 {
-			tx, err := types.SignTx(types.NewContractCreation(gen.TxNonce(addr1), new(big.Int), 1000000, gen.header.BaseFee, logCode), signer, key1)
-			if err != nil {
-				t.Fatalf("failed to create tx: %v", err)
+	// This chain contains 10 logs.
+	genDb, chain, _ := GenerateChainWithGenesis(gspec, engine, 3, func(i int, gen *BlockGen) {
+		if i < 2 {
+			for ii := 0; ii < 5; ii++ {
+				tx, err := types.SignNewTx(key1, signer, &types.LegacyTx{
+					Nonce:    gen.TxNonce(addr1),
+					GasPrice: gen.header.BaseFee,
+					Gas:      uint64(1000001),
+					Data:     logCode,
+				})
+				if err != nil {
+					t.Fatalf("failed to create tx: %v", err)
+				}
+				gen.AddTx(tx)
 			}
-			gen.AddTx(tx)
 		}
 	})
 	if _, err := blockchain.InsertChain(chain); err != nil {
 		t.Fatalf("failed to insert chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 1, 0)
+	checkLogEvents(t, newLogCh, rmLogsCh, 10, 0)
 
-	// Generate long reorg chain containing another log. Inserting the
-	// chain removes one log and adds one.
-	_, forkChain, _ := GenerateChainWithGenesis(gspec, engine, 2, func(i int, gen *BlockGen) {
-		if i == 1 {
-			tx, err := types.SignTx(types.NewContractCreation(gen.TxNonce(addr1), new(big.Int), 1000000, gen.header.BaseFee, logCode), signer, key1)
+	// Generate long reorg chain containing more logs. Inserting the
+	// chain removes one log and adds four.
+	_, forkChain, _ := GenerateChainWithGenesis(gspec, engine, 3, func(i int, gen *BlockGen) {
+		if i == 2 {
+			// The last (head) block is not part of the reorg-chain, we can ignore it
+			return
+		}
+		for ii := 0; ii < 5; ii++ {
+			tx, err := types.SignNewTx(key1, signer, &types.LegacyTx{
+				Nonce:    gen.TxNonce(addr1),
+				GasPrice: gen.header.BaseFee,
+				Gas:      uint64(1000000),
+				Data:     logCode,
+			})
 			if err != nil {
 				t.Fatalf("failed to create tx: %v", err)
 			}
 			gen.AddTx(tx)
-			gen.OffsetTime(-9) // higher block difficulty
 		}
+		gen.OffsetTime(-9) // higher block difficulty
 	})
 	if _, err := blockchain.InsertChain(forkChain); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 1, 1)
+	checkLogEvents(t, newLogCh, rmLogsCh, 10, 10)
 
 	// This chain segment is rooted in the original chain, but doesn't contain any logs.
 	// When inserting it, the canonical chain switches away from forkChain and re-emits
@@ -1197,7 +1213,7 @@ func TestLogRebirth(t *testing.T) {
 	if _, err := blockchain.InsertChain(newBlocks); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 1, 1)
+	checkLogEvents(t, newLogCh, rmLogsCh, 10, 10)
 }
 
 // This test is a variation of TestLogRebirth. It verifies that log events are emitted
@@ -1252,19 +1268,43 @@ func TestSideLogRebirth(t *testing.T) {
 
 func checkLogEvents(t *testing.T, logsCh <-chan []*types.Log, rmLogsCh <-chan RemovedLogsEvent, wantNew, wantRemoved int) {
 	t.Helper()
-
-	if len(logsCh) != wantNew {
-		t.Fatalf("wrong number of log events: got %d, want %d", len(logsCh), wantNew)
-	}
-	if len(rmLogsCh) != wantRemoved {
-		t.Fatalf("wrong number of removed log events: got %d, want %d", len(rmLogsCh), wantRemoved)
-	}
+	var (
+		countNew int
+		countRm  int
+		prev     int
+	)
 	// Drain events.
-	for i := 0; i < len(logsCh); i++ {
-		<-logsCh
+	for len(logsCh) > 0 {
+		x := <-logsCh
+		countNew += len(x)
+		for _, log := range x {
+			// We expect added logs to be in ascending order: 0:0, 0:1, 1:0 ...
+			have := 100*int(log.BlockNumber) + int(log.TxIndex)
+			if have < prev {
+				t.Fatalf("Expected new logs to arrive in ascending order (%d < %d)", have, prev)
+			}
+			prev = have
+		}
 	}
-	for i := 0; i < len(rmLogsCh); i++ {
-		<-rmLogsCh
+	prev = 0
+	for len(rmLogsCh) > 0 {
+		x := <-rmLogsCh
+		countRm += len(x.Logs)
+		for _, log := range x.Logs {
+			// We expect removed logs to be in ascending order: 0:0, 0:1, 1:0 ...
+			have := 100*int(log.BlockNumber) + int(log.TxIndex)
+			if have < prev {
+				t.Fatalf("Expected removed logs to arrive in ascending order (%d < %d)", have, prev)
+			}
+			prev = have
+		}
+	}
+
+	if countNew != wantNew {
+		t.Fatalf("wrong number of log events: got %d, want %d", countNew, wantNew)
+	}
+	if countRm != wantRemoved {
+		t.Fatalf("wrong number of removed log events: got %d, want %d", countRm, wantRemoved)
 	}
 }
 
@@ -1835,8 +1875,8 @@ func TestInsertReceiptChainRollback(t *testing.T) {
 // overtake the 'canon' chain until after it's passed canon by about 200 blocks.
 //
 // Details at:
-//  - https://github.com/ethereum/go-ethereum/issues/18977
-//  - https://github.com/ethereum/go-ethereum/pull/18988
+//   - https://github.com/ethereum/go-ethereum/issues/18977
+//   - https://github.com/ethereum/go-ethereum/pull/18988
 func TestLowDiffLongChain(t *testing.T) {
 	// Generate a canonical chain to act as the main dataset
 	engine := ethash.NewFaker()
@@ -1983,14 +2023,16 @@ func testSideImport(t *testing.T, numCanonBlocksInSidechain, blocksBetweenCommon
 }
 
 // Tests that importing a sidechain (S), where
-// - S is sidechain, containing blocks [Sn...Sm]
-// - C is canon chain, containing blocks [G..Cn..Cm]
-// - The common ancestor Cc is pruned
-// - The first block in S: Sn, is == Cn
+//   - S is sidechain, containing blocks [Sn...Sm]
+//   - C is canon chain, containing blocks [G..Cn..Cm]
+//   - The common ancestor Cc is pruned
+//   - The first block in S: Sn, is == Cn
+//
 // That is: the sidechain for import contains some blocks already present in canon chain.
-// So the blocks are
-// [ Cn, Cn+1, Cc, Sn+3 ... Sm]
-//   ^    ^    ^  pruned
+// So the blocks are:
+//
+//	[ Cn, Cn+1, Cc, Sn+3 ... Sm]
+//	^    ^    ^  pruned
 func TestPrunedImportSide(t *testing.T) {
 	//glogger := log.NewGlogHandler(log.StreamHandler(os.Stdout, log.TerminalFormat(false)))
 	//glogger.Verbosity(3)
@@ -2734,9 +2776,9 @@ func BenchmarkBlockChain_1x1000Executions(b *testing.B) {
 // This internally leads to a sidechain import, since the blocks trigger an
 // ErrPrunedAncestor error.
 // This may e.g. happen if
-//   1. Downloader rollbacks a batch of inserted blocks and exits
-//   2. Downloader starts to sync again
-//   3. The blocks fetched are all known and canonical blocks
+//  1. Downloader rollbacks a batch of inserted blocks and exits
+//  2. Downloader starts to sync again
+//  3. The blocks fetched are all known and canonical blocks
 func TestSideImportPrunedBlocks(t *testing.T) {
 	// Generate a canonical chain to act as the main dataset
 	engine := ethash.NewFaker()
@@ -3229,20 +3271,19 @@ func TestDeleteRecreateSlotsAcrossManyBlocks(t *testing.T) {
 
 // TestInitThenFailCreateContract tests a pretty notorious case that happened
 // on mainnet over blocks 7338108, 7338110 and 7338115.
-// - Block 7338108: address e771789f5cccac282f23bb7add5690e1f6ca467c is initiated
-//   with 0.001 ether (thus created but no code)
-// - Block 7338110: a CREATE2 is attempted. The CREATE2 would deploy code on
-//   the same address e771789f5cccac282f23bb7add5690e1f6ca467c. However, the
-//   deployment fails due to OOG during initcode execution
-// - Block 7338115: another tx checks the balance of
-//   e771789f5cccac282f23bb7add5690e1f6ca467c, and the snapshotter returned it as
-//   zero.
+//   - Block 7338108: address e771789f5cccac282f23bb7add5690e1f6ca467c is initiated
+//     with 0.001 ether (thus created but no code)
+//   - Block 7338110: a CREATE2 is attempted. The CREATE2 would deploy code on
+//     the same address e771789f5cccac282f23bb7add5690e1f6ca467c. However, the
+//     deployment fails due to OOG during initcode execution
+//   - Block 7338115: another tx checks the balance of
+//     e771789f5cccac282f23bb7add5690e1f6ca467c, and the snapshotter returned it as
+//     zero.
 //
 // The problem being that the snapshotter maintains a destructset, and adds items
 // to the destructset in case something is created "onto" an existing item.
 // We need to either roll back the snapDestructs, or not place it into snapDestructs
 // in the first place.
-//
 func TestInitThenFailCreateContract(t *testing.T) {
 	var (
 		engine = ethash.NewFaker()
@@ -3419,13 +3460,13 @@ func TestEIP2718Transition(t *testing.T) {
 
 // TestEIP1559Transition tests the following:
 //
-// 1. A transaction whose gasFeeCap is greater than the baseFee is valid.
-// 2. Gas accounting for access lists on EIP-1559 transactions is correct.
-// 3. Only the transaction's tip will be received by the coinbase.
-// 4. The transaction sender pays for both the tip and baseFee.
-// 5. The coinbase receives only the partially realized tip when
-//    gasFeeCap - gasTipCap < baseFee.
-// 6. Legacy transaction behave as expected (e.g. gasPrice = gasFeeCap = gasTipCap).
+//  1. A transaction whose gasFeeCap is greater than the baseFee is valid.
+//  2. Gas accounting for access lists on EIP-1559 transactions is correct.
+//  3. Only the transaction's tip will be received by the coinbase.
+//  4. The transaction sender pays for both the tip and baseFee.
+//  5. The coinbase receives only the partially realized tip when
+//     gasFeeCap - gasTipCap < baseFee.
+//  6. Legacy transaction behave as expected (e.g. gasPrice = gasFeeCap = gasTipCap).
 func TestEIP1559Transition(t *testing.T) {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
