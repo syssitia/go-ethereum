@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"errors"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -41,7 +42,21 @@ func VerifyKzgProof(commitment *bls.G1Point, x *bls.Fr, y *bls.Fr, proof *bls.G1
 	return bls.PairingsVerify(&commitmentMinusY, &bls.GenG2, proof, &sMinuxX)
 }
 
+func internalBuildLeftMSM(c int, blobs *[][]bls.Fr, rList *[]bls.Fr, lScalars *[]bls.Fr, lPoints *[]bls.G1Point, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var sum bls.Fr
+	for i := 0; i < len(*blobs); i++ {
+		var tmp bls.Fr
 
+		r := (*rList)[i]
+		blob := (*blobs)[i]
+
+		bls.MulModFr(&tmp, &r, &blob[c])
+		bls.AddModFr(&sum, &sum, &tmp)
+	}
+	(*lScalars)[c] = sum
+	(*lPoints)[c] = kzgSetupLagrange[c]
+}
 // Verify that the list of `commitments` maps to the list of `blobs`
 //
 // This is an optimization over the naive approach (found in the EIP) of iteratively checking each blob against each
@@ -72,40 +87,27 @@ func VerifyBlobs(commitments []*bls.G1Point, blobs [][]bls.Fr) error {
 	for i := 0; i < len(blobs); i++ {
 		bls.CopyFr(&rList[i], bls.RandomFr())
 	}
-
 	// Build left-side MSM:
 	//   (r_0*b0_0 + r_1*b1_0 + r_2*b2_0) * L_0 + (r_0*b0_1 + r_1*b1_1 + r_2*b2_1) * L_1
+	var wg sync.WaitGroup
 	for c := 0; c < params.FieldElementsPerBlob; c++ {
-		var sum bls.Fr
-		for i := 0; i < len(blobs); i++ {
-			var tmp bls.Fr
-
-			r := rList[i]
-			blob := blobs[i]
-
-			bls.MulModFr(&tmp, &r, &blob[c])
-			bls.AddModFr(&sum, &sum, &tmp)
-		}
-		lScalars[c] = sum
-		lPoints[c] = kzgSetupLagrange[c]
+		wg.Add(1)
+		go internalBuildLeftMSM(c, &blobs, &rList, &lScalars, &lPoints, &wg)
 	}
-
+	wg.Wait()
 	// Build right-side MSM: r_0 * C_0 + r_1 * C_1 + r_2 * C_2 + ...
 	for i, commitment := range commitments {
 		rScalars[i] = rList[i]
 		rPoints[i] = *commitment
 	}
-
 	// Compute both MSMs and check equality
 	lResult := bls.LinCombG1(lPoints, lScalars)
 	rResult := bls.LinCombG1(rPoints, rScalars)
 	if !bls.EqualG1(lResult, rResult) {
 		return errors.New("VerifyBlobs failed")
 	}
-
 	// TODO: Potential improvement is to unify both MSMs into a single MSM, but you would need to batch-invert the `r`s
 	// of the right-side MSM to effectively pull them to the left side.
-
 	return nil
 }
 
