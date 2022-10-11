@@ -36,7 +36,7 @@ const sampleNumber = 3 // Number of transactions sampled in a block
 
 var (
 	DefaultMaxPrice    = big.NewInt(500 * params.GWei)
-	DefaultIgnorePrice = big.NewInt(100 * params.Wei)
+	DefaultIgnorePrice = big.NewInt(2 * params.Wei)
 )
 
 type Config struct {
@@ -154,9 +154,6 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	oracle.cacheLock.RLock()
 	lastHead, lastPrice := oracle.lastHead, oracle.lastPrice
 	oracle.cacheLock.RUnlock()
-	if lastPrice.Cmp(big.NewInt(int64(100))) < 0 {
-		lastPrice = big.NewInt(int64(100))
-	}
 	if headHash == lastHead {
 		return new(big.Int).Set(lastPrice), nil
 	}
@@ -167,9 +164,6 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	oracle.cacheLock.RLock()
 	lastHead, lastPrice = oracle.lastHead, oracle.lastPrice
 	oracle.cacheLock.RUnlock()
-	if lastPrice.Cmp(big.NewInt(int64(100))) < 0 {
-		lastPrice = big.NewInt(int64(100))
-	}
 	if headHash == lastHead {
 		return new(big.Int).Set(lastPrice), nil
 	}
@@ -218,10 +212,6 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	}
 	if price.Cmp(oracle.maxPrice) > 0 {
 		price = new(big.Int).Set(oracle.maxPrice)
-	}
-	// SYSCOIN
-	if price.Cmp(big.NewInt(int64(100))) < 0 {
-		price = big.NewInt(int64(100))
 	}
 	oracle.cacheLock.Lock()
 	oracle.lastHead = headHash

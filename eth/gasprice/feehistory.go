@@ -107,8 +107,7 @@ func (oracle *Oracle) processBlock(bf *blockFees, percentiles []float64) {
 	if len(bf.block.Transactions()) == 0 {
 		// return an all zero row if there are no transactions to gather data from
 		for i := range bf.results.reward {
-			// SYSCOIN set to min tip of 100, 0 is invalid!
-			bf.results.reward[i] = big.NewInt(int64(100))
+			bf.results.reward[i] = new(big.Int)
 		}
 		return
 	}
