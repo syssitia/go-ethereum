@@ -65,7 +65,7 @@ var (
 	// configured for the transaction pool.
 	ErrUnderpriced = errors.New("transaction underpriced")
 
-	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accpet
+	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
 	// another remote transaction.
 	ErrTxPoolOverflow = errors.New("txpool is full")
 
@@ -464,6 +464,9 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 // Nonce returns the next nonce of an account, with all transactions executable
 // by the pool already applied on top.
 func (pool *TxPool) Nonce(addr common.Address) uint64 {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
 	return pool.pendingNonces.get(addr)
 }
 
@@ -852,7 +855,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 }
 
 // AddLocal enqueues a single local transaction into the pool if it is valid. This is
-// a convenience wrapper aroundd AddLocals.
+// a convenience wrapper around AddLocals.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	errs := pool.AddLocals([]*types.Transaction{tx})
 	return errs[0]
@@ -867,7 +870,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false, false)
 }
 
-// This is like AddRemotes, but waits for pool reorganization. Tests use this method.
+// AddRemotesSync is like AddRemotes, but waits for pool reorganization. Tests use this method.
 func (pool *TxPool) AddRemotesSync(txs []*types.Transaction) []error {
 	return pool.addTxs(txs, false, true)
 }

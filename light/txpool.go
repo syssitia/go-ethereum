@@ -182,7 +182,7 @@ func (pool *TxPool) checkMinedTxs(ctx context.Context, hash common.Hash, number 
 	}
 	// If some transactions have been mined, write the needed data to disk and update
 	if list != nil {
-		// Retrieve all the receipts belonging to this block and write the loopup table
+		// Retrieve all the receipts belonging to this block and write the lookup table
 		if _, err := GetBlockReceipts(ctx, pool.odr, hash, number); err != nil { // ODR caches, ignore results
 			return err
 		}
@@ -454,7 +454,7 @@ func (pool *TxPool) Add(ctx context.Context, tx *types.Transaction) error {
 	return nil
 }
 
-// AddTransactions adds all valid transactions to the pool and passes them to
+// AddBatch adds all valid transactions to the pool and passes them to
 // the tx relay backend
 func (pool *TxPool) AddBatch(ctx context.Context, txs []*types.Transaction) {
 	pool.mu.Lock()

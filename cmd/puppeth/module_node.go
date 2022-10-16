@@ -89,7 +89,6 @@ services:
       - LIGHT_PEERS={{.LightPeers}}
       - STATS_NAME={{.Ethstats}}
       - MINER_NAME={{.Etherbase}}
-      - GAS_TARGET={{.GasTarget}}
       - GAS_LIMIT={{.GasLimit}}
       - GAS_PRICE={{.GasPrice}}
     logging:
@@ -127,7 +126,6 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Bootnodes": strings.Join(bootnodes, ","),
 		"Ethstats":  config.ethstats,
 		"Etherbase": config.etherbase,
-		"GasTarget": uint64(1000000 * config.gasTarget),
 		"GasLimit":  uint64(1000000 * config.gasLimit),
 		"GasPrice":  uint64(config.gasPrice),
 		"Unlock":    config.keyJSON != "",
@@ -149,7 +147,6 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"LightPeers": config.peersLight,
 		"Ethstats":   getEthName(config.ethstats),
 		"Etherbase":  config.etherbase,
-		"GasTarget":  config.gasTarget,
 		"GasLimit":   config.gasLimit,
 		"GasPrice":   config.gasPrice,
 	})
@@ -188,7 +185,6 @@ type nodeInfos struct {
 	etherbase  string
 	keyJSON    string
 	keyPass    string
-	gasTarget  float64
 	gasLimit   float64
 	gasPrice   float64
 }
@@ -203,10 +199,9 @@ func (info *nodeInfos) Report() map[string]string {
 		"Peer count (light nodes)": strconv.Itoa(info.peersLight),
 		"Ethstats username":        info.ethstats,
 	}
-	if info.gasTarget > 0 {
+	if info.gasLimit > 0 {
 		// Miner or signer node
-		report["Gas price (minimum accepted)"] = fmt.Sprintf("%0.3f Wei", info.gasPrice)
-		report["Gas floor (baseline target)"] = fmt.Sprintf("%0.3f MGas", info.gasTarget)
+		report["Gas price (minimum accepted)"] = fmt.Sprintf("%0.3f GWei", info.gasPrice)
 		report["Gas ceil  (target maximum)"] = fmt.Sprintf("%0.3f MGas", info.gasLimit)
 
 		if info.etherbase != "" {
@@ -247,7 +242,6 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	// Resolve a few types from the environmental variables
 	totalPeers, _ := strconv.Atoi(infos.envvars["TOTAL_PEERS"])
 	lightPeers, _ := strconv.Atoi(infos.envvars["LIGHT_PEERS"])
-	gasTarget, _ := strconv.ParseFloat(infos.envvars["GAS_TARGET"], 64)
 	gasLimit, _ := strconv.ParseFloat(infos.envvars["GAS_LIMIT"], 64)
 	gasPrice, _ := strconv.ParseFloat(infos.envvars["GAS_PRICE"], 64)
 
@@ -294,7 +288,6 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 		etherbase:  infos.envvars["MINER_NAME"],
 		keyJSON:    keyJSON,
 		keyPass:    keyPass,
-		gasTarget:  gasTarget,
 		gasLimit:   gasLimit,
 		gasPrice:   gasPrice,
 	}

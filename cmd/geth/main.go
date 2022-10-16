@@ -121,7 +121,6 @@ var (
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
 		utils.MinerNotifyFlag,
-		utils.LegacyMinerGasTargetFlag,
 		utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
 		utils.MinerEtherbaseFlag,
@@ -130,6 +129,7 @@ var (
 		utils.MinerNoVerifyFlag,
 		// SYSCOIN
 		utils.NEVMPubFlag,
+		utils.MinerNewPayloadTimeout,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		utils.DiscoveryV5Flag,
