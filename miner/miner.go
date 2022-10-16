@@ -59,8 +59,9 @@ type Config struct {
 
 // DefaultConfig contains default settings for miner.
 var DefaultConfig = Config{
-	GasCeil:           30000000,
-	GasPrice:          big.NewInt(params.GWei),
+	// SYSCOIN
+	GasCeil:           8000000,
+	GasPrice:          big.NewInt(100 * params.Wei),
 	Recommit:          3 * time.Second,
 	NewPayloadTimeout: 2 * time.Second,
 }
