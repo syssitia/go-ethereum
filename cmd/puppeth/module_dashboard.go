@@ -373,10 +373,6 @@ RUN \
 	echo '});'                                                             >> server.js
 
 ADD {{.Network}}.json /dashboard/{{.Network}}.json
-ADD {{.Network}}-cpp.json /dashboard/{{.Network}}-cpp.json
-ADD {{.Network}}-harmony.json /dashboard/{{.Network}}-harmony.json
-ADD {{.Network}}-parity.json /dashboard/{{.Network}}-parity.json
-ADD {{.Network}}-python.json /dashboard/{{.Network}}-python.json
 ADD index.html /dashboard/index.html
 ADD puppeth.png /dashboard/puppeth.png
 
@@ -439,18 +435,6 @@ func deployDashboard(client *sshClient, network string, conf *config, config *da
 		statsLogin = ""
 	}
 	indexfile := new(bytes.Buffer)
-	bootCpp := make([]string, len(conf.bootnodes))
-	for i, boot := range conf.bootnodes {
-		bootCpp[i] = "required:" + strings.TrimPrefix(boot, "enode://")
-	}
-	bootHarmony := make([]string, len(conf.bootnodes))
-	for i, boot := range conf.bootnodes {
-		bootHarmony[i] = fmt.Sprintf("-Dpeer.active.%d.url=%s", i, boot)
-	}
-	bootPython := make([]string, len(conf.bootnodes))
-	for i, boot := range conf.bootnodes {
-		bootPython[i] = "'" + boot + "'"
-	}
 	template.Must(template.New("").Parse(dashboardContent)).Execute(indexfile, map[string]interface{}{
 		"Network":           network,
 		"NetworkID":         conf.Genesis.Config.ChainID.Int64(),
@@ -463,13 +447,6 @@ func deployDashboard(client *sshClient, network string, conf *config, config *da
 		"BootnodesFlat":     strings.Join(conf.bootnodes, ","),
 		"Ethstats":          statsLogin,
 		"Ethash":            conf.Genesis.Config.Ethash != nil,
-		"CppGenesis":        network + "-cpp.json",
-		"CppBootnodes":      strings.Join(bootCpp, " "),
-		"HarmonyGenesis":    network + "-harmony.json",
-		"HarmonyBootnodes":  strings.Join(bootHarmony, " "),
-		"ParityGenesis":     network + "-parity.json",
-		"PythonGenesis":     network + "-python.json",
-		"PythonBootnodes":   strings.Join(bootPython, ","),
 		"Homestead":         conf.Genesis.Config.HomesteadBlock,
 		"Tangerine":         conf.Genesis.Config.EIP150Block,
 		"Spurious":          conf.Genesis.Config.EIP155Block,
