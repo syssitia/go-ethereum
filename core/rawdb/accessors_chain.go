@@ -874,6 +874,10 @@ func ReadRawDataHashes(db ethdb.Reader, number uint64) []*common.Hash {
 }
 
 func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataHashes []*common.Hash) {
+	// prune older data hashes after a safe amount of blocks
+	if n > DataBlockLimit {
+		DeleteDataHashes(dbw, dbr, n-DataBlockLimit)
+	}
 	if len(dataHashes) == 0 {
 		return
 	}
@@ -889,10 +893,6 @@ func WriteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64, dataH
 		if err := dbw.Put(dataHashKey(*dataHash), []byte{0}); err != nil {
 			log.Crit("Failed to write dataHash", "err", err)
 		}
-	}
-	// prune older data hashes after a safe amount of blocks
-	if n > DataBlockLimit {
-		DeleteDataHashes(dbw, dbr, n-DataBlockLimit)
 	}
 }
 func DeleteDataHashes(dbw ethdb.KeyValueWriter, dbr ethdb.Reader, n uint64) []*common.Hash {
