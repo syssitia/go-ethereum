@@ -36,6 +36,12 @@ func init() {
 	register("callTracer", newCallTracer)
 }
 
+type callLog struct {
+	Address common.Address `json:"address"`
+	Topics  []common.Hash  `json:"topics"`
+	Data    hexutil.Bytes  `json:"data"`
+}
+
 type callFrame struct {
 	Type     vm.OpCode      `json:"-"`
 	From     common.Address `json:"from"`
@@ -47,6 +53,7 @@ type callFrame struct {
 	Error    string         `json:"error,omitempty" rlp:"optional"`
 	Revertal string         `json:"revertReason,omitempty"`
 	Calls    []callFrame    `json:"calls,omitempty" rlp:"optional"`
+	Logs     []callLog      `json:"logs,omitempty" rlp:"optional"`
 	// Placed at end on purpose. The RLP will be decoded to 0 instead of
 	// nil if there are non-empty elements after in the struct.
 	Value *big.Int `json:"value,omitempty" rlp:"optional"`
@@ -54,6 +61,32 @@ type callFrame struct {
 
 func (f callFrame) TypeString() string {
 	return f.Type.String()
+}
+
+func (f callFrame) failed() bool {
+	return len(f.Error) > 0
+}
+
+func (f *callFrame) capture(output []byte, err error) {
+	output = common.CopyBytes(output)
+	if err == nil {
+		f.Output = output
+		return
+	}
+	f.Error = err.Error()
+	if f.Type == vm.CREATE || f.Type == vm.CREATE2 {
+		f.To = common.Address{}
+	}
+	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
+		return
+	}
+	f.Output = output
+	if len(output) < 4 {
+		return
+	}
+	if unpacked, err := abi.UnpackRevert(output); err == nil {
+		f.Revertal = unpacked
+	}
 }
 
 type callFrameMarshaling struct {
@@ -76,6 +109,7 @@ type callTracer struct {
 
 type callTracerConfig struct {
 	OnlyTopCall bool `json:"onlyTopCall"` // If true, call tracer won't collect any subcalls
+	WithLog     bool `json:"withLog"`     // If true, call tracer will collect event logs
 }
 
 // newCallTracer returns a native go tracer which tracks
@@ -110,30 +144,43 @@ func (t *callTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Ad
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
 func (t *callTracer) CaptureEnd(output []byte, gasUsed uint64, _ time.Duration, err error) {
-	output = common.CopyBytes(output)
-	if err == nil {
-		t.callstack[0].Output = output
-		return
-	}
-	t.callstack[0].Error = err.Error()
-	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
-		return
-	}
-	t.callstack[0].Output = output
-	if len(output) < 4 {
-		return
-	}
-	if unpacked, err := abi.UnpackRevert(output); err == nil {
-		t.callstack[0].Revertal = unpacked
-	}
+	t.callstack[0].capture(output, err)
 }
 
 // CaptureState implements the EVMLogger interface to trace a single step of VM execution.
 func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
+	// Only logs need to be captured via opcode processing
+	if !t.config.WithLog {
+		return
+	}
+	// Avoid processing nested calls when only caring about top call
+	if t.config.OnlyTopCall && depth > 0 {
+		return
+	}
+	switch op {
+	case vm.LOG0, vm.LOG1, vm.LOG2, vm.LOG3, vm.LOG4:
+		size := int(op - vm.LOG0)
+
+		stack := scope.Stack
+		stackData := stack.Data()
+
+		// Don't modify the stack
+		mStart := stackData[len(stackData)-1]
+		mSize := stackData[len(stackData)-2]
+		topics := make([]common.Hash, size)
+		for i := 0; i < size; i++ {
+			topic := stackData[len(stackData)-2-(i+1)]
+			topics[i] = common.Hash(topic.Bytes32())
+		}
+
+		data := scope.Memory.GetCopy(int64(mStart.Uint64()), int64(mSize.Uint64()))
+		log := callLog{Address: scope.Contract.Address(), Topics: topics, Data: hexutil.Bytes(data)}
+		t.callstack[len(t.callstack)-1].Logs = append(t.callstack[len(t.callstack)-1].Logs, log)
+	}
 }
 
 // CaptureFault implements the EVMLogger interface to trace an execution fault.
-func (t *callTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, _ *vm.ScopeContext, depth int, err error) {
+func (t *callTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
 // CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
@@ -174,14 +221,7 @@ func (t *callTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 	size -= 1
 
 	call.GasUsed = gasUsed
-	if err == nil {
-		call.Output = common.CopyBytes(output)
-	} else {
-		call.Error = err.Error()
-		if call.Type == vm.CREATE || call.Type == vm.CREATE2 {
-			call.To = common.Address{}
-		}
-	}
+	call.capture(output, err)
 	t.callstack[size-1].Calls = append(t.callstack[size-1].Calls, call)
 }
 
@@ -191,6 +231,10 @@ func (t *callTracer) CaptureTxStart(gasLimit uint64) {
 
 func (t *callTracer) CaptureTxEnd(restGas uint64) {
 	t.callstack[0].GasUsed = t.gasLimit - restGas
+	if t.config.WithLog {
+		// Logs are not emitted when the call fails
+		clearFailedLogs(&t.callstack[0], false)
+	}
 }
 
 // GetResult returns the json-encoded nested list of call traces, and any
@@ -210,4 +254,17 @@ func (t *callTracer) GetResult() (json.RawMessage, error) {
 func (t *callTracer) Stop(err error) {
 	t.reason = err
 	atomic.StoreUint32(&t.interrupt, 1)
+}
+
+// clearFailedLogs clears the logs of a callframe and all its children
+// in case of execution failure.
+func clearFailedLogs(cf *callFrame, parentFailed bool) {
+	failed := cf.failed() || parentFailed
+	// Clear own logs
+	if failed {
+		cf.Logs = nil
+	}
+	for i := range cf.Calls {
+		clearFailedLogs(&cf.Calls[i], failed)
+	}
 }
