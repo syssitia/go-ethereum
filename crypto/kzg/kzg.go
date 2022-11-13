@@ -75,7 +75,7 @@ func internalBuildLeftMSM(c int, blobs *[][]bls.Fr, rList *[]bls.Fr, lScalars *[
 // By regrouping the above equation around the `L` points we can reduce the length of the MSM further
 // (down to just `n` scalar multiplications) by making it look like this:
 //     (r_0*b0_0 + r_1*b1_0 + r_2*b2_0) * L_0 + (r_0*b0_1 + r_1*b1_1 + r_2*b2_1) * L_1
-func VerifyBlobs(commitments []*bls.G1Point, blobs [][]bls.Fr) error {
+func VerifyBlobs(commitments []*bls.G1Point, blobs *[][]bls.Fr) error {
 	// Prepare objects to hold our two MSMs
 	lPoints := make([]bls.G1Point, params.FieldElementsPerBlob)
 	lScalars := make([]bls.Fr, params.FieldElementsPerBlob)
@@ -83,8 +83,8 @@ func VerifyBlobs(commitments []*bls.G1Point, blobs [][]bls.Fr) error {
 	rScalars := make([]bls.Fr, len(commitments))
 
 	// Generate list of random scalars for lincomb
-	rList := make([]bls.Fr, len(blobs))
-	for i := 0; i < len(blobs); i++ {
+	rList := make([]bls.Fr, len(*blobs))
+	for i := 0; i < len(*blobs); i++ {
 		bls.CopyFr(&rList[i], bls.RandomFr())
 	}
 	// Build left-side MSM:
@@ -92,7 +92,7 @@ func VerifyBlobs(commitments []*bls.G1Point, blobs [][]bls.Fr) error {
 	var wg sync.WaitGroup
 	for c := 0; c < params.FieldElementsPerBlob; c++ {
 		wg.Add(1)
-		go internalBuildLeftMSM(c, &blobs, &rList, &lScalars, &lPoints, &wg)
+		go internalBuildLeftMSM(c, blobs, &rList, &lScalars, &lPoints, &wg)
 	}
 	wg.Wait()
 	// Build right-side MSM: r_0 * C_0 + r_1 * C_1 + r_2 * C_2 + ...

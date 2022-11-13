@@ -63,18 +63,6 @@ func (blob *Blob) FixedLength() uint64 {
 	return params.FieldElementsPerBlob * 32
 }
 
-// Parse blob into Fr elements array
-func (blob *Blob) Parse() (out []bls.Fr, err error) {
-	out = make([]bls.Fr, params.FieldElementsPerBlob)
-	for i := int(0); i < len(*blob); i++ {
-		ok := bls.FrFrom32(&out[i], (*blob)[i])
-		if !ok {
-			return nil, errors.New("internal error commitments")
-		}
-	}
-	return out, nil
-}
-
 type BlobKzgs []KZGCommitment
 
 // Extract the crypto material underlying these commitments
@@ -92,59 +80,55 @@ func (li BlobKzgs) Parse() ([]*bls.G1Point, error) {
 
 type Blobs []Blob
 
-type BlobTxWrapperSingle struct {
-	BlobKzg           KZGCommitment
-	Blob              []bls.Fr
-}
 
-type BlobTxWrapper struct {
-	BlobKzgs           BlobKzgs
-	Blobs              [][]bls.Fr
+func (n *KZGCommitment) BlobToKzg(blobIn []byte) error {
+	blob := make([]bls.Fr, params.FieldElementsPerBlob)
+	err := FromBytes(blobIn, &blob)
+	if err != nil {
+		return err
+	}
+	// Get versioned hash out of input points
+	copy(n[:], bls.ToCompressedG1(kzg.BlobToKzg(blob)))
+	blob = nil
+	return nil
 }
-
-func (n *BlobTxWrapperSingle) FromBytes(blobIn []byte) error {
+func FromBytes(blobIn []byte, blobOut *[]bls.Fr) error {
 	lenBlob := len(blobIn)
 	if lenBlob == 0 {
 		return errors.New("empty blob")
 	}
-	if lenBlob < 1024 {
+	if lenBlob < 31 {
 		return errors.New("Blob too small")
 	}
-	if lenBlob%32 != 0 {
-		return errors.New("Blob should be a factor of 32")
-	}
-	numElements := lenBlob / 32
-	if numElements > params.FieldElementsPerBlob {
+	if lenBlob > params.FieldElementsPerBlob*31 {
 		return errors.New("Blob too big")
 	}
-	n.Blob = make([]bls.Fr, params.FieldElementsPerBlob)
+	numElements := lenBlob / 31
 	var inputPoint [32]byte
 	for j := 0; j < numElements; j++ {
-		copy(inputPoint[:32], blobIn[j*32:(j+1)*32])
-		ok := bls.FrFrom32(&n.Blob[j], inputPoint)
+		copy(inputPoint[:31], blobIn[j*31:(j+1)*31])
+		ok := bls.FrFrom32(&(*blobOut)[j], inputPoint)
 		if !ok {
 			return fmt.Errorf("FromWire: invalid chunk (element %d inputPoint %v)", j, inputPoint)
 		}
 	}
-	// Get versioned hash out of input points
-	copy(n.BlobKzg[:], bls.ToCompressedG1(kzg.BlobToKzg(n.Blob)))
-	// need the full field elements array above to properly calculate and validate blob to kzg,
-	// can splice it after for network purposes and later when deserializing will again create full elements array to input spliced data from network
-	n.Blob = n.Blob[0:numElements]
+	// if not on boundry of 31 bytes add the rest of the data
+	if (lenBlob % 31) != 0 {
+		copy(inputPoint[:31], blobIn[numElements*31:])
+		ok := bls.FrFrom32(&(*blobOut)[numElements], inputPoint)
+		if !ok {
+			return fmt.Errorf("FromWire: invalid chunk (element %d inputPoint %v)", numElements, inputPoint)
+		}
+	}
 	return nil
 }
 
-func (n *BlobTxWrapperSingle) Serialize() ([]byte, error) {
+func (n *KZGCommitment) Serialize() ([]byte, error) {
 	var NEVMBlobWire wire.NEVMBlob
 	var err error
-	NEVMBlobWire.VersionHash = n.BlobKzg.ComputeVersionedHash().Bytes()
-	lenBlobData := len(n.Blob) * 32
-	NEVMBlobWire.Blob = make([]byte, 0, lenBlobData+int(n.BlobKzg.FixedLength()))
-	NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, n.BlobKzg[:]...)
-	for i := range n.Blob {
-		bBytes := bls.FrTo32(&n.Blob[i])
-		NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, bBytes[:]...)
-	}
+	NEVMBlobWire.VersionHash = n.ComputeVersionedHash().Bytes()
+	NEVMBlobWire.Blob = make([]byte, 0, int(n.FixedLength()))
+	NEVMBlobWire.Blob = append(NEVMBlobWire.Blob, n[:]...)
 	var buffer bytes.Buffer
 	err = NEVMBlobWire.Serialize(&buffer)
 	if err != nil {
@@ -155,87 +139,79 @@ func (n *BlobTxWrapperSingle) Serialize() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (n *BlobTxWrapper) FromWire(NEVMBlobWire *wire.NEVMBlob, i int) error {
+func FromWire(NEVMBlobWire *wire.NEVMBlob, blobOut *[]bls.Fr, blobKzg *KZGCommitment) error {
 	VH := common.BytesToHash(NEVMBlobWire.VersionHash)
 	if VH[0] != params.BlobCommitmentVersionKZG {
 		return errors.New("invalid versioned hash")
 	}
 	lenBlob := len(NEVMBlobWire.Blob)
-	lenCommitment := n.BlobKzgs[i].FixedLength()
-	if uint64(lenBlob) < (1024+lenCommitment) {
+	lenCommitment := blobKzg.FixedLength()
+	if uint64(lenBlob) < (31+lenCommitment) {
 		return errors.New("Blob too small")
 	}
-	copy(n.BlobKzgs[i][:], NEVMBlobWire.Blob[0:lenCommitment])
-	if(n.BlobKzgs[i].ComputeVersionedHash() != VH) {
+	copy(blobKzg[:], NEVMBlobWire.Blob[0:lenCommitment])
+	if(blobKzg.ComputeVersionedHash() != VH) {
 		return errors.New("mismatched versioned hash")
 	} 
-	totalLen := lenCommitment
-	NEVMBlobWire.Blob = NEVMBlobWire.Blob[totalLen:]
-	lenBlob = len(NEVMBlobWire.Blob)
-	if lenBlob%32 != 0 {
-		return errors.New("Blob should be a factor of 32")
-	}
-	numElements := lenBlob / 32
-	if numElements > params.FieldElementsPerBlob {
-		return errors.New("Blob too big")
-	}
-	n.Blobs[i] = make([]bls.Fr, params.FieldElementsPerBlob)
-	var inputPoint [32]byte
-	for j := 0; j < numElements; j++ {
-		copy(inputPoint[:32], NEVMBlobWire.Blob[j*32:(j+1)*32])
-		ok := bls.FrFrom32(&n.Blobs[i][j], inputPoint)
-		if !ok {
-			return fmt.Errorf("FromWire: invalid chunk (element %d inputPoint %v)", i, inputPoint)
-		}
+	NEVMBlobWire.Blob = NEVMBlobWire.Blob[lenCommitment:]
+	err := FromBytes(NEVMBlobWire.Blob, blobOut)
+	if err != nil {
+		return err
 	}
 	NEVMBlobWire.Blob = nil
 	return nil
 }
 
-func (n *BlobTxWrapper) Deserialize(bytesIn []byte) error {
+// Blob verification using KZG proofs
+func Verify(blobs *[][]bls.Fr, blobKzgs *BlobKzgs) error {
+	if a, b := len(*blobs), params.MaxBlobsPerBlock; a > b {
+		return fmt.Errorf("too many blobs in blob tx, got %d, expected no more than %d", a, b)
+	}
+	if a, b := len(*blobKzgs), len(*blobs); a != b {
+		return fmt.Errorf("expected equal amount but got %d kzgs and %d blobs", a, b)
+	}
+
+	commitments, err := blobKzgs.Parse()
+	if err != nil {
+		return err
+	}
+	err = kzg.VerifyBlobs(commitments, blobs)
+	if err != nil {
+		return err
+	}
+	commitments = nil
+	return nil
+}
+
+func DeserializeAndVerify(bytesIn []byte) error {
 	var NEVMBlobsWire wire.NEVMBlobs
 	r := bytes.NewReader(bytesIn)
 	err := NEVMBlobsWire.Deserialize(r)
 	if err != nil {
-		log.Error("NEVMBlobs: could not deserialize", "err", err)
+		log.Error("NEVMBlobs: DeserializeAndVerify could not deserialize", "err", err)
 		return err
 	}
 	numBlobs := len(NEVMBlobsWire.Blobs)
-	n.BlobKzgs = make(BlobKzgs, numBlobs)
-	n.Blobs = make([][]bls.Fr, numBlobs)
+	blobKzgs := make(BlobKzgs, numBlobs)
+	blobs := make([][]bls.Fr, numBlobs)
 	for i := 0; i < numBlobs; i++ {
-		err = n.FromWire(NEVMBlobsWire.Blobs[i], i)
+		blobs[i] = make([]bls.Fr, params.FieldElementsPerBlob)
+		err = FromWire(NEVMBlobsWire.Blobs[i], &blobs[i], &blobKzgs[i])
 		if err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-// Blob verification using KZG proofs
-func (b *BlobTxWrapper) Verify() error {
-	if a, b := len(b.Blobs), params.MaxBlobsPerBlock; a > b {
-		return fmt.Errorf("too many blobs in blob tx, got %d, expected no more than %d", a, b)
-	}
-	if a, b := len(b.BlobKzgs), len(b.Blobs); a != b {
-		return fmt.Errorf("expected equal amount but got %d kzgs and %d blobs", a, b)
-	}
-
-	commitments, err := b.BlobKzgs.Parse()
+	err = Verify(&blobs, &blobKzgs)
 	if err != nil {
+		log.Error("NEVMBlobs: DeserializeAndVerify could not verify", "err", err)
 		return err
 	}
-	err = kzg.VerifyBlobs(commitments, b.Blobs)
-	if err != nil {
-		return err
-	}
-	for i := 0; i < len(b.Blobs); i++ {
-		b.BlobKzgs = nil
-		for j := 0; j < len(b.Blobs); j++ {
-			b.Blobs[j] = nil
+	for i := 0; i < len(blobs); i++ {
+		blobKzgs = nil
+		for j := 0; j < len(blobs); j++ {
+			blobs[j] = nil
 		}
-		b.Blobs = nil
-		commitments = nil
+		blobs = nil
 	}
 	return nil
 }

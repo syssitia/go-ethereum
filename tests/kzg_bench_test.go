@@ -33,6 +33,6 @@ func BenchmarkVerifyBlobsWithoutKZGProof(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		kzg.VerifyBlobs(commitments, blobs)
+		kzg.VerifyBlobs(commitments, &blobs)
 	}
 }

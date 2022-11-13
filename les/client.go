@@ -229,6 +229,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
 		}
+		for !eth.zmqRep.kzgloaded {
+			continue
+		}
 		currentHeader := eth.blockchain.CurrentHeader()
 		currentNumber := currentHeader.Number.Uint64()
 		currentHash := currentHeader.Hash()
@@ -302,6 +305,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	}(leth)
 
 	deleteBlock := func(sysBlockhash string, eth *LightEthereum) error {
+		for !eth.zmqRep.kzgloaded {
+			continue
+		}
 		current := eth.blockchain.CurrentHeader()
 		currentNumber := current.Number.Uint64()
 		if currentNumber == 0 {

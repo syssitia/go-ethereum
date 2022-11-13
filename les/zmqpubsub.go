@@ -113,38 +113,31 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcheckblobs" {
 				result := "success"
-				if zmq.kzgloaded {
-					var nevmBlobs types.BlobTxWrapper
-					err = nevmBlobs.Deserialize(msg.Frames[1])
-					if err != nil {
-						log.Error("nevmcheckblobsSub Deserialize", "err", err)
-						result = err.Error()
-					} else {
-						err = nevmBlobs.Verify()
-						if err != nil {
-							log.Error("nevmcheckblobsSub Verify", "err", err)
-							result = err.Error()
-						}
-					}
+				for !zmq.kzgloaded {
+					continue
+				}
+				err = types.DeserializeAndVerify(msg.Frames[1])
+				if err != nil {
+					log.Error("nevmcheckblobsSub DeserializeAndVerify", "err", err)
+					result = err.Error()
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
 				zmq.rep.SendMulti(msgSend)
 			} else if strTopic == "nevmcreateblob" {
 				var nevmBlobBytes []byte
-				var nevmBlob types.BlobTxWrapperSingle
-				if !zmq.kzgloaded {
+				var nevmBlobKzg types.KZGCommitment
+				for !zmq.kzgloaded {
+					continue
+				}
+				err = nevmBlobKzg.BlobToKzg(msg.Frames[1])
+				if err != nil {
+					log.Error("nevmcreateblob Deserialize", "err", err)
 					nevmBlobBytes = make([]byte, 0)
 				} else {
-					err = nevmBlob.FromBytes(msg.Frames[1])
+					nevmBlobBytes, err = nevmBlobKzg.Serialize()
 					if err != nil {
-						log.Error("nevmcreateblob Deserialize", "err", err)
+						log.Error("nevmcreateblob", "err", err)
 						nevmBlobBytes = make([]byte, 0)
-					} else {
-						nevmBlobBytes, err = nevmBlob.Serialize()
-						if err != nil {
-							log.Error("nevmcreateblob", "err", err)
-							nevmBlobBytes = make([]byte, 0)
-						}
 					}
 				}
 				msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
