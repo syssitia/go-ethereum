@@ -719,6 +719,7 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 	// SYSCOIN
 	hc.SYSHashCache.Purge()
 	hc.NEVMCache.Purge()
+	hc.DataHashCache.Purge()
 }
 
 // SetGenesis sets a new genesis block header for the chain
