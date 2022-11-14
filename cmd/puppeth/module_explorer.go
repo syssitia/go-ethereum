@@ -134,6 +134,7 @@ ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
     EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}} \
     COIN={{.Coin}} \
+    COIN_NAME={{.Coin}} \
     LOGO={{.Logo}} \
     LOGO_FOOTER={{.LogoFooter}} \
     LOGO_TEXT={{.LogoText}} \
