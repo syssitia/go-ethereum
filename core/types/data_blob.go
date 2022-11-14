@@ -114,6 +114,7 @@ func FromBytes(blobIn []byte, blobOut *[]bls.Fr) error {
 	}
 	// if not on boundry of 31 bytes add the rest of the data
 	if (lenBlob % 31) != 0 {
+		inputPoint = [32]byte{}
 		copy(inputPoint[:31], blobIn[numElements*31:])
 		ok := bls.FrFrom32(&(*blobOut)[numElements], inputPoint)
 		if !ok {
