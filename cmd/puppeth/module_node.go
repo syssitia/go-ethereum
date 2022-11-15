@@ -53,7 +53,8 @@ RUN apk --no-cache add \
   libzmq \
   su-exec \
   ca-certificates \
-  gmp
+  gmp \
+  sqlite-dev
 
 RUN \
     {{if .Unlock}}

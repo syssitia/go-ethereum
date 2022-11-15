@@ -169,7 +169,8 @@ RUN apk --no-cache add \
   libzmq \
   su-exec \
   ca-certificates \
-  gmp
+  gmp \
+  sqlite-dev
 
 RUN \
 	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
