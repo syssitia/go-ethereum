@@ -66,7 +66,6 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{16}):   &bls12381Pairing{},
 	common.BytesToAddress([]byte{17}):   &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}):   &bls12381MapG2{},
-	common.BytesToAddress([]byte{0x14}): &pointEvaluation{},
 	common.BytesToAddress([]byte{0x63}): &datahash{},
 }
 
@@ -397,5 +396,4 @@ func BenchmarkPrecompiledBLS12381G2MultiExpWorstCase(b *testing.B) {
 	benchmarkPrecompiled("0f", testcase, b)
 }
 
-func TestPrecompiledPointEvaluation(t *testing.T)  { testJson("pointEvaluation", "0x14", t) }
 func TestPrecompiledDataHashEvaluation(t *testing.T)  { testJson("dataHash", "0x63", t) }

@@ -22,7 +22,6 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto/kzg"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/go-zeromq/zmq4"
@@ -34,7 +33,6 @@ type ZMQRep struct {
 	rep         zmq4.Socket
 	nevmIndexer LightNEVMIndex
 	inited      bool
-	kzgloaded   bool
 }
 
 func (zmq *ZMQRep) Close() {
@@ -111,38 +109,6 @@ func (zmq *ZMQRep) Init(nevmEP string) error {
 				str := strconv.FormatUint(zmq.eth.blockchain.CurrentHeader().Number.Uint64(), 10)
 				msgSend := zmq4.NewMsgFrom([]byte("nevmblockinfo"), []byte(str))
 				zmq.rep.SendMulti(msgSend)
-			} else if strTopic == "nevmcheckblobs" {
-				result := "success"
-				for !zmq.kzgloaded {
-					continue
-				}
-				err = types.DeserializeAndVerify(msg.Frames[1])
-				if err != nil {
-					log.Error("nevmcheckblobsSub DeserializeAndVerify", "err", err)
-					result = err.Error()
-				}
-				msgSend := zmq4.NewMsgFrom([]byte("nevmcheckblobs"), []byte(result))
-				zmq.rep.SendMulti(msgSend)
-			} else if strTopic == "nevmcreateblob" {
-				var nevmBlobBytes []byte
-				var nevmBlobKzg types.KZGCommitment
-				for !zmq.kzgloaded {
-					continue
-				}
-				err = nevmBlobKzg.BlobToKzg(msg.Frames[1])
-				if err != nil {
-					log.Error("nevmcreateblob Deserialize", "err", err)
-					nevmBlobBytes = make([]byte, 0)
-				} else {
-					nevmBlobBytes, err = nevmBlobKzg.Serialize()
-					if err != nil {
-						log.Error("nevmcreateblob", "err", err)
-						nevmBlobBytes = make([]byte, 0)
-					}
-				}
-				msgSend := zmq4.NewMsgFrom([]byte("nevmcreateblob"), nevmBlobBytes)
-				zmq.rep.SendMulti(msgSend)
-				nevmBlobBytes = nil
 			}
 		}
 	}(zmq)
@@ -160,7 +126,5 @@ func NewZMQRep(stackIn *node.Node, ethIn *LightEthereum, NEVMPubEP string, nevmI
 	}
 	log.Info("zmq Init")
 	zmq.Init(NEVMPubEP)
-	log.Info("Setup KZG")
-	go kzg.SetupKZG(&zmq.kzgloaded)
 	return zmq
 }

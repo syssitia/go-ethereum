@@ -292,9 +292,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// SYSCOIN
 	eth.minedNEVMBlockSub = eth.EventMux().Subscribe(core.NewMinedBlockEvent{})
 	createBlock := func(eth *Ethereum) *types.Block {
-		for !eth.zmqRep.kzgloaded {
-			continue
-		}
 		eth.wgNEVM.Add(1)
 		defer eth.wgNEVM.Done()
 		eb, _ := eth.Etherbase()
@@ -310,9 +307,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *Ethereum) error {
 		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
-		}
-		for !eth.zmqRep.kzgloaded {
-			continue
 		}
 		current := eth.blockchain.CurrentBlock()
 		currentNumber := current.NumberU64()
@@ -404,9 +398,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}(eth)
 
 	deleteBlock := func(sysBlockhash string, eth *Ethereum) error {
-		for !eth.zmqRep.kzgloaded {
-			continue
-		}
 		current := eth.blockchain.CurrentBlock()
 		currentNumber := current.NumberU64()
 		if current.NumberU64() == 0 {
