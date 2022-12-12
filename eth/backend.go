@@ -383,6 +383,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 					if time.Now().Unix()-eth.timeLastBlock >= 5 {
 						log.Info("Networking and peering start...")
 						eth.handler.Start(eth.handler.maxPeers)
+						eth.handler.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
 						eth.handler.peers.open()
 						eth.Downloader().Peers().Open()
 						eth.p2pServer.Start()
