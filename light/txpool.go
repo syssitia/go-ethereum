@@ -355,10 +355,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		from common.Address
 		err  error
 	)
-	// SYSCOIN only allow dynamic fee tx type in NEVM
-	if pool.config.SyscoinBlock != nil && tx.Type() < types.DynamicFeeTxType {
-		return core.ErrTxTypeNotSupported
-	}
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
 	if from, err = types.Sender(pool.signer, tx); err != nil {

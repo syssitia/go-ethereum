@@ -587,10 +587,6 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
-	// SYSCOIN only allow dynamic fee tx type in NEVM
-	if pool.chainconfig.SyscoinBlock != nil && tx.Type() < types.DynamicFeeTxType {
-		return core.ErrTxTypeNotSupported
-	}
 	// Accept only legacy transactions until EIP-2718/2930 activates.
 	if !pool.eip2718 && tx.Type() != types.LegacyTxType {
 		return core.ErrTxTypeNotSupported
