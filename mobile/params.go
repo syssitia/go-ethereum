@@ -67,15 +67,7 @@ func GoerliGenesis() string {
 	}
 	return string(enc)
 }
-
-// SYSCOIN SyscoinGenesis returns the JSON spec to use for the Goerli test network
-func SyscoinGenesis() string {
-	enc, err := json.Marshal(core.DefaultSyscoinGenesisBlock())
-	if err != nil {
-		panic(err)
-	}
-	return string(enc)
-}
+// SYSCOIN
 func TanenbaumGenesis() string {
 	enc, err := json.Marshal(core.DefaultTanenbaumGenesisBlock())
 	if err != nil {

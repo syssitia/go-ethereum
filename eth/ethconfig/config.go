@@ -225,8 +225,8 @@ func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, chainI
 		engine = clique.New(cliqueConfig, db)
 	} else {
 		// SYSCOIN
-		if chainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
-			if chainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
+		if chainID != nil && ((params.MainnetChainConfig != nil && params.MainnetChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
+			if chainID.Uint64() == params.MainnetChainConfig.ChainID.Uint64() || chainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
 				ethashConfig.PowMode = ethash.ModeNEVM
 			}
 		}

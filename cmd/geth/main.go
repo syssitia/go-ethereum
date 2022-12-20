@@ -285,9 +285,6 @@ func prepare(ctx *cli.Context) {
 	case ctx.IsSet(utils.GoerliFlag.Name):
 		log.Info("Starting Geth on Görli testnet...")
 
-	case ctx.IsSet(utils.SyscoinFlag.Name):
-		log.Info("Starting Geth on Syscoin...")
-
 	case ctx.IsSet(utils.TanenbaumFlag.Name):
 		log.Info("Starting Geth on Tanenbaum testnet...")
 	case ctx.IsSet(utils.SepoliaFlag.Name):

@@ -936,7 +936,7 @@ func getGenesis(genesisFlag string, goerliFlag bool, rinkebyFlag bool, sepoliaFl
 	case tanenbaumFlag:
 		return core.DefaultTanenbaumGenesisBlock(), nil
 	case syscoinFlag:
-		return core.DefaultSyscoinGenesisBlock(), nil
+		return core.DefaultGenesisBlock(), nil
 	case sepoliaFlag:
 		return core.DefaultSepoliaGenesisBlock(), nil
 	default:

@@ -132,7 +132,7 @@ var (
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
-		Usage:    "Ethereum mainnet",
+		Usage:    "Syscoin mainnet",
 		Category: flags.EthCategory,
 	}
 	RopstenFlag = &cli.BoolFlag{
@@ -194,10 +194,6 @@ var (
 		Name:     "exitwhensynced",
 		Usage:    "Exits after block synchronisation completes",
 		Category: flags.EthCategory,
-	}
-	SyscoinFlag = &cli.BoolFlag{
-		Name:  "syscoin",
-		Usage: "Syscoin network: pre-configured NEVM-based syscoin network.",
 	}
 	TanenbaumFlag = &cli.BoolFlag{
 		Name:  "tanenbaum",
@@ -1026,8 +1022,6 @@ var (
 	// NetworkFlags is the flag group of all built-in supported networks.
 	NetworkFlags = append([]cli.Flag{
 		MainnetFlag,
-		// SYSCOIN
-		SyscoinFlag,
 	}, TestnetFlags...)
 
 	// DatabasePathFlags is the flag group of all database path flags.
@@ -1054,9 +1048,6 @@ func MakeDataDir(ctx *cli.Context) string {
 		}
 		if ctx.Bool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
-		}
-		if ctx.Bool(SyscoinFlag.Name) {
-			return filepath.Join(path, "syscoin")
 		}
 		if ctx.Bool(TanenbaumFlag.Name) {
 			return filepath.Join(path, "tanenbaum")
@@ -1121,8 +1112,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.RinkebyBootnodes
 	case ctx.Bool(GoerliFlag.Name):
 		urls = params.GoerliBootnodes
-	case ctx.Bool(SyscoinFlag.Name):
-		urls = params.SyscoinBootnodes
 	case ctx.Bool(TanenbaumFlag.Name):
 		urls = params.TanenbaumBootnodes
 	case ctx.Bool(KilnFlag.Name):
@@ -1581,8 +1570,6 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	case ctx.Bool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
-	case ctx.Bool(SyscoinFlag.Name) && cfg.DataDir == node.DefaultDataDir():
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "syscoin")
 	case ctx.Bool(TanenbaumFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "tanenbaum")
 	case ctx.Bool(SepoliaFlag.Name) && cfg.DataDir == node.DefaultDataDir():
@@ -1779,7 +1766,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, SyscoinFlag, TanenbaumFlag, SepoliaFlag, KilnFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, TanenbaumFlag, SepoliaFlag, KilnFlag)
 	CheckExclusive(ctx, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	if ctx.String(GCModeFlag.Name) == "archive" && ctx.Uint64(TxLookupLimitFlag.Name) != 0 {
@@ -1920,7 +1907,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1
+			cfg.NetworkId = 57
 		}
 		cfg.Genesis = core.DefaultGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
@@ -1958,13 +1945,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
-	// SYSCOIN
-	case ctx.Bool(SyscoinFlag.Name):
-		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 57
-		}
-		cfg.Genesis = core.DefaultSyscoinGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.SyscoinGenesisHash)
 	case ctx.Bool(TanenbaumFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 5700
@@ -2284,8 +2264,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.Bool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
-	case ctx.Bool(SyscoinFlag.Name):
-		genesis = core.DefaultSyscoinGenesisBlock()
 	case ctx.Bool(TanenbaumFlag.Name):
 		genesis = core.DefaultTanenbaumGenesisBlock()
 	case ctx.Bool(KilnFlag.Name):
@@ -2311,7 +2289,13 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 		ethashConfig.PowMode = ethash.ModeFake
 	}
 	// SYSCOIN
-	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, gspec.Config.ChainID, cliqueConfig, nil, false, chainDb)
+	chainID := big.NewInt(57)
+	if gspec != nil && gspec.Config != nil && gspec.Config.ChainID != nil {
+		chainID = gspec.Config.ChainID
+	} else {
+		chainID = nil
+	}
+	engine := ethconfig.CreateConsensusEngine(stack, &ethashConfig, chainID, cliqueConfig, nil, false, chainDb)
 	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}

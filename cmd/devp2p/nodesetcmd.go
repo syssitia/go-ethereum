@@ -236,8 +236,6 @@ func ethFilter(args []string) (nodeFilter, error) {
 	case "ropsten":
 		filter = forkid.NewStaticFilter(params.RopstenChainConfig, params.RopstenGenesisHash)
 	// SYSCOIN
-	case "syscoin":
-		filter = forkid.NewStaticFilter(params.SyscoinChainConfig, params.SyscoinGenesisHash)
 	case "tanenbaum":
 		filter = forkid.NewStaticFilter(params.TanenbaumChainConfig, params.TanenbaumGenesisHash)
 	case "sepolia":

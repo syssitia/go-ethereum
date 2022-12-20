@@ -197,9 +197,6 @@ func CommitGenesisState(db ethdb.Database, triedb *trie.Database, hash common.Ha
 			genesis = DefaultGoerliGenesisBlock()
 		case params.SepoliaGenesisHash:
 			genesis = DefaultSepoliaGenesisBlock()
-		// SYSCOIN
-		case params.SyscoinGenesisHash:
-			genesis = DefaultSyscoinGenesisBlock()
 		case params.TanenbaumGenesisHash:
 			genesis = DefaultTanenbaumGenesisBlock()
 		}
@@ -441,8 +438,6 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.RinkebyChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
-	case ghash == params.SyscoinGenesisHash:
-		return params.SyscoinChainConfig
 	case ghash == params.TanenbaumGenesisHash:
 		return params.TanenbaumChainConfig
 	case ghash == params.KilnGenesisHash:
@@ -534,15 +529,15 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// SYSCOIN DefaultGenesisBlock returns the Syscoin main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
-		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:   5000,
-		Difficulty: big.NewInt(17179869184),
-		Alloc:      decodePrealloc(mainnetAllocData),
+		Timestamp:  0x60d7aef6,
+		ExtraData:  hexutil.MustDecode("0x00"),
+		GasLimit:   0x7A1200,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(syscoinAllocData),
 	}
 }
 
@@ -583,16 +578,6 @@ func DefaultGoerliGenesisBlock() *Genesis {
 }
 
 // SYSCOIN
-func DefaultSyscoinGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.SyscoinChainConfig,
-		Timestamp:  0x60d7aef6,
-		ExtraData:  hexutil.MustDecode("0x00"),
-		GasLimit:   0x7A1200,
-		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(syscoinAllocData),
-	}
-}
 func DefaultTanenbaumGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.TanenbaumChainConfig,
