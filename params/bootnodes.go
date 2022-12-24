@@ -21,7 +21,7 @@ import "github.com/ethereum/go-ethereum/common"
 // SYSSITIA MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Syssitia network.
 var MainnetBootnodes = []string{
-	"enode://6f417e6740e559818cedd1ae31ea339657f4580c06491ab9c9a7be9dc9136e858e5bc9a3c2e8d6ea49567af5102afced9d8a99c04410244b0c0880911720439a@3.133.0.208:30303",
+	"enode://6f71af84377a5e43f3f84c00907654934f1bd2197ce47dbac0a57713a9b378d0ab7871866c9bc5b4453159bf617c1142097a271beaeb80730ae6a1e1a0725807@129.151.163.175:30303",
 }
 
 // RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the
