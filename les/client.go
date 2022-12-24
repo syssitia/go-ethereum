@@ -18,7 +18,7 @@
 package les
 
 import (
-	// SYSCOIN
+	// SYSSITIA
 	"errors"
 	"fmt"
 	"strings"
@@ -51,12 +51,12 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	// SYSCOIN
+	// SYSSITIA
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-// SYSCOIN
+// SYSSITIA
 type LightNEVMAddBlockFn func(*types.NEVMBlockConnect, *LightEthereum) error
 type LightNEVMDeleteBlockFn func(string, *LightEthereum) error
 
@@ -93,7 +93,7 @@ type LightEthereum struct {
 	p2pServer  *p2p.Server
 	p2pConfig  *p2p.Config
 	udpEnabled bool
-	// SYSCOIN
+	// SYSSITIA
 	zmqRep        *ZMQRep
 	timeLastBlock int64
 	lock          sync.RWMutex
@@ -147,7 +147,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		reqDist:         newRequestDistributor(peers, &mclock.System{}),
 		accountManager:  stack.AccountManager(),
 		merger:          merger,
-		// SYSCOIN
+		// SYSSITIA
 		engine:          ethconfig.CreateConsensusEngine(stack, &config.Ethash, chainConfig.ChainID, chainConfig.Clique, nil, false, chainDb),
 		bloomRequests:   make(chan chan *bloombits.Retrieval),
 		bloomIndexer:    core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
@@ -224,7 +224,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	leth.shutdownTracker.MarkStartup()
-	// SYSCOIN
+	// SYSSITIA
 	addBlock := func(nevmBlockConnect *types.NEVMBlockConnect, eth *LightEthereum) error {
 		if nevmBlockConnect == nil {
 			return errors.New("addBlock: Empty block")
@@ -481,7 +481,7 @@ func (s *LightEthereum) Start() error {
 	// Start bloom request workers.
 	s.wg.Add(bloomServiceThreads)
 	s.startBloomHandlers(params.BloomBitsBlocksClient)
-	// SYSCOIN Start the networking layer and the light server if requested
+	// SYSSITIA Start the networking layer and the light server if requested
 	if s.lesCommons.config.Ethash.PowMode != ethash.ModeNEVM {
 		s.handler.start()
 	} else {
@@ -520,7 +520,7 @@ func (s *LightEthereum) Stop() error {
 	s.chainDb.Close()
 	s.lesDb.Close()
 	s.wg.Wait()
-	// SYSCOIN
+	// SYSSITIA
 	if s.zmqRep != nil {
 		s.zmqRep.Close()
 	}

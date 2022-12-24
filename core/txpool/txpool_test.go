@@ -49,7 +49,7 @@ var (
 
 
 func init() {
-	// SYSCOIN
+	// SYSSITIA
 	DefaultConfig = Config{
 		Journal:   "transactions.rlp",
 		Rejournal: time.Hour,

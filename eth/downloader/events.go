@@ -24,5 +24,5 @@ type DoneEvent struct {
 type StartEvent struct{}
 type FailedEvent struct{ Err error }
 
-// SYSCOIN
+// SYSSITIA
 type StartNetworkEvent struct{}

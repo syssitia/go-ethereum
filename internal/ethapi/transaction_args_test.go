@@ -340,6 +340,6 @@ func (b *backendMock) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent)
 }
 
 func (b *backendMock) Engine() consensus.Engine { return nil }
-// SYSCOIN
+// SYSSITIA
 func (b *backendMock) ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error) {return nil, nil}
 func (b *backendMock) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {return nil, nil}

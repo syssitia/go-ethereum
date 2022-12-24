@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	// SYSCOIN
+	// SYSSITIA
 	forceSyncCycle      = 1000 * time.Second // Time interval to force syncs, even if few peers are available
 	defaultMinSyncPeers = 5000                // Amount of peers desired to start syncing
 )

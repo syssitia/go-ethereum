@@ -18,8 +18,8 @@ package params
 
 import "github.com/ethereum/go-ethereum/common"
 
-// SYSCOIN MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
-// the main Syscoin network.
+// SYSSITIA MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
+// the main Syssitia network.
 var MainnetBootnodes = []string{
 	"enode://6f417e6740e559818cedd1ae31ea339657f4580c06491ab9c9a7be9dc9136e858e5bc9a3c2e8d6ea49567af5102afced9d8a99c04410244b0c0880911720439a@3.133.0.208:30303",
 }
@@ -66,7 +66,7 @@ var GoerliBootnodes = []string{
 	"enode://d4f764a48ec2a8ecf883735776fdefe0a3949eb0ca476bd7bc8d0954a9defe8fea15ae5da7d40b5d2d59ce9524a99daedadf6da6283fca492cc80b53689fb3b3@46.4.99.122:32109",
 	"enode://d2b720352e8216c9efc470091aa91ddafc53e222b32780f505c817ceef69e01d5b0b0797b69db254c586f493872352f5a022b4d8479a00fc92ec55f9ad46a27e@88.99.70.182:30303",
 }
-// SYSCOIN
+// SYSSITIA
 var TanenbaumBootnodes = []string{
 	"enode://f0e3e91d3d28b808734ce08b10855b5e6b6bde8eb9e4bedaf8aababc2ceaa8f4134cec309a996765f183361f1e67bce341326c05b743ed5932a8e705149364e4@44.238.217.166:30303",
 }

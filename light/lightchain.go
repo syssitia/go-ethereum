@@ -482,7 +482,7 @@ func (lc *LightChain) GetCanonicalHash(number uint64) common.Hash {
 	return lc.hc.GetCanonicalHash(number)
 }
 
-// SYSCOIN
+// SYSSITIA
 func (lc *LightChain) ReadSYSHash(n uint64) []byte {
 	return lc.hc.ReadSYSHash(n)
 }
@@ -502,7 +502,7 @@ func (lc *LightChain) DeleteSYSHash(n uint64) {
 	lc.hc.DeleteSYSHash(n)
 }
 
-// SYSCOIN HasNEVMMapping checks if a NEVM block is present in the database or not, caching
+// SYSSITIA HasNEVMMapping checks if a NEVM block is present in the database or not, caching
 // it if present.
 func (lc *LightChain) HasNEVMMapping(hash common.Hash) bool {
 	return lc.hc.HasNEVMMapping(hash)

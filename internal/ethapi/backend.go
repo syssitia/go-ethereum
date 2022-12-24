@@ -86,7 +86,7 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	Engine() consensus.Engine
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
 	ReadDataHash(ctx context.Context, hash common.Hash) ([]byte, error)
 

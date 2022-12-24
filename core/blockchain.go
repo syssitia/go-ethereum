@@ -95,7 +95,7 @@ const (
 	receiptsCacheLimit = 32
 	txLookupCacheLimit = 1024
 	maxFutureBlocks    = 256
-	// SYSCOIN
+	// SYSSITIA
 	maxTimeFutureBlocks = 400
 	TriesInMemory       = 128
 
@@ -1269,7 +1269,7 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	return nil
 }
 
-// SYSCOIN WriteKnownBlock updates the head block flag with a known block
+// SYSSITIA WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
 func (bc *BlockChain) WriteKnownBlock(block *types.Block) error {
 	current := bc.CurrentBlock()
@@ -2031,7 +2031,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	)
 	// Reduce the longer chain to the same number as the shorter one
 	if oldBlock.NumberU64() > newBlock.NumberU64() {
-		// SYSCOIN
+		// SYSSITIA
 		newChain = append(newChain, newBlock)
 		// Old chain is longer, gather all transactions and logs as deleted ones
 		for ; oldBlock != nil && oldBlock.NumberU64() != newBlock.NumberU64(); oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1) {

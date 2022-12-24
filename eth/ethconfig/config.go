@@ -206,7 +206,7 @@ type Config struct {
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 
-	// SYSCOIN
+	// SYSSITIA
 	NEVMPubEP string `toml:",omitempty"`
 
 
@@ -224,7 +224,7 @@ func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, chainI
 	if cliqueConfig != nil {
 		engine = clique.New(cliqueConfig, db)
 	} else {
-		// SYSCOIN
+		// SYSSITIA
 		if chainID != nil && ((params.MainnetChainConfig != nil && params.MainnetChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
 			if chainID.Uint64() == params.MainnetChainConfig.ChainID.Uint64() || chainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
 				ethashConfig.PowMode = ethash.ModeNEVM
@@ -237,7 +237,7 @@ func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, chainI
 			log.Warn("Ethash used in test mode")
 		case ethash.ModeShared:
 			log.Warn("Ethash used in shared mode")
-		// SYSCOIN
+		// SYSSITIA
 		case ethash.ModeNEVM:
 			log.Warn("Ethash used in NEVM mode")
 		}

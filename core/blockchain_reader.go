@@ -412,7 +412,7 @@ func (bc *BlockChain) SubscribeBlockProcessingEvent(ch chan<- bool) event.Subscr
 	return bc.scope.Track(bc.blockProcFeed.Subscribe(ch))
 }
 
-// SYSCOIN
+// SYSSITIA
 func (bc *BlockChain) ReadSYSHash(n uint64) []byte {
 	return bc.hc.ReadSYSHash(n)
 }

@@ -468,7 +468,7 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:    minStack(1, 1),
 			maxStack:    maxStack(1, 1),
 		},
-		// SYSCOIN
+		// SYSSITIA
 		SYSBLOCKHASH: {
 			execute:     opSYSBlockhash,
 			constantGas: GasExtStep,

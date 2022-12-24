@@ -64,7 +64,7 @@ import (
 // Deprecated: use ethconfig.Config instead.
 type Config = ethconfig.Config
 
-// SYSCOIN
+// SYSSITIA
 type NEVMCreateBlockFn func(*Ethereum) *types.Block
 type NEVMAddBlockFn func(*types.NEVMBlockConnect, *Ethereum) error
 type NEVMDeleteBlockFn func(string, *Ethereum) error
@@ -112,7 +112,7 @@ type Ethereum struct {
 
 	lock            sync.RWMutex                   // Protects the variadic fields (e.g. gas price and etherbase)
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
-	// SYSCOIN
+	// SYSSITIA
 	wgNEVM            sync.WaitGroup
 	minedNEVMBlockSub *event.TypeMuxSubscription
 	zmqRep            *ZMQRep
@@ -159,7 +159,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	// SYSCOIN
+	// SYSSITIA
 	var chainID *big.Int = nil
 	if config.Genesis != nil && config.Genesis.Config != nil && config.Genesis.Config.ChainID != nil {
 		chainID = config.Genesis.Config.ChainID
@@ -289,7 +289,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	// Successful startup; push a marker and check previous unclean shutdowns.
 	eth.shutdownTracker.MarkStartup()
-	// SYSCOIN
+	// SYSSITIA
 	eth.minedNEVMBlockSub = eth.EventMux().Subscribe(core.NewMinedBlockEvent{})
 	createBlock := func(eth *Ethereum) *types.Block {
 		eth.wgNEVM.Add(1)
@@ -325,7 +325,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			}
 		}
 		// special case where miner process includes validating block in pre-packaging stage on SYS node
-		// the validation of this hash is done in ConnectNEVMCommitment() in Syscoin using fJustCheck
+		// the validation of this hash is done in ConnectNEVMCommitment() in Syssitia using fJustCheck
 		sysBlockHash := common.BytesToHash([]byte(nevmBlockConnect.Sysblockhash))
 		if sysBlockHash == (common.Hash{}) {
 			// we need to write/delete between verifyheader because it depends on the mapping
@@ -614,8 +614,8 @@ func (s *Ethereum) StartMining(threads int) error {
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
 		atomic.StoreUint32(&s.handler.acceptTxs, 1)
-		// SYSCOIN Skip miner start and disable presealing in NEVM mode, since PoW is on Syscoin
-		if s.miner.ChainConfig().SyscoinBlock == nil {
+		// SYSSITIA Skip miner start and disable presealing in NEVM mode, since PoW is on Syssitia
+		if s.miner.ChainConfig().SyssitiaBlock == nil {
 			go s.miner.Start(eb)
 		} else {
 			log.Info("Disable mining presealer...")
@@ -689,8 +689,8 @@ func (s *Ethereum) Start() error {
 		}
 		maxPeers -= s.config.LightPeers
 	}
-	// SYSCOIN
-	if s.miner.ChainConfig().SyscoinBlock != nil {
+	// SYSSITIA
+	if s.miner.ChainConfig().SyssitiaBlock != nil {
 		log.Info("Skip networking and peering...")
 		s.handler.maxPeers = maxPeers
 		s.handler.peers.close()
@@ -724,7 +724,7 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	s.eventMux.Stop()
-	// SYSCOIN
+	// SYSSITIA
 	s.minedNEVMBlockSub.Unsubscribe()
 	s.wgNEVM.Wait()
 	if s.zmqRep != nil {

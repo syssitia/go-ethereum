@@ -33,15 +33,15 @@ import (
 // faucetDockerfile is the Dockerfile required to build a faucet container to
 // grant crypto tokens based on GitHub authentications.
 var faucetDockerfile = `
-FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/syssitia-core:latest as syssitia-alpine
 FROM alpine:3.15
 
-ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_PREFIX=/opt/syscoin
+ENV SYSSITIA_DATA=/home/syssitia/.syssitia
+ENV SYSSITIA_PREFIX=/opt/syssitia
 
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoind /usr/local/bin/syscoind
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoin-cli /usr/local/bin/syscoin-cli
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/faucet /usr/local/bin/sysgeth
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitiad /usr/local/bin/syssitiad
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitia-cli /usr/local/bin/syssitia-cli
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/faucet /usr/local/bin/sysgeth
 
 ADD account.json /account.json
 ADD account.pass /account.pass
@@ -59,7 +59,7 @@ RUN apk --no-cache add \
   sqlite-dev
 
 RUN \
- 	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
+ 	echo $'LC_ALL=C exec syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSSITIA_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
 
 ENTRYPOINT ["/bin/sh", "faucet.sh"]
 `
@@ -78,7 +78,7 @@ services:
       - "{{.EthPort}}:{{.EthPort}}/udp"{{if not .VHost}}
       - "{{.ApiPort}}:8080"{{end}}
     volumes:
-      - {{.Datadir}}:/home/syscoin/.syscoin
+      - {{.Datadir}}:/home/syssitia/.syssitia
     environment:
       - ETH_PORT={{.EthPort}}
       - ETH_NAME={{.EthName}}
@@ -249,7 +249,7 @@ func checkFaucet(client *sshClient, network string) (*faucetInfos, error) {
 	// Container available, assemble and return the useful infos
 	return &faucetInfos{
 		node: &nodeInfos{
-			datadir:  infos.volumes["/home/syscoin/.syscoin"],
+			datadir:  infos.volumes["/home/syssitia/.syssitia"],
 			port:     infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
 			ethstats: infos.envvars["ETH_NAME"],
 			keyJSON:  keyJSON,

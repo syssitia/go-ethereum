@@ -40,7 +40,7 @@ import (
 // contract.
 type PrecompiledContract interface {
 	RequiredGas(input []byte) uint64 // RequiredPrice calculates the contract gas use
-	// SYSCOIN
+	// SYSSITIA
 	Run(input []byte, interpreter *EVMInterpreter) ([]byte, error) // Run runs the precompiled contract
 }
 
@@ -124,7 +124,7 @@ var (
 	PrecompiledAddressesIstanbul  []common.Address
 	PrecompiledAddressesByzantium []common.Address
 	PrecompiledAddressesHomestead []common.Address
-	PrecompiledAddressesSyscoin   []common.Address
+	PrecompiledAddressesSyssitia   []common.Address
 	PrecompiledAddressesRollux    []common.Address
 )
 
@@ -1072,7 +1072,7 @@ func (c *bls12381MapG2) Run(input []byte, interpreter *EVMInterpreter) ([]byte, 
 	return g.EncodePoint(r), nil
 }
 
-// SYSCOIN datahash implements DA precompile.
+// SYSSITIA datahash implements DA precompile.
 type datahash struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.

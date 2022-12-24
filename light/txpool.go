@@ -224,7 +224,7 @@ func (pool *TxPool) rollbackTxs(hash common.Hash, txc txStateChanges) {
 func (pool *TxPool) reorgOnNewHead(ctx context.Context, newHeader *types.Header) (txStateChanges, error) {
 	txc := make(txStateChanges)
 	oldh := pool.chain.GetHeaderByHash(pool.head)
-	// SYSCOIN fix les rollback block 1
+	// SYSSITIA fix les rollback block 1
 	if oldh == nil {
 		oldh = newHeader
 	}

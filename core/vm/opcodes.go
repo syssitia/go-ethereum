@@ -100,7 +100,7 @@ const (
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
 	BASEFEE     OpCode = 0x48
-	// SYSCOIN
+	// SYSSITIA
 	SYSBLOCKHASH OpCode = 0x4f
 )
 
@@ -290,7 +290,7 @@ var opCodeToString = map[OpCode]string{
 	CHAINID:     "CHAINID",
 	SELFBALANCE: "SELFBALANCE",
 	BASEFEE:     "BASEFEE",
-	// SYSCOIN
+	// SYSSITIA
 	SYSBLOCKHASH: "SYSBLOCKHASH",
 
 	// 0x50 range - 'storage' and execution.
@@ -458,7 +458,7 @@ var stringToOp = map[string]OpCode{
 	"RETURNDATACOPY": RETURNDATACOPY,
 	"EXTCODEHASH":    EXTCODEHASH,
 	"BLOCKHASH":      BLOCKHASH,
-	// SYSCOIN
+	// SYSSITIA
 	"SYSBLOCKHASH": SYSBLOCKHASH,
 	"COINBASE":       COINBASE,
 	"TIMESTAMP":      TIMESTAMP,

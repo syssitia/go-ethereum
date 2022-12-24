@@ -31,7 +31,7 @@ import (
 const (
 	// maxKnownTxs is the maximum transactions hashes to keep in the known list
 	// before starting to randomly evict them.
-	// SYSCOIN
+	// SYSSITIA
 	maxKnownTxs = 262144
 
 	// maxKnownBlocks is the maximum block hashes to keep in the known list
@@ -114,11 +114,11 @@ func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool) *Pe
 		term:            make(chan struct{}),
 	}
 	// Start up all the broadcasters
-	// SYSCOIN if not syscoin network actively broadcast blocks,
+	// SYSSITIA if not syssitia network actively broadcast blocks,
 	// otherwise just respond to blocks/headers upon request
 	if peer.txpool != nil {
 		chainConfig := peer.txpool.GetChainConfig()
-		if chainConfig == nil || chainConfig.SyscoinBlock == nil {
+		if chainConfig == nil || chainConfig.SyssitiaBlock == nil {
 			go peer.broadcastBlocks()
 		}
 	} else {

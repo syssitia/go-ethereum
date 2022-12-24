@@ -60,8 +60,8 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// If jump table was not initialised we set the default one.
 	if cfg.JumpTable == nil {
 		switch {
-		// SYSCOIN
-		case evm.chainRules.IsSyscoin:
+		// SYSSITIA
+		case evm.chainRules.IsSyssitia:
 			cfg.JumpTable = &londonInstructionSet
 		case evm.chainRules.IsMerge:
 			cfg.JumpTable = &mergeInstructionSet

@@ -30,11 +30,11 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/syssitia-core:latest as syssitia-alpine
 FROM sidhujag/blockscout:latest
 
-ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_PREFIX=/opt/syscoin
+ENV SYSSITIA_DATA=/home/syssitia/.syssitia
+ENV SYSSITIA_PREFIX=/opt/syssitia
 ARG COINSYMBOL={{.Coin}}
 ARG EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}}
 ARG COINNETWORK={{.Network}}
@@ -127,9 +127,9 @@ RUN cd apps/explorer/ && \
 RUN mix phx.digest
 
 RUN rm /usr/local/bin/geth
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoind /usr/local/bin/syscoind
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoin-cli /usr/local/bin/syscoin-cli
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitiad /usr/local/bin/syssitiad
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitia-cli /usr/local/bin/syssitia-cli
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
 ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
     EXCHANGE_RATES_COINGECKO_COIN_ID={{.CoingeckoID}} \
@@ -173,8 +173,8 @@ RUN apk --no-cache add \
   sqlite-dev
 
 RUN \
-	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
-	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
+	echo $'LC_ALL=C syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syssitia --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
+	echo $'LC_ALL=C exec syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=/opt/app/.syssitia --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--rpc.evmtimeout=10s --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
     echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
     echo 'sleep 5' >> explorer.sh && \
 	echo 'mix do ecto.create, ecto.migrate' >> explorer.sh && \
@@ -205,7 +205,7 @@ services:
             - VIRTUAL_HOST={{.VHost}}
             - VIRTUAL_PORT=4000{{end}}
         volumes:
-            - {{.Datadir}}:/opt/app/.syscoin
+            - {{.Datadir}}:/opt/app/.syssitia
             - {{.DBDir}}:/var/lib/postgresql/data
         logging:
           driver: "json-file"
@@ -231,10 +231,10 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	showPriceChart := "true"
 	disableExchangeRates := "false"
 	showTestnetLabel := "false"
-	footerChat := "https://discord.gg/syscoin"
-	footerForum := "https://support.syscoin.org/"
-	footerGithub := "https://github.com/syscoin/syscoin"
-	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://explorer.syscoin.org"}]`
+	footerChat := "https://discord.gg/syssitia"
+	footerForum := "https://support.syssitia.org/"
+	footerGithub := "https://github.com/syssitia/syssitia"
+	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syssitia Mainnet","url":"https://explorer.syssitia.org"}]`
 	if config.node.network == 5700 {
 		subNetwork = "Tanenbaum"
 		disableExchangeRates = "true"
@@ -254,9 +254,9 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"EthPort":                    config.node.port,
 		"HttpUrl":                    "http://localhost:8545",
 		"WsUrl":                      "ws://localhost:8546",
-		"Network":                    "Syscoin",
+		"Network":                    "Syssitia",
 		"SubNetwork":                 subNetwork,
-		"CoingeckoID":                "syscoin",
+		"CoingeckoID":                "syssitia",
 		"Coin":                       "SYS",
 		"Logo":                       "/images/sys_logo.svg",
 		"LogoFooter":                 "/images/sys_logo.svg",
@@ -376,7 +376,7 @@ func checkExplorer(client *sshClient, network string) (*explorerInfos, error) {
 	// Assemble and return the useful infos
 	stats := &explorerInfos{
 		node: &nodeInfos{
-			datadir:  infos.volumes["/opt/app/.syscoin"],
+			datadir:  infos.volumes["/opt/app/.syssitia"],
 			port:     infos.portmap[infos.envvars["ETH_PORT"]+"/tcp"],
 			ethstats: infos.envvars["ETH_NAME"],
 		},

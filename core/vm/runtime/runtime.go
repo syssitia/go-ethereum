@@ -47,7 +47,7 @@ type Config struct {
 
 	State     *state.StateDB
 	GetHashFn func(n uint64) common.Hash
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHashFn func(n uint64) []byte
 	ReadDataHashFn func(hash common.Hash) []byte
 }
@@ -71,8 +71,8 @@ func setDefaults(cfg *Config) {
 			MuirGlacierBlock:    new(big.Int),
 			BerlinBlock:         new(big.Int),
 			LondonBlock:         new(big.Int),
-			// SYSCOIN
-			SyscoinBlock: new(big.Int),
+			// SYSSITIA
+			SyssitiaBlock: new(big.Int),
 			RolluxBlock:  new(big.Int),
 		}
 	}
@@ -100,7 +100,7 @@ func setDefaults(cfg *Config) {
 			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
 		}
 	}
-	// SYSCOIN
+	// SYSSITIA
 	if cfg.ReadSYSHashFn == nil {
 		cfg.ReadSYSHashFn = func(n uint64) []byte {
 			return []byte(new(big.Int).SetUint64(n).String())

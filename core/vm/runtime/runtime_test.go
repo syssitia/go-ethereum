@@ -63,7 +63,7 @@ func TestDefaults(t *testing.T) {
 	if cfg.GetHashFn == nil {
 		t.Error("expected time to be non nil")
 	}
-	// SYSCOIN
+	// SYSSITIA
 	if cfg.ReadSYSHashFn == nil {
 		t.Error("expected time to be non nil")
 	}
@@ -258,7 +258,7 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	return fakeHeader(n, parentHash)
 }
 
-// SYSCOIN
+// SYSSITIA
 func (d *dummyChain) ReadSYSHash(uint64) []byte {
 	return []byte{}
 }
@@ -315,7 +315,7 @@ func TestBlockhash(t *testing.T) {
 	chain := &dummyChain{}
 	ret, _, err := Execute(data, input, &Config{
 		GetHashFn: core.GetHashFn(header, chain),
-		// SYSCOIN
+		// SYSSITIA
 		ReadSYSHashFn: core.ReadSYSHashFn(chain),
 		ReadDataHashFn: core.ReadDataHashFn(chain),
 		BlockNumber:   new(big.Int).Set(header.Number),

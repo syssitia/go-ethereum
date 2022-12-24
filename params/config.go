@@ -27,21 +27,21 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x2112327cad6deec6ada8bd7e5d33d263b57742a8495f3b641faa326b55b1c666")
+	MainnetGenesisHash = common.HexToHash("0x")
 	MainnetGenesisHashTest = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
 	RopstenGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
 	KilnGenesisHash    = common.HexToHash("0x51c7fe41be669f69c45c33a56982cbde405313342d9e2b00d7c91a7b284dd4f8")
-	// SYSCOIN
+	// SYSSITIA
 	TanenbaumGenesisHash = common.HexToHash("0x5fb22cd4425cea75d2ddaf5fbafb247bb682f407575c599d954b811214c3617c")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of
 // the chain it belongs to.
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
-	// SYSCOIN MainnetGenesisHash: MainnetTrustedCheckpoint,
+	// SYSSITIA MainnetGenesisHash: MainnetTrustedCheckpoint,
 	RopstenGenesisHash: RopstenTrustedCheckpoint,
 	SepoliaGenesisHash: SepoliaTrustedCheckpoint,
 	RinkebyGenesisHash: RinkebyTrustedCheckpoint,
@@ -51,7 +51,7 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 // CheckpointOracles associates each known checkpoint oracles with the genesis hash of
 // the chain it belongs to.
 var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
-	// SYSCOIN MainnetGenesisHash: MainnetCheckpointOracle,
+	// SYSSITIA MainnetGenesisHash: MainnetCheckpointOracle,
 	RopstenGenesisHash: RopstenCheckpointOracle,
 	RinkebyGenesisHash: RinkebyCheckpointOracle,
 	GoerliGenesisHash:  GoerliCheckpointOracle,
@@ -60,9 +60,9 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 var (
 	MainnetTerminalTotalDifficulty, _ = new(big.Int).SetString("58_750_000_000_000_000_000_000", 0)
 
-	// SYSCOIN MainnetChainConfig is the chain parameters to run a node on the main network.
+	// SYSSITIA MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(57),
+		ChainID:             big.NewInt(58),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        nil,
 		DAOForkSupport:      true,
@@ -76,7 +76,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		SyscoinBlock:        big.NewInt(0),
+		SyssitiaBlock:        big.NewInt(0),
 		RolluxBlock:         big.NewInt(155000),
 		LondonBlock:         big.NewInt(1),
 		ArrowGlacierBlock:   nil,
@@ -126,7 +126,7 @@ var (
 		Threshold: 2,
 	}
 
-	// SYSCOIN SyscoinChainConfig is the chain parameters to run a node on the syscoin network.
+	// SYSSITIA SyssitiaChainConfig is the chain parameters to run a node on the syssitia network.
 	TanenbaumChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(5700),
 		HomesteadBlock:      big.NewInt(0),
@@ -142,7 +142,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		SyscoinBlock:        big.NewInt(0),
+		SyssitiaBlock:        big.NewInt(0),
 		RolluxBlock:         big.NewInt(182500),
 		LondonBlock:         big.NewInt(1),
 		ArrowGlacierBlock:   nil,
@@ -337,7 +337,7 @@ var NetworkNames = map[string]string{
 	RinkebyChainConfig.ChainID.String(): "rinkeby",
 	GoerliChainConfig.ChainID.String():  "goerli",
 	SepoliaChainConfig.ChainID.String(): "sepolia",
-	// SYSCOIN
+	// SYSSITIA
 	TanenbaumChainConfig.ChainID.String(): "tanenbaum",
 }
 
@@ -415,8 +415,8 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	SyscoinBlock        *big.Int `json:"syscoinBlock,omitempty"`        // Syscoin switch block (nil = no fork, 0 = already on syscoin)
-	RolluxBlock         *big.Int `json:"rolluxBlock,omitempty"`         // Rollux switch block (nil = no fork, 0 = already on syscoin)
+	SyssitiaBlock        *big.Int `json:"syssitiaBlock,omitempty"`        // Syssitia switch block (nil = no fork, 0 = already on syssitia)
+	RolluxBlock         *big.Int `json:"rolluxBlock,omitempty"`         // Rollux switch block (nil = no fork, 0 = already on syssitia)
 	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 1 = already on london)
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	GrayGlacierBlock    *big.Int `json:"grayGlacierBlock,omitempty"`    // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
@@ -617,9 +617,9 @@ func (c *ChainConfig) IsTerminalPoWBlock(parentTotalDiff *big.Int, totalDiff *bi
 	return parentTotalDiff.Cmp(c.TerminalTotalDifficulty) < 0 && totalDiff.Cmp(c.TerminalTotalDifficulty) >= 0
 }
 
-// SYSCOIN IsSyscoin returns whether num is either equal to the Syscoin fork block or greater.
-func (c *ChainConfig) IsSyscoin(num *big.Int) bool {
-	return isForked(c.SyscoinBlock, num)
+// SYSSITIA IsSyssitia returns whether num is either equal to the Syssitia fork block or greater.
+func (c *ChainConfig) IsSyssitia(num *big.Int) bool {
+	return isForked(c.SyssitiaBlock, num)
 }
 func (c *ChainConfig) IsRollux(num *big.Int) bool {
 	return isForked(c.RolluxBlock, num)
@@ -844,7 +844,7 @@ type Rules struct {
 	ChainID                                                 *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsBerlin, IsLondon, IsSyscoin, IsRollux                 bool
+	IsBerlin, IsLondon, IsSyssitia, IsRollux                 bool
 	IsMerge, IsShanghai, isCancun                           bool
 }
 
@@ -866,7 +866,7 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool) Rules {
 		IsIstanbul:       c.IsIstanbul(num),
 		IsBerlin:         c.IsBerlin(num),
 		IsLondon:         c.IsLondon(num),
-		IsSyscoin:        c.IsSyscoin(num),
+		IsSyssitia:        c.IsSyssitia(num),
 		IsRollux:         c.IsRollux(num),
 		IsMerge:          isMerge,
 		IsShanghai:       c.IsShanghai(num),

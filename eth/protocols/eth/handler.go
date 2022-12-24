@@ -91,7 +91,7 @@ type Backend interface {
 type TxPool interface {
 	// Get retrieves the transaction from the local txpool with the given hash.
 	Get(hash common.Hash) *types.Transaction
-	// SYSCOIN
+	// SYSSITIA
 	GetChainConfig() *params.ChainConfig
 }
 

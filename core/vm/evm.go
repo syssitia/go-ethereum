@@ -38,7 +38,7 @@ type (
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHashFunc  func(uint64) []byte
 	ReadDataHashFunc func(common.Hash) []byte
 )
@@ -71,7 +71,7 @@ type BlockContext struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHash  ReadSYSHashFunc
 	ReadDataHash ReadDataHashFunc
 
@@ -219,7 +219,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
-		// SYSCOIN
+		// SYSSITIA
 		ret, gas, err = RunPrecompiledContract(p, input, gas, evm.interpreter)
 	} else {
 		// Initialise a new contract and set the code that is to be used by the EVM.
@@ -283,7 +283,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		// SYSCOIN
+		// SYSSITIA
 		ret, gas, err = RunPrecompiledContract(p, input, gas, evm.interpreter)
 	} else {
 		addrCopy := addr
@@ -325,7 +325,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		// SYSCOIN
+		// SYSSITIA
 		ret, gas, err = RunPrecompiledContract(p, input, gas, evm.interpreter)
 	} else {
 		addrCopy := addr
@@ -375,7 +375,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 	
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		// SYSCOIN
+		// SYSSITIA
 		ret, gas, err = RunPrecompiledContract(p, input, gas, evm.interpreter)
 	} else {
 		// At this point, we use a copy of address. If we don't, the go compiler will

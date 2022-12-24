@@ -529,15 +529,15 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
-// SYSCOIN DefaultGenesisBlock returns the Syscoin main net genesis block.
+// SYSSITIA DefaultGenesisBlock returns the Syssitia main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
-		Timestamp:  0x60d7aef6,
+		Timestamp:  0x63a7307e,
 		ExtraData:  hexutil.MustDecode("0x00"),
 		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(syscoinAllocData),
+		Alloc:      decodePrealloc(syssitiaAllocData),
 	}
 }
 
@@ -577,15 +577,15 @@ func DefaultGoerliGenesisBlock() *Genesis {
 	}
 }
 
-// SYSCOIN
+// SYSSITIA
 func DefaultTanenbaumGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.TanenbaumChainConfig,
-		Timestamp:  0x60d6aef5,
+		Timestamp:  0x63a7312a,
 		ExtraData:  hexutil.MustDecode("0x00"),
 		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(syscoinAllocData),
+		Alloc:      decodePrealloc(syssitiaAllocData),
 	}
 }
 

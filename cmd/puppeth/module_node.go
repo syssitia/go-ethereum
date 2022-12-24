@@ -32,7 +32,7 @@ import (
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.
 var nodeDockerfile = `
-FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/syssitia-core:latest as syssitia-alpine
 FROM alpine:3.15
 
 ADD genesis.json /genesis.json
@@ -40,11 +40,11 @@ ADD genesis.json /genesis.json
 	ADD signer.json /signer.json
 	ADD signer.pass /signer.pass
 {{end}}
-ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_PREFIX=/opt/syscoin
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoind /usr/local/bin/syscoind
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/syscoin-cli /usr/local/bin/syscoin-cli
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
+ENV SYSSITIA_DATA=/home/syssitia/.syssitia
+ENV SYSSITIA_PREFIX=/opt/syssitia
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitiad /usr/local/bin/syssitiad
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/syssitia-cli /usr/local/bin/syssitia-cli
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/sysgeth /usr/local/bin/sysgeth
 RUN apk --no-cache add \
   boost-filesystem \
   boost-system \
@@ -58,9 +58,9 @@ RUN apk --no-cache add \
 
 RUN \
     {{if .Unlock}}
-	echo 'mkdir -p ${SYSCOIN_DATA}/{{if eq .NetworkID 5700}}testnet3/{{end}}geth/keystore/ && cp /signer.json ${SYSCOIN_DATA}/{{if eq .NetworkID 5700}}testnet3/{{end}}geth/keystore/' >> geth.sh && \{{end}}
-	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--port={{.Port}} --gethcommandline=--nat=extip:{{.IP}} --gethcommandline=--maxpeers={{.Peers}} {{.LightFlag}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} {{if .Etherbase}}--gethcommandline=--miner.etherbase={{.Etherbase}} --gethcommandline=--mine --gethcommandline=--miner.threads=1{{end}} {{if .Unlock}}--gethcommandline=--unlock=0 --gethcommandline=--password=/signer.pass --gethcommandline=--mine{{end}} --gethcommandline=--miner.gaslimit={{.GasLimit}} --gethcommandline=--miner.gasprice={{.GasPrice}} --gethcommandline=--exitwhensynced' >> geth.sh && \
-	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--port={{.Port}} --gethcommandline=--nat=extip:{{.IP}} --gethcommandline=--maxpeers={{.Peers}} {{.LightFlag}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} {{if .Etherbase}}--gethcommandline=--miner.etherbase={{.Etherbase}} --gethcommandline=--mine --gethcommandline=--miner.threads=1{{end}} {{if .Unlock}}--gethcommandline=--unlock=0 --gethcommandline=--password=/signer.pass --gethcommandline=--mine{{end}} --gethcommandline=--miner.gaslimit={{.GasLimit}} --gethcommandline=--miner.gasprice={{.GasPrice}}' >> geth.sh
+	echo 'mkdir -p ${SYSSITIA_DATA}/{{if eq .NetworkID 5800}}testnet3/{{end}}geth/keystore/ && cp /signer.json ${SYSSITIA_DATA}/{{if eq .NetworkID 5800}}testnet3/{{end}}geth/keystore/' >> geth.sh && \{{end}}
+	echo $'LC_ALL=C syssitiad {{if eq .NetworkID 5800}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSSITIA_DATA} --disablewallet --gethcommandline=--port={{.Port}} --gethcommandline=--nat=extip:{{.IP}} --gethcommandline=--maxpeers={{.Peers}} {{.LightFlag}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} {{if .Etherbase}}--gethcommandline=--miner.etherbase={{.Etherbase}} --gethcommandline=--mine --gethcommandline=--miner.threads=1{{end}} {{if .Unlock}}--gethcommandline=--unlock=0 --gethcommandline=--password=/signer.pass --gethcommandline=--mine{{end}} --gethcommandline=--miner.gaslimit={{.GasLimit}} --gethcommandline=--miner.gasprice={{.GasPrice}} --gethcommandline=--exitwhensynced' >> geth.sh && \
+	echo $'LC_ALL=C exec syssitiad {{if eq .NetworkID 5800}}--testnet --addnode=3.143.67.237{{end}} --datadir=${SYSSITIA_DATA} --disablewallet --gethcommandline=--port={{.Port}} --gethcommandline=--nat=extip:{{.IP}} --gethcommandline=--maxpeers={{.Peers}} {{.LightFlag}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} {{if .Etherbase}}--gethcommandline=--miner.etherbase={{.Etherbase}} --gethcommandline=--mine --gethcommandline=--miner.threads=1{{end}} {{if .Unlock}}--gethcommandline=--unlock=0 --gethcommandline=--password=/signer.pass --gethcommandline=--mine{{end}} --gethcommandline=--miner.gaslimit={{.GasLimit}} --gethcommandline=--miner.gasprice={{.GasPrice}}' >> geth.sh
 
 ENTRYPOINT ["/bin/sh", "geth.sh"]
 `
@@ -81,7 +81,7 @@ services:
       - "{{.SysPort3}}:{{.SysPort3}}"
       - "{{.Port}}:{{.Port}}/udp"
     volumes:
-      - {{.Datadir}}:/home/syscoin/.syscoin{{if .Ethashdir}}
+      - {{.Datadir}}:/home/syssitia/.syssitia{{if .Ethashdir}}
       - {{.Ethashdir}}:/root/.ethash{{end}}
     environment:
       - PORT={{.Port}}/tcp
@@ -142,9 +142,9 @@ func deployNode(client *sshClient, network string, bootnodes []string, config *n
 		"Ethashdir":  config.ethashdir,
 		"Network":    network,
 		"Port":       config.port,
-		"SysPort1":   8369,
-		"SysPort2":   18369,
-		"SysPort3":   18444,
+		"SysPort1":   8909,
+		"SysPort2":   18909,
+		"SysPort3":   18910,
 		"TotalPeers": config.peersTotal,
 		"Light":      config.peersLight > 0,
 		"LightPeers": config.peersLight,
@@ -252,12 +252,12 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	var out []byte
 
 	// The ipc file is not in the standard location, so we need find it, and specify it.
-	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 find /home/syscoin/.syscoin -name geth.ipc", network, kind)); err != nil {
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 find /home/syssitia/.syssitia -name geth.ipc", network, kind)); err != nil {
 		return nil, ErrServiceUnreachable
 	}
 	ipcLocation := string(bytes.TrimSpace(out))
 
-	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 /home/syscoin/.syscoin/sysgeth --exec admin.nodeInfo.enode --cache=16 attach "+ipcLocation, network, kind)); err != nil {
+	if out, err = client.Run(fmt.Sprintf("docker exec %s_%s_1 /home/syssitia/.syssitia/sysgeth --exec admin.nodeInfo.enode --cache=16 attach "+ipcLocation, network, kind)); err != nil {
 		return nil, ErrServiceUnreachable
 	}
 	enode := bytes.Trim(bytes.TrimSpace(out), "\"")
@@ -282,7 +282,7 @@ func checkNode(client *sshClient, network string, boot bool) (*nodeInfos, error)
 	// Assemble and return the useful infos
 	stats := &nodeInfos{
 		genesis:    genesis,
-		datadir:    infos.volumes["/home/syscoin/.syscoin"],
+		datadir:    infos.volumes["/home/syssitia/.syssitia"],
 		ethashdir:  infos.volumes["/root/.ethash"],
 		port:       port,
 		peersTotal: totalPeers,

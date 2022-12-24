@@ -33,7 +33,7 @@ type ChainContext interface {
 
 	// GetHeader returns the header corresponding to the hash/number argument pair.
 	GetHeader(common.Hash, uint64) *types.Header
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHash(uint64) []byte
 	ReadDataHash(common.Hash) []byte
 }
@@ -61,7 +61,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
-		// SYSCOIN
+		// SYSSITIA
 		ReadSYSHash:  ReadSYSHashFn(chain),
 		ReadDataHash: ReadDataHashFn(chain),
 		Coinbase:     beneficiary,
@@ -121,7 +121,7 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 	}
 }
 
-// SYSCOIN returns if there is an NEVM mapping from this blockhash for canonical SYS chain detection
+// SYSSITIA returns if there is an NEVM mapping from this blockhash for canonical SYS chain detection
 func ReadSYSHashFn(chain ChainContext) func(n uint64) []byte {
 	return func(n uint64) []byte {
 		return chain.ReadSYSHash(n)

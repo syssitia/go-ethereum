@@ -98,7 +98,7 @@ func (b *LesApiBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*ty
 	return b.eth.blockchain.GetHeaderByHash(hash), nil
 }
 
-// SYSCOIN
+// SYSSITIA
 func (b *LesApiBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.eth.blockchain.ReadSYSHash(uint64(number)), nil
 }

@@ -78,7 +78,7 @@ func (p *testTxPool) Get(hash common.Hash) *types.Transaction {
 	return p.pool[hash]
 }
 
-// SYSCOIN
+// SYSSITIA
 func (pool *testTxPool) GetChainConfig() *params.ChainConfig {
 	return params.TestChainConfig
 }

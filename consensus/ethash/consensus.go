@@ -42,10 +42,10 @@ var (
 	FrontierBlockReward       = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward      = big.NewInt(3e+18) // Block reward in wei for successfully mining a block upward from Byzantium
 	ConstantinopleBlockReward = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from Constantinople
-	// SYSCOIN
-	SyscoinBlockReward, _ = new(big.Int).SetString("10550000000000000000", 10) // 10.55 Block reward for successfully mining a block upward from Syscoin
+	// SYSSITIA
+	SyssitiaBlockReward, _ = new(big.Int).SetString("200550000000000000000", 10) // 200.55 Block reward for successfully mining a block upward from Syssitia
 	maxUncles             = 2                                                  // Maximum number of uncles allowed in a single block
-	// SYSCOIN
+	// SYSSITIA
 	allowedFutureBlockTimeSeconds = int64(150) // Max seconds from current time allowed for blocks, before they're considered future blocks
 
 	// calcDifficultyEip5133 is the difficulty adjustment algorithm as specified by EIP 5133.
@@ -80,7 +80,7 @@ var (
 	// parent block's time and difficulty. The calculation uses the Byzantium rules.
 	// Specification EIP-649: https://eips.ethereum.org/EIPS/eip-649
 	calcDifficultyByzantium = makeDifficultyCalculator(big.NewInt(3000000))
-	// SYSCOIN
+	// SYSSITIA
 	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless in NEVM PoW.
 )
 
@@ -212,7 +212,7 @@ func (ethash *Ethash) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 	if ethash.config.PowMode == ModeFullFake {
 		return nil
 	}
-	// SYSCOIN NEVM mode doesn't have uncles
+	// SYSSITIA NEVM mode doesn't have uncles
 	if ethash.config.PowMode == ModeNEVM && len(block.Uncles()) > 0 {
 		return errors.New("uncles not allowed")
 	}
@@ -289,7 +289,7 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 	if header.Time <= parent.Time {
 		return errOlderBlockTime
 	}
-	// SYSCOIN Ensure that the block doesn't contain any uncles which are meaningless in NEVM PoW
+	// SYSSITIA Ensure that the block doesn't contain any uncles which are meaningless in NEVM PoW
 	if ethash.config.PowMode == ModeNEVM {
 		if header.UncleHash != uncleHash {
 			return errInvalidUncleHash
@@ -358,8 +358,8 @@ func (ethash *Ethash) CalcDifficulty(chain consensus.ChainHeaderReader, time uin
 func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Header) *big.Int {
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
-	// SYSCOIN
-	case config.IsSyscoin(next):
+	// SYSSITIA
+	case config.IsSyssitia(next):
 		return big.NewInt(1)
 	case config.IsGrayGlacier(next):
 		return calcDifficultyEip5133(time, parent)
@@ -544,7 +544,7 @@ var DynamicDifficultyCalculator = makeDifficultyCalculator
 // either using the usual ethash cache for it, or alternatively using a full DAG
 // to make remote mining fast.
 func (ethash *Ethash) verifySeal(chain consensus.ChainHeaderReader, header *types.Header, fulldag bool) error {
-	// SYSCOIN If we're running a fake PoW, accept any seal as valid
+	// SYSSITIA If we're running a fake PoW, accept any seal as valid
 	if ethash.config.PowMode == ModeFake || ethash.config.PowMode == ModeFullFake || ethash.config.PowMode == ModeNEVM {
 		time.Sleep(ethash.fakeDelay)
 		if ethash.fakeFail == header.Number.Uint64() {
@@ -683,9 +683,9 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	if config.IsConstantinople(header.Number) {
 		blockReward = ConstantinopleBlockReward
 	}
-	// SYSCOIN
-	if config.IsSyscoin(header.Number) {
-		blockReward = SyscoinBlockReward
+	// SYSSITIA
+	if config.IsSyssitia(header.Number) {
+		blockReward = SyssitiaBlockReward
 	}
 	// Accumulate the rewards for the miner and any included uncles
 	reward := new(big.Int).Set(blockReward)

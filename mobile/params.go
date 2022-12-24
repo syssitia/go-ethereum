@@ -67,7 +67,7 @@ func GoerliGenesis() string {
 	}
 	return string(enc)
 }
-// SYSCOIN
+// SYSSITIA
 func TanenbaumGenesis() string {
 	enc, err := json.Marshal(core.DefaultTanenbaumGenesisBlock())
 	if err != nil {

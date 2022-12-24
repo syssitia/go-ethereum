@@ -237,7 +237,7 @@ func (tt *TestCmd) Kill() {
 }
 
 func (tt *TestCmd) withKillTimeout(fn func()) {
-	// SYSCOIN extend timeout
+	// SYSSITIA extend timeout
 	timeout := time.AfterFunc(60*time.Second, func() {
 		tt.Log("killing the child process (timeout)")
 		tt.Kill()

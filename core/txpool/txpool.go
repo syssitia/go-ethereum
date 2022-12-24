@@ -171,7 +171,7 @@ type Config struct {
 
 // DefaultConfig contains the default configurations for the transaction
 // pool.
-// SYSCOIN factor by 8
+// SYSSITIA factor by 8
 var DefaultConfig = Config{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
@@ -983,7 +983,7 @@ func (pool *TxPool) Get(hash common.Hash) *types.Transaction {
 	return pool.all.Get(hash)
 }
 
-// SYSCOIN get chainconfig so we can detect if we are syscoin network inside of peer
+// SYSSITIA get chainconfig so we can detect if we are syssitia network inside of peer
 func (pool *TxPool) GetChainConfig() *params.ChainConfig {
 	return pool.chainconfig
 }

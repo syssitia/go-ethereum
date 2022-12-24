@@ -158,7 +158,7 @@ const (
 	RefundQuotient        uint64 = 2
 	RefundQuotientEIP3529 uint64 = 5
 
-	// SYSCOIN
+	// SYSSITIA
 	SYSDataHashGas uint64 = 1400 // The cost of data hash retrieval
 )
 

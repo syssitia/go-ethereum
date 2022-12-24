@@ -220,7 +220,7 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	if price.Cmp(oracle.maxPrice) > 0 {
 		price = new(big.Int).Set(oracle.maxPrice)
 	}
-	// SYSCOIN
+	// SYSSITIA
 	if price.Cmp(big.NewInt(int64(100))) < 0 {
 		price = big.NewInt(int64(100))
 	}

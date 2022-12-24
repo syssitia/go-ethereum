@@ -98,7 +98,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	gas := p.RequiredGas(in)
 	env := NewEVM(BlockContext{ReadDataHash: func(common.Hash) []byte { return []byte{} }}, TxContext{}, nil, params.TestChainConfig, Config{})
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		// SYSCOIN
+		// SYSSITIA
 		if res, _, err := RunPrecompiledContract(p, in, gas, env.interpreter); err != nil {
 			t.Error(err)
 		} else if common.Bytes2Hex(res) != test.Expected {

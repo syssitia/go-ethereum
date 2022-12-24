@@ -60,7 +60,7 @@ type Config struct {
 
 // DefaultConfig contains default settings for miner.
 var DefaultConfig = Config{
-	// SYSCOIN
+	// SYSSITIA
 	GasCeil:           8000000,
 	GasPrice:          big.NewInt(100 * params.Wei),
 	// The default recommit time is chosen as two seconds since
@@ -179,7 +179,7 @@ func (miner *Miner) Close() {
 	miner.wg.Wait()
 }
 
-// SYSCOIN
+// SYSSITIA
 func (miner *Miner) ChainConfig() *params.ChainConfig {
 	return miner.worker.chainConfig
 }

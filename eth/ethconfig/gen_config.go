@@ -63,7 +63,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		CheckpointOracle                      *params.CheckpointOracleConfig `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty       *big.Int                       `toml:",omitempty"`
 		OverrideTerminalTotalDifficultyPassed *bool                          `toml:",omitempty"`
-		// SYSCOIN
+		// SYSSITIA
 		NEVMPubEP                       string   `toml:",omitempty"`
 	}
 	var enc Config
@@ -162,7 +162,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		CheckpointOracle                      *params.CheckpointOracleConfig `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty       *big.Int                       `toml:",omitempty"`
 		OverrideTerminalTotalDifficultyPassed *bool                          `toml:",omitempty"`
-		// SYSCOIN
+		// SYSSITIA
 		NEVMPubEP                       *string  `toml:",omitempty"`
 	}
 	var dec Config

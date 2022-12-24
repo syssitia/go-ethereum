@@ -128,7 +128,7 @@ var (
 		utils.MinerExtraDataFlag,
 		utils.MinerRecommitIntervalFlag,
 		utils.MinerNoVerifyFlag,
-		// SYSCOIN
+		// SYSSITIA
 		utils.NEVMPubFlag,
 		utils.MinerNewPayloadTimeout,
 		utils.NATFlag,
@@ -316,7 +316,7 @@ func prepare(ctx *cli.Context) {
 	}
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance
 	if ctx.String(utils.SyncModeFlag.Name) != "light" && !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {
-		// SYSCOIN Make sure we're not on any supported preconfigured testnet either
+		// SYSSITIA Make sure we're not on any supported preconfigured testnet either
 		if !ctx.IsSet(utils.RopstenFlag.Name) &&
 			!ctx.IsSet(utils.SepoliaFlag.Name) &&
 			!ctx.IsSet(utils.RinkebyFlag.Name) &&
@@ -430,7 +430,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 				if !ok {
 					continue
 				}
-				// SYSCOIN 115 mins vs 10 mins
+				// SYSSITIA 115 mins vs 10 mins
 				if timestamp := time.Unix(int64(done.Latest.Time), 0); time.Since(timestamp) < 115*time.Minute {
 					log.Info("Synchronisation completed", "latestnum", done.Latest.Number, "latesthash", done.Latest.Hash(),
 						"age", common.PrettyAge(timestamp))

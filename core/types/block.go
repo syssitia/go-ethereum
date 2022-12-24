@@ -27,16 +27,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	// SYSCOIN
+	// SYSSITIA
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	// SYSCOIN
+	// SYSSITIA
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/syscoin/btcd/wire"
+	"github.com/syssitia/btcd/wire"
 )
 
 var (
@@ -190,7 +190,7 @@ type Block struct {
 	ReceivedFrom interface{}
 }
 
-// SYSCOIN
+// SYSSITIA
 type NEVMBlockConnect struct {
 	Blockhash     common.Hash
 	Sysblockhash  string

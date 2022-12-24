@@ -121,7 +121,7 @@ type Downloader struct {
 	badBlock badBlockFn // Reports a block as rejected by the chain
 
 	// Status
-	// SYSCOIN
+	// SYSSITIA
 	SynchroniseMock func(id string, hash common.Hash) error // Replacement for synchronise during testing
 	synchronising   int32
 	notified        int32
@@ -449,7 +449,7 @@ func (d *Downloader) getMode() SyncMode {
 	return SyncMode(atomic.LoadUint32(&d.mode))
 }
 
-// SYSCOIN
+// SYSSITIA
 func (s *Downloader) Peers() *peerSet { return s.peers }
 func (d *Downloader) DoneEvent() {
 	latest := d.lightchain.CurrentHeader()

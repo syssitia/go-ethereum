@@ -132,7 +132,7 @@ var (
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
-		Usage:    "Syscoin mainnet",
+		Usage:    "Syssitia mainnet",
 		Category: flags.EthCategory,
 	}
 	RopstenFlag = &cli.BoolFlag{
@@ -571,7 +571,7 @@ var (
 		Usage:    "Disable remote sealing verification",
 		Category: flags.MinerCategory,
 	}
-	// SYSCOIN
+	// SYSSITIA
 	NEVMPubFlag = &cli.StringFlag{
 		Name:  "nevmpub",
 		Usage: "NEVM ZMQ REP Endpoint",
@@ -1016,7 +1016,7 @@ var (
 		GoerliFlag,
 		SepoliaFlag,
 		KilnFlag,
-		// SYSCOIN
+		// SYSSITIA
 		TanenbaumFlag,
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
@@ -1807,7 +1807,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 
 	log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
 	godebug.SetGCPercent(int(gogc))
-	// SYSCOIN
+	// SYSSITIA
 	if ctx.IsSet(NEVMPubFlag.Name) {
 		cfg.NEVMPubEP = ctx.String(NEVMPubFlag.Name)
 	}
@@ -1907,7 +1907,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 57
+			cfg.NetworkId = 58
 		}
 		cfg.Genesis = core.DefaultGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
@@ -1947,7 +1947,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
 	case ctx.Bool(TanenbaumFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 5700
+			cfg.NetworkId = 5800
 		}
 		cfg.Genesis = core.DefaultTanenbaumGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.TanenbaumGenesisHash)
@@ -2288,8 +2288,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	if ctx.Bool(FakePoWFlag.Name) {
 		ethashConfig.PowMode = ethash.ModeFake
 	}
-	// SYSCOIN
-	chainID := big.NewInt(57)
+	// SYSSITIA
+	chainID := big.NewInt(58)
 	if gspec != nil && gspec.Config != nil && gspec.Config.ChainID != nil {
 		chainID = gspec.Config.ChainID
 	} else {
