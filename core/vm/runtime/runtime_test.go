@@ -251,7 +251,7 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	//fmt.Printf("GetHeader(%x, %d) => header with parent %x\n", h, n, parentHash)
 	return fakeHeader(n, parentHash)
 }
-// SYSCOIN
+// SYSSITIA
 func (d *dummyChain) ReadSYSHash(uint64) []byte {
 	return []byte{}
 }
@@ -304,7 +304,7 @@ func TestBlockhash(t *testing.T) {
 	chain := &dummyChain{}
 	ret, _, err := Execute(data, input, &Config{
 		GetHashFn:   core.GetHashFn(header, chain),
-		// SYSCOIN
+		// SYSSITIA
 		ReadSYSHashFn:   core.ReadSYSHashFn(chain),
 		BlockNumber: new(big.Int).Set(header.Number),
 	})

@@ -40,7 +40,7 @@ const (
 	headerCacheLimit = 512
 	tdCacheLimit     = 1024
 	numberCacheLimit = 2048
-	// SYSCOIN
+	// SYSSITIA
 	SYSBlockCacheLimit = 50001
 )
 
@@ -69,7 +69,7 @@ type HeaderChain struct {
 	headerCache *lru.Cache // Cache for the most recent block headers
 	tdCache     *lru.Cache // Cache for the most recent block total difficulties
 	numberCache *lru.Cache // Cache for the most recent block numbers
-	// SYSCOIN
+	// SYSSITIA
 	NEVMCache     *lru.Cache // Cache for NEVM blocks existing
 	SYSHashCache  *lru.Cache // Cache for SYS hash
 	procInterrupt func() bool
@@ -84,7 +84,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	headerCache, _ := lru.New(headerCacheLimit)
 	tdCache, _ := lru.New(tdCacheLimit)
 	numberCache, _ := lru.New(numberCacheLimit)
-	// SYSCOIN
+	// SYSSITIA
 	SYSHashCache, _ := lru.New(SYSBlockCacheLimit)
 	NEVMCache, _ := lru.New(headerCacheLimit)
 
@@ -100,7 +100,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 		headerCache: headerCache,
 		tdCache:     tdCache,
 		numberCache: numberCache,
-		// SYSCOIN
+		// SYSSITIA
 		SYSHashCache:  SYSHashCache,
 		NEVMCache:  NEVMCache,
 		procInterrupt: procInterrupt,
@@ -655,7 +655,7 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 	hc.headerCache.Purge()
 	hc.tdCache.Purge()
 	hc.numberCache.Purge()
-	// SYSCOIN
+	// SYSSITIA
 	hc.SYSHashCache.Purge()
 	hc.NEVMCache.Purge()
 }

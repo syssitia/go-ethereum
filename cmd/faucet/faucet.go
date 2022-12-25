@@ -88,9 +88,9 @@ var (
 	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
 	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
 	tanenbaumFlag = flag.Bool("tanenbaum", false, "Initializes the faucet with Tanenbaum network config")
-	syscoinFlag = flag.Bool("syscoin", false, "Initializes the faucet with Syscoin network config")
+	syssitiaFlag = flag.Bool("syssitia", false, "Initializes the faucet with Syssitia network config")
 	NEVMPubFlag    = flag.String("nevmpub", "", "NEVM ZMQ REP Endpoint")
-	dataDirFlag    = flag.String("datadir", "", "Datadir passthrough from syscoind")
+	dataDirFlag    = flag.String("datadir", "", "Datadir passthrough from syssitiad")
 
 )
 
@@ -151,7 +151,7 @@ func main() {
 		log.Crit("Failed to render the faucet template", "err", err)
 	}
 	// Load and parse the genesis block requested by the user
-	genesis, err := getGenesis(*goerliFlag, *rinkebyFlag, *tanenbaumFlag, *syscoinFlag)
+	genesis, err := getGenesis(*goerliFlag, *rinkebyFlag, *tanenbaumFlag, *syssitiaFlag)
 	if err != nil {
 		log.Crit("Failed to parse genesis config", "err", err)
 	}
@@ -170,7 +170,7 @@ func main() {
 		log.Crit("Failed to read account password contents", "file", *accPassFlag, "err", err)
 	}
 	pass := strings.TrimSuffix(string(blob), "\n")
-	// SYSCOIN override datadir if applicable
+	// SYSSITIA override datadir if applicable
 	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet")
 	if *dataDirFlag != "" {
 		dataDirToUse = *dataDirFlag
@@ -186,7 +186,7 @@ func main() {
 	if err := ks.Unlock(acc, pass); err != nil {
 		log.Crit("Failed to unlock faucet signer account", "err", err)
 	}
-	// SYSCOIN Assemble and start the faucet light service
+	// SYSSITIA Assemble and start the faucet light service
 	faucet, err := newFaucet(genesis, *ethPortFlag, enodes, *netFlag, *statsFlag, *NEVMPubFlag, *dataDirFlag, ks, website.Bytes())
 	if err != nil {
 		log.Crit("Failed to start faucet", "err", err)
@@ -238,7 +238,7 @@ type wsConn struct {
 
 func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network uint64, stats string, NEVMPub string, dataDir string, ks *keystore.KeyStore, index []byte) (*faucet, error) {
 	// Assemble the raw devp2p protocol stack
-	// SYSCOIN override datadir if applicable
+	// SYSSITIA override datadir if applicable
 	dataDirToUse := filepath.Join(os.Getenv("HOME"), ".faucet")
 	if dataDir != "" {
 		dataDirToUse = dataDir
@@ -266,7 +266,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 	cfg.SyncMode = downloader.LightSync
 	cfg.NetworkId = network
 	cfg.Genesis = genesis
-	// SYSCOIN
+	// SYSSITIA
 	if NEVMPub != "" {
 		cfg.NEVMPubEP = NEVMPub
 	}
@@ -489,7 +489,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			id = username
 		default:
 			//lint:ignore ST1005 This error is to be displayed in the browser
-			err = errors.New("Something funky happened, please open an issue at https://github.com/syscoin/go-ethereum/issues")
+			err = errors.New("Something funky happened, please open an issue at https://github.com/syssitia/go-ethereum/issues")
 		}
 		if err != nil {
 			if err = sendError(wsconn, err); err != nil {
@@ -927,7 +927,7 @@ func authNoAuth(url string) (string, string, common.Address, error) {
 }
 
 // getGenesis returns a genesis based on input args
-func getGenesis(goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syscoinFlag bool) (*core.Genesis, error) {
+func getGenesis(goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syssitiaFlag bool) (*core.Genesis, error) {
 	switch {
 	case goerliFlag:
 		return core.DefaultGoerliGenesisBlock(), nil
@@ -935,8 +935,8 @@ func getGenesis(goerliFlag bool, rinkebyFlag bool, tanenbaumFlag bool, syscoinFl
 		return core.DefaultRinkebyGenesisBlock(), nil
 	case tanenbaumFlag:
 		return core.DefaultTanenbaumGenesisBlock(), nil
-	case syscoinFlag:
-		return core.DefaultSyscoinGenesisBlock(), nil
+	case syssitiaFlag:
+		return core.DefaultSyssitiaGenesisBlock(), nil
 	default:
 		return nil, fmt.Errorf("no genesis flag provided")
 	}

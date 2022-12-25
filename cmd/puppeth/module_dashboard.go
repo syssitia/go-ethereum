@@ -112,11 +112,11 @@ var dashboardContent = `
 										<p>An archive node synchronizes the blockchain by downloading the full chain from the genesis block to the current head block, executing all the transactions contained within. As the node crunches through the transactions, all past historical state is stored on disk, and can be queried for each and every block.</p>
 										<p>Initial processing required to execute all transactions may require non-negligible time and disk capacity required to store all past state may be non-insignificant. High end machines with SSD storage, modern CPUs and 8GB+ RAM are recommended.</p>
 										<br/>
-										<p>To run an archive node, download and start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=1024 --gethcommandline=--syncmode=full{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+										<p>To run an archive node, download and start Syssitia with:
+											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=1024 --gethcommandline=--syncmode=full{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -130,11 +130,11 @@ var dashboardContent = `
 										<p>A full node synchronizes the blockchain by downloading the full chain from the genesis block to the current head block, but does not execute the transactions. Instead, it downloads all the transactions receipts along with the entire recent state. As the node downloads the recent state directly, historical data can only be queried from that block onward.</p>
 										<p>Initial processing required to synchronize is more bandwidth intensive, but is light on the CPU and has significantly reduced disk requirements. Mid range machines with HDD storage, decent CPUs and 4GB+ RAM should be enough.</p>
 										<br/>
-										<p>To run a full node, download start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=512{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+										<p>To run a full node, download start Syssitia with:
+											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=512{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -151,11 +151,11 @@ var dashboardContent = `
 										<p>A light node synchronizes the blockchain by downloading and verifying only the chain of headers from the genesis block to the current head, without executing any transactions or retrieving any associated state. As no state is available locally, any interaction with the blockchain relies on on-demand data retrievals from remote nodes.</p>
 										<p>Initial processing required to synchronize is light, as it only verifies the validity of the headers; similarly required disk capacity is small, tallying around 500 bytes per header. Low end machines with arbitrary storage, weak CPUs and 512MB+ RAM should cope well.</p>
 										<br/>
-										<p>To run a light node, download start Syscoin with:
-											<pre>syscoind {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+										<p>To run a light node, download start Syssitia with:
+											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -169,11 +169,11 @@ var dashboardContent = `
 										<p>An embedded node is a variation of the light node with configuration parameters tuned towards low memory footprint. As such, it may sacrifice processing and disk IO performance to conserve memory. It should be considered an <strong>experimental</strong> direction for now without hard guarantees or bounds on the resources used.</p>
 										<p>Initial processing required to synchronize is light, as it only verifies the validity of the headers; similarly required disk capacity is small, tallying around 500 bytes per header. Embedded machines with arbitrary storage, low power CPUs and 128MB+ RAM may work.</p>
 										<br/>
-										<p>To run an embedded node, download and start syscoind with:
-											<pre>syscoind {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=16 --gethcommandline=--ethash.cachesinmem=1 --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
+										<p>To run an embedded node, download and start syssitiad with:
+											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=16 --gethcommandline=--ethash.cachesinmem=1 --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syscoin/NEVM from <a href="https://syscoincore.org/en/download/" target="about:blank">https://syscoincore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -266,9 +266,9 @@ try! node?.start();
 										<p>Puppeth is a deployment tool for the NEVM network to launch bootnodes, ethstats server, crypto faucet, block explorer, dashboard and more; without the hassle that it would normally entail to manually configure all these services one by one.</p>
 										<p>Puppeth uses ssh to dial in to remote servers, and builds its network components out of docker containers using docker-compose. The user is guided through the process via a command line wizard that does the heavy lifting and topology configuration automatically behind the scenes.</p>
 										<br/>
-										<p>Puppeth can be installed via:<pre>go get github.com/syscoin/go-ethereum/cmd/puppeth</pre></p>
+										<p>Puppeth can be installed via:<pre>go get github.com/syssitia/go-ethereum/cmd/puppeth</pre></p>
 										<br/>
-										<p><em>Copyright 2021. The go-ethereum/Syscoin Authors.</em></p>
+										<p><em>Copyright 2021. The go-ethereum/Syssitia Authors.</em></p>
 									</div>
 									<div style="display: inline-block; vertical-align: bottom; width: 217px;">
 										<img src="puppeth.png" style="height: 256px; margin: 16px 16px 16px 16px"></img>

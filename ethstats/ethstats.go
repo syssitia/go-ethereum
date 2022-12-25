@@ -54,7 +54,7 @@ const (
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
-	// SYSCOIN
+	// SYSSITIA
 	txChanSize = 32768
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10

@@ -43,7 +43,7 @@ const (
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
-	// SYSCOIN
+	// SYSSITIA
 	txChanSize = 32768
 
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
@@ -62,7 +62,7 @@ const (
 	// any newly arrived transactions.
 	minRecommitInterval = 1 * time.Second
 
-	// SYSCOIN maxRecommitInterval is the maximum time interval to recreate the mining block with
+	// SYSSITIA maxRecommitInterval is the maximum time interval to recreate the mining block with
 	// any newly arrived transactions.
 	maxRecommitInterval = 150 * time.Second
 
@@ -465,8 +465,8 @@ func (w *worker) mainLoop() {
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 
 		case ev := <-w.chainSideCh:
-			// SYSCOIN no uncle for NEVM type network
-			if w.chainConfig.IsSyscoin(ev.Block.Header().Number) {
+			// SYSSITIA no uncle for NEVM type network
+			if w.chainConfig.IsSyssitia(ev.Block.Header().Number) {
 				continue
 			}
 			// Short circuit for duplicate side blocks
@@ -661,8 +661,8 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
-			// SYSCOIN
-			if !w.chainConfig.IsSyscoin(block.Header().Number) {
+			// SYSSITIA
+			if !w.chainConfig.IsSyssitia(block.Header().Number) {
 				// Commit block and state to database.
 				_, err := w.chain.WriteBlockWithState(block, receipts, logs, task.state, true)
 				if err != nil {

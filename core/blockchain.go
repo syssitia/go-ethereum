@@ -89,7 +89,7 @@ const (
 	receiptsCacheLimit  = 32
 	txLookupCacheLimit  = 1024
 	maxFutureBlocks     = 256
-	// SYSCOIN
+	// SYSSITIA
 	maxTimeFutureBlocks = 400
 	TriesInMemory       = 128
 
@@ -1171,7 +1171,7 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 
 // WriteKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
-// SYSCOIN
+// SYSSITIA
 func (bc *BlockChain) WriteKnownBlock(block *types.Block, overrideUpdateHeads bool) error {
 	current := bc.CurrentBlock()
 	if block.ParentHash() != current.Hash() {

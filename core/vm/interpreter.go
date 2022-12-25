@@ -74,8 +74,8 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	if cfg.JumpTable[STOP] == nil {
 		var jt JumpTable
 		switch {
-		// SYSCOIN
-		case evm.chainRules.IsSyscoin:
+		// SYSSITIA
+		case evm.chainRules.IsSyssitia:
 			jt = londonInstructionSet
 		case evm.chainRules.IsLondon:
 			jt = londonInstructionSet

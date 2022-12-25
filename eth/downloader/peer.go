@@ -39,7 +39,7 @@ const (
 )
 
 var (
-	// SYSCOIN
+	// SYSSITIA
 	errPeerSetClosed     = errors.New("peerset closed")
 	errAlreadyFetching   = errors.New("already fetching blocks from peer")
 	errAlreadyRegistered = errors.New("peer is already registered")
@@ -306,7 +306,7 @@ type peerSet struct {
 	peerDropFeed event.Feed
 
 	lock sync.RWMutex
-	// SYSCOIN
+	// SYSSITIA
 	closed bool
 }
 
@@ -348,7 +348,7 @@ func (ps *peerSet) Reset() {
 func (ps *peerSet) Register(p *peerConnection) error {
 	// Register the new peer with some meaningful defaults
 	ps.lock.Lock()
-	// SYSCOIN
+	// SYSSITIA
 	if ps.closed {
 		ps.lock.Unlock()
 		return errPeerSetClosed
@@ -368,7 +368,7 @@ func (ps *peerSet) Register(p *peerConnection) error {
 	return nil
 }
 
-// SYSCOIN
+// SYSSITIA
 func (ps *peerSet) Close() {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()

@@ -76,10 +76,10 @@ var GoerliBootnodes = []string{
 	"enode://a59e33ccd2b3e52d578f1fbd70c6f9babda2650f0760d6ff3b37742fdcdfdb3defba5d56d315b40c46b70198c7621e63ffa3f987389c7118634b0fefbbdfa7fd@51.15.119.157:40303",
 }
 
-// SyscoinBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Syscoin NEVM-based network.
-var SyscoinBootnodes = []string{
-	"enode://6f417e6740e559818cedd1ae31ea339657f4580c06491ab9c9a7be9dc9136e858e5bc9a3c2e8d6ea49567af5102afced9d8a99c04410244b0c0880911720439a@3.133.0.208:30303",
+// SyssitiaBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Syssitia NEVM-based network.
+var SyssitiaBootnodes = []string{
+	"enode://6f71af84377a5e43f3f84c00907654934f1bd2197ce47dbac0a57713a9b378d0ab7871866c9bc5b4453159bf617c1142097a271beaeb80730ae6a1e1a0725807@129.151.163.175:30303",
 }
 var TanenbaumBootnodes = []string{
 	"enode://f0e3e91d3d28b808734ce08b10855b5e6b6bde8eb9e4bedaf8aababc2ceaa8f4134cec309a996765f183361f1e67bce341326c05b743ed5932a8e705149364e4@18.118.194.233:30303",
@@ -105,8 +105,8 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 		net = "rinkeby"
 	case GoerliGenesisHash:
 		net = "goerli"
-	case SyscoinGenesisHash:
-		net = "syscoin"
+	case SyssitiaGenesisHash:
+		net = "syssitia"
 	case TanenbaumGenesisHash:
 		net = "tanenbaum"
 	default:

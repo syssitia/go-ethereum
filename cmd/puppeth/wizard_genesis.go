@@ -54,7 +54,7 @@ func (w *wizard) makeGenesis() {
 			IstanbulBlock:       big.NewInt(0),
 			BerlinBlock:		 big.NewInt(0),
 			LondonBlock:       	 big.NewInt(1),
-			SyscoinBlock:      	 big.NewInt(0),
+			SyssitiaBlock:      	 big.NewInt(0),
 		},
 	}
 	// Figure out which consensus engine to choose
@@ -246,10 +246,10 @@ func (w *wizard) manageGenesis() {
 		fmt.Printf("Which block should London come into effect? (default = %v)\n", w.conf.Genesis.Config.LondonBlock)
 		w.conf.Genesis.Config.LondonBlock = w.readDefaultBigInt(w.conf.Genesis.Config.LondonBlock)
 
-		// SYSCOIN
+		// SYSSITIA
 		fmt.Println()
-		fmt.Printf("Which block should Syscoin come into effect? (default = %v)\n", w.conf.Genesis.Config.SyscoinBlock)
-		w.conf.Genesis.Config.SyscoinBlock = w.readDefaultBigInt(w.conf.Genesis.Config.SyscoinBlock)
+		fmt.Printf("Which block should Syssitia come into effect? (default = %v)\n", w.conf.Genesis.Config.SyssitiaBlock)
+		w.conf.Genesis.Config.SyssitiaBlock = w.readDefaultBigInt(w.conf.Genesis.Config.SyssitiaBlock)
 
 		out, _ := json.MarshalIndent(w.conf.Genesis.Config, "", "  ")
 		fmt.Printf("Chain configuration updated:\n\n%s\n", out)

@@ -75,7 +75,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
 
-// SYSCOIN
+// SYSSITIA
 func (b *EthAPIBackend) ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error) {
 	return b.eth.blockchain.ReadSYSHash(uint64(number)), nil
 }

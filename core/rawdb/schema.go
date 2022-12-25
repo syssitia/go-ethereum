@@ -20,7 +20,7 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
-	// SYSCOIN
+	// SYSSITIA
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -234,7 +234,7 @@ func IsCodeKey(key []byte) (bool, []byte) {
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
 }
-// SYSCOIN
+// SYSSITIA
 // nevmToSysKey = nevmToSysPrefix + hash
 func nevmToSysKey(hash common.Hash) []byte {
 	return append(nevmToSysPrefix, hash.Bytes()...)

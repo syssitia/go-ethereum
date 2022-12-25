@@ -1278,7 +1278,7 @@ func (ps *serverPeerSet) close() {
 	}
 	ps.closed = true
 }
-// SYSCOIN
+// SYSSITIA
 func (ps *serverPeerSet) open() {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()

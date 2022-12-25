@@ -162,7 +162,7 @@ func (miner *Miner) Close() {
 	miner.wg.Wait()
 }
 
-// SYSCOIN
+// SYSSITIA
 func (miner *Miner) ChainConfig() *params.ChainConfig{
 	return miner.worker.chainConfig
 }

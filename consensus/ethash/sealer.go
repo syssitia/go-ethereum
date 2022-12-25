@@ -49,7 +49,7 @@ var (
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
 func (ethash *Ethash) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
-	// SYSCOIN If we're running a fake PoW, simply return a 0 nonce immediately
+	// SYSSITIA If we're running a fake PoW, simply return a 0 nonce immediately
 	if ethash.config.PowMode == ModeFake || ethash.config.PowMode == ModeFullFake || ethash.config.PowMode == ModeNEVM {
 		header := block.Header()
 		header.Nonce, header.MixDigest = types.BlockNonce{}, common.Hash{}

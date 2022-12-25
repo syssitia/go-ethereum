@@ -202,7 +202,7 @@ type Config struct {
 	// CheckpointOracle is the configuration for checkpoint oracle.
 	CheckpointOracle *params.CheckpointOracleConfig `toml:",omitempty"`
 
-	// SYSCOIN
+	// SYSSITIA
 	NEVMPubEP string        `toml:",omitempty"`
 	// Arrow Glacier block override (TODO: remove after the fork)
 	OverrideArrowGlacier *big.Int `toml:",omitempty"`
@@ -214,9 +214,9 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
 	}
-	// SYSCOIN
-	if chainConfig.ChainID != nil && ((params.SyscoinChainConfig != nil && params.SyscoinChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
-		if chainConfig.ChainID.Uint64() == params.SyscoinChainConfig.ChainID.Uint64() || chainConfig.ChainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
+	// SYSSITIA
+	if chainConfig.ChainID != nil && ((params.SyssitiaChainConfig != nil && params.SyssitiaChainConfig.ChainID != nil) || (params.TanenbaumChainConfig != nil && params.TanenbaumChainConfig.ChainID != nil)) {
+		if chainConfig.ChainID.Uint64() == params.SyssitiaChainConfig.ChainID.Uint64() || chainConfig.ChainID.Uint64() == params.TanenbaumChainConfig.ChainID.Uint64() {
 			config.PowMode = ethash.ModeNEVM
 		}
 	}
@@ -228,7 +228,7 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 		log.Warn("Ethash used in test mode")
 	case ethash.ModeShared:
 		log.Warn("Ethash used in shared mode")
-	// SYSCOIN
+	// SYSSITIA
 	case ethash.ModeNEVM:
 		log.Warn("Ethash used in NEVM mode")
 	}

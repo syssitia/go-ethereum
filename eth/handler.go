@@ -43,7 +43,7 @@ import (
 const (
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
-	// SYSCOIN
+	// SYSSITIA
 	txChanSize = 32768
 )
 
@@ -73,7 +73,7 @@ type txPool interface {
 	// NewTxsEvent and send events to the given channel.
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 
-	// SYSCOIN get chainconfig for peer interface to know if its a syscoin compliant network (enforce that no blocks are outgoing)
+	// SYSSITIA get chainconfig for peer interface to know if its a syssitia compliant network (enforce that no blocks are outgoing)
 	GetChainConfig() *params.ChainConfig
 }
 
@@ -126,7 +126,7 @@ type handler struct {
 	chainSync *chainSyncer
 	wg        sync.WaitGroup
 	peerWG    sync.WaitGroup
-	// SYSCOIN
+	// SYSSITIA
 	inited bool
 }
 
@@ -234,7 +234,7 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	}
 	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, h.txpool.AddRemotes, fetchTx)
 	h.chainSync = newChainSyncer(h)
-	// SYSCOIN
+	// SYSSITIA
 	h.inited = false
 	return h, nil
 }
@@ -416,12 +416,12 @@ func (h *handler) Start(maxPeers int) {
 	// start sync handlers
 	h.wg.Add(1)
 	go h.chainSync.loop()
-    // SYSCOIN
+    // SYSSITIA
 	h.inited = true
 }
 
 func (h *handler) Stop() {
-	// SYSCOIN
+	// SYSSITIA
 	if !h.inited {
 		return
 	}

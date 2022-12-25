@@ -80,7 +80,7 @@ type Backend interface {
 	// so this method should be called with the parent.
 	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, checkLive, preferDisk bool) (*state.StateDB, error)
 	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error)
-	// SYSCOIN
+	// SYSSITIA
 	ReadSYSHash(ctx context.Context, number rpc.BlockNumber) ([]byte, error)
 }
 
@@ -117,7 +117,7 @@ func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.H
 	}
 	return header
 }
-// SYSCOIN
+// SYSSITIA
 func (context *chainContext) ReadSYSHash(n uint64) []byte {
 	sysBlockHash, err := context.api.backend.ReadSYSHash(context.ctx, rpc.BlockNumber(n))
 	if err != nil {

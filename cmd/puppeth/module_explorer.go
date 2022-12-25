@@ -30,12 +30,12 @@ import (
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
 var explorerDockerfile = `
-FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/syssitia-core:latest as syssitia-alpine
 FROM sidhujag/blockscout:latest
 
-ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_VERSION=4.3.0
-ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+ENV SYSSITIA_DATA=/home/syssitia/.syssitia
+ENV SYSSITIA_VERSION=4.3.0
+ENV SYSSITIA_PREFIX=/opt/syssitia-${SYSSITIA_VERSION}
 ARG COINSYMBOL={{.Coin}}
 ARG COINGECKO_COIN_ID={{.CoingeckoID}}
 ARG COINNETWORK={{.Network}}
@@ -131,8 +131,8 @@ RUN cd apps/explorer/ && \
 RUN mix phx.digest
 
 RUN rm /usr/local/bin/geth
-COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* /opt/app/.syscoin/
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
+COPY --from=syssitia-alpine ${SYSSITIA_DATA}/* /opt/app/.syssitia/
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/* /usr/local/bin/
 ENV NETWORK={{.Network}} \
     SUBNETWORK={{.SubNetwork}} \
     COINGECKO_COIN_ID={{.CoingeckoID}} \
@@ -157,8 +157,8 @@ ENV NETWORK={{.Network}} \
     GAS_PRICE=1
 
 RUN \
-	echo $'LC_ALL=C syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
-	echo $'LC_ALL=C exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syscoin --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
+	echo $'LC_ALL=C syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syssitia --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" --gethcommandline=--exitwhensynced' >> explorer.sh && \
+	echo $'LC_ALL=C exec syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=/opt/app/.syssitia --disablewallet --gethcommandline=--syncmode="full" --gethcommandline=--gcmode="archive" --gethcommandline=--port={{.EthPort}} --gethcommandline=--bootnodes={{.Bootnodes}} --gethcommandline=--ethstats={{.Ethstats}} --gethcommandline=--cache=8192 --gethcommandline=--http --gethcommandline=--http.api="net,web3,eth,debug,txpool" --gethcommandline=--http.corsdomain="*" --gethcommandline=--http.vhosts="*" --gethcommandline=--ws --gethcommandline=--ws.origins="*" &' >> explorer.sh && \
     echo '/usr/local/bin/docker-entrypoint.sh postgres &' >> explorer.sh && \
     echo 'sleep 5' >> explorer.sh && \
     echo 'mix do ecto.drop --force, ecto.create, ecto.migrate' >> explorer.sh && \
@@ -213,7 +213,7 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 	subNetwork := ""
 	showPriceChart := "true"
 	disableExchangeRates := "false"
-	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syscoin Mainnet","url":"https://explorer.syscoin.org"}]`
+	supportedChains := `[{"title":"Tanenbaum Testnet","url":"https://tanenbaum.io","test_net?":true},{"title":"Syssitia Mainnet","url":"https://explorer.syssitia.org"}]`
 	if config.node.network == 5700 {
 		subNetwork = "Tanenbaum"
 		disableExchangeRates = "false"
@@ -232,9 +232,9 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"EthPort":   config.node.port,
 		"HttpUrl":   "http://localhost:8545",
 		"WsUrl":   "ws://localhost:8546",
-		"Network":   "Syscoin",
+		"Network":   "Syssitia",
 		"SubNetwork": subNetwork,
-		"CoingeckoID":   "syscoin",
+		"CoingeckoID":   "syssitia",
 		"Coin":   "SYS",
 		"Logo":   "/images/sys_logo.svg",
 		"LogoFooter":   "/images/sys_logo.svg",
@@ -266,8 +266,8 @@ func deployExplorer(client *sshClient, network string, bootnodes []string, confi
 		"Datadir":     config.node.datadir,
 		"DBDir":       config.dbdir,
 		"EthPort":     config.node.port,
-		"SysPort1":    8369,
-		"SysPort2":    18369,
+		"SysPort1":    8909,
+		"SysPort2":    18909,
 		"SysPort3":    18444,
 		"EthName":     config.node.ethstats[:strings.Index(config.node.ethstats, ":")],
 		"WebPort":     config.port,

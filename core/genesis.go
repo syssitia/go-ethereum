@@ -250,8 +250,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.RinkebyChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
-	case ghash == params.SyscoinGenesisHash:
-		return params.SyscoinChainConfig
+	case ghash == params.SyssitiaGenesisHash:
+		return params.SyssitiaChainConfig
 	case ghash == params.TanenbaumGenesisHash:
 		return params.TanenbaumChainConfig
 	default:
@@ -406,15 +406,15 @@ func DefaultGoerliGenesisBlock() *Genesis {
 	}
 }
 
-// SYSCOIN
-func DefaultSyscoinGenesisBlock() *Genesis {
+// SYSSITIA
+func DefaultSyssitiaGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.SyscoinChainConfig,
-		Timestamp:  0x60d7aef6,
+		Config:     params.SyssitiaChainConfig,
+		Timestamp:  0x63a7307e,
 		ExtraData:  hexutil.MustDecode("0x00"),
 		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(syscoinAllocData),
+		Alloc:      decodePrealloc(syssitiaAllocData),
 	}
 }
 func DefaultTanenbaumGenesisBlock() *Genesis {
@@ -424,7 +424,7 @@ func DefaultTanenbaumGenesisBlock() *Genesis {
 		ExtraData:  hexutil.MustDecode("0x00"),
 		GasLimit:   0x7A1200,
 		Difficulty: big.NewInt(1),
-		Alloc:      decodePrealloc(syscoinAllocData),
+		Alloc:      decodePrealloc(syssitiaAllocData),
 	}
 }
 // DefaultSepoliaGenesisBlock returns the Sepolia network genesis block.

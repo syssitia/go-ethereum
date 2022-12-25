@@ -46,7 +46,7 @@ var (
 	// eip1559Config is a chain config with EIP-1559 enabled at block 0.
 	eip1559Config *params.ChainConfig
 )
-// SYSCOIN
+// SYSSITIA
 var DefaultTxPoolConfigTest = TxPoolConfig{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,

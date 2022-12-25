@@ -786,7 +786,7 @@ func writeAncientBlock(op ethdb.AncientWriteOp, block *types.Block, header *type
 	return nil
 }
 
-// SYSCOIN
+// SYSSITIA
 func WriteSYSHash(db ethdb.KeyValueWriter, sysBlockhash string, n uint64) {
 	if err := db.Put(blockNumToSysKey(n), []byte(sysBlockhash)); err != nil {
 		log.Crit("Failed to store blockNumToSysKey", "err", err)
@@ -804,7 +804,7 @@ func ReadSYSHash(db ethdb.Reader, n uint64) []byte {
 	}
 	return data
 }
-// SYSCOIN HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
+// SYSSITIA HasNEVMMapping verifies the existence of a NEVM block corresponding to the hash.
 func HasNEVMMapping(db ethdb.Reader, hash common.Hash) bool {
 	if has, err := db.Has(nevmToSysKey(hash)); !has || err != nil {
 		return false

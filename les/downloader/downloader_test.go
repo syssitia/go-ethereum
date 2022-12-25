@@ -1125,7 +1125,7 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol uint) {
 		if _, ok := tester.peers[id]; !ok {
 			t.Fatalf("test %d: registered peer not found", i)
 		}
-		// SYSCOIN Simulate a synchronisation and check the required result
+		// SYSSITIA Simulate a synchronisation and check the required result
 		tester.downloader.SynchroniseMock = func(string, common.Hash) error { return tt.result }
 
 		tester.downloader.Synchronise(id, tester.genesis.Hash(), big.NewInt(1000), FullSync)

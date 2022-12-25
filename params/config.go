@@ -27,11 +27,11 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash   = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	MainnetGenesisHash   = common.HexToHash("0xa1211a91b460da535e5bf98165f544d7a6e365e9ccdc19361fd362c87c4416b0")
 	RopstenGenesisHash   = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
 	RinkebyGenesisHash   = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 	GoerliGenesisHash    = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
-	SyscoinGenesisHash   = common.HexToHash("0x2112327cad6deec6ada8bd7e5d33d263b57742a8495f3b641faa326b55b1c666")
+	SyssitiaGenesisHash   = common.HexToHash("0xa1211a91b460da535e5bf98165f544d7a6e365e9ccdc19361fd362c87c4416b0")
 	TanenbaumGenesisHash = common.HexToHash("0x5fb22cd4425cea75d2ddaf5fbafb247bb682f407575c599d954b811214c3617c")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 )
@@ -98,9 +98,9 @@ var (
 		Threshold: 2,
 	}
 
-	// SYSCOIN SyscoinChainConfig is the chain parameters to run a node on the syscoin network.
-	SyscoinChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(57),
+	// SYSSITIA SyssitiaChainConfig is the chain parameters to run a node on the syssitia network.
+	SyssitiaChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(58),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport:      true,
@@ -114,14 +114,14 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		SyscoinBlock:        big.NewInt(0),
+		SyssitiaBlock:        big.NewInt(0),
 		LondonBlock:         big.NewInt(1),
 		ArrowGlacierBlock:   nil,
 		Ethash:              new(EthashConfig),
 	}
 
 	TanenbaumChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(5700),
+		ChainID:             big.NewInt(5800),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport:      true,
@@ -135,7 +135,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		BerlinBlock:         big.NewInt(0),
-		SyscoinBlock:        big.NewInt(0),
+		SyssitiaBlock:        big.NewInt(0),
 		LondonBlock:         big.NewInt(1),
 		ArrowGlacierBlock:   nil,
 		Ethash:              new(EthashConfig),
@@ -389,7 +389,7 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	SyscoinBlock        *big.Int `json:"syscoinBlock,omitempty"`        // Syscoin switch block (nil = no fork, 0 = already on syscoin)
+	SyssitiaBlock        *big.Int `json:"syssitiaBlock,omitempty"`        // Syssitia switch block (nil = no fork, 0 = already on syssitia)
 	LondonBlock         *big.Int `json:"londonBlock,omitempty"`         // London switch block (nil = no fork, 1 = already on london)
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
@@ -432,7 +432,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, Syscoin: %v, London: %v, Arrow Glacier: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, Syssitia: %v, London: %v, Arrow Glacier: %v, Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -446,7 +446,7 @@ func (c *ChainConfig) String() string {
 		c.IstanbulBlock,
 		c.MuirGlacierBlock,
 		c.BerlinBlock,
-		c.SyscoinBlock,
+		c.SyssitiaBlock,
 		c.LondonBlock,
 		c.ArrowGlacierBlock,
 		engine,
@@ -528,9 +528,9 @@ func (c *ChainConfig) IsTerminalPoWBlock(parentTotalDiff *big.Int, totalDiff *bi
 	return parentTotalDiff.Cmp(c.TerminalTotalDifficulty) < 0 && totalDiff.Cmp(c.TerminalTotalDifficulty) >= 0
 }
 
-// SYSCOIN IsSyscoin returns whether num is either equal to the Syscoin fork block or greater.
-func (c *ChainConfig) IsSyscoin(num *big.Int) bool {
-	return isForked(c.SyscoinBlock, num)
+// SYSSITIA IsSyssitia returns whether num is either equal to the Syssitia fork block or greater.
+func (c *ChainConfig) IsSyssitia(num *big.Int) bool {
+	return isForked(c.SyssitiaBlock, num)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -713,7 +713,7 @@ type Rules struct {
 	ChainID                                                 *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsBerlin, IsLondon, IsSyscoin               			bool
+	IsBerlin, IsLondon, IsSyssitia               			bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -734,6 +734,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsIstanbul:       c.IsIstanbul(num),
 		IsBerlin:         c.IsBerlin(num),
 		IsLondon:         c.IsLondon(num),
-		IsSyscoin:        c.IsSyscoin(num),
+		IsSyssitia:        c.IsSyssitia(num),
 	}
 }

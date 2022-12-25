@@ -33,24 +33,24 @@ import (
 // faucetDockerfile is the Dockerfile required to build a faucet container to
 // grant crypto tokens based on GitHub authentications.
 var faucetDockerfile = `
-FROM sidhujag/syscoin-core:latest as syscoin-alpine
+FROM sidhujag/syssitia-core:latest as syssitia-alpine
 FROM alpine:3.14
 
-ENV SYSCOIN_DATA=/home/syscoin/.syscoin
-ENV SYSCOIN_VERSION=4.3.0
-ENV SYSCOIN_PREFIX=/opt/syscoin-${SYSCOIN_VERSION}
+ENV SYSSITIA_DATA=/home/syssitia/.syssitia
+ENV SYSSITIA_VERSION=4.3.0
+ENV SYSSITIA_PREFIX=/opt/syssitia-${SYSSITIA_VERSION}
 
-COPY --from=syscoin-alpine ${SYSCOIN_DATA}/* ${SYSCOIN_DATA}/
-COPY --from=syscoin-alpine ${SYSCOIN_PREFIX}/bin/* /usr/local/bin/
-RUN rm ${SYSCOIN_DATA}/sysgeth
-COPY --from=syscoin-alpine ${SYSCOIN_DATA}/faucet ${SYSCOIN_DATA}/sysgeth
+COPY --from=syssitia-alpine ${SYSSITIA_DATA}/* ${SYSSITIA_DATA}/
+COPY --from=syssitia-alpine ${SYSSITIA_PREFIX}/bin/* /usr/local/bin/
+RUN rm ${SYSSITIA_DATA}/sysgeth
+COPY --from=syssitia-alpine ${SYSSITIA_DATA}/faucet ${SYSSITIA_DATA}/sysgeth
 
 ADD account.json /account.json
 ADD account.pass /account.pass
 
 EXPOSE 8080 {{.EthPort}} {{.EthPort}}/udp
 
-RUN echo $'exec syscoind {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=${SYSCOIN_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
+RUN echo $'exec syssitiad {{if eq .NetworkID 5700}}--testnet --addnode=3.15.199.152{{end}} --datadir=${SYSSITIA_DATA} --disablewallet --gethcommandline=--network={{.NetworkID}} --gethcommandline=--ethport={{.EthPort}} --gethcommandline=--ethstats={{.Ethstats}} {{if .Bootnodes}}--gethcommandline=--bootnodes={{.Bootnodes}}{{end}} --gethcommandline=--faucet.name={{.FaucetName}} --gethcommandline=--faucet.amount={{.FaucetAmount}} --gethcommandline=--faucet.minutes={{.FaucetMinutes}} --gethcommandline=--faucet.tiers={{.FaucetTiers}} --gethcommandline=--account.json=/account.json --gethcommandline=--account.pass=/account.pass {{if .CaptchaToken}}--gethcommandline=--captcha.token={{.CaptchaToken}} --gethcommandline=--captcha.secret={{.CaptchaSecret}} {{end}}{{if .NoAuth}} --gethcommandline=--noauth{{end}} {{if .TwitterToken}}--gethcommandline=--twitter.token.v1={{.TwitterToken}}{{end}}' >> faucet.sh
 
 ENTRYPOINT ["/bin/sh", "faucet.sh"]
 `
