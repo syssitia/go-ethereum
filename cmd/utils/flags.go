@@ -1666,7 +1666,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// SYSSITIA
 	case ctx.GlobalBool(SyssitiaFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 58
+			cfg.NetworkId = 979
 		}
 		cfg.Genesis = core.DefaultSyssitiaGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.SyssitiaGenesisHash)

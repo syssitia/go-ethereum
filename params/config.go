@@ -100,7 +100,7 @@ var (
 
 	// SYSSITIA SyssitiaChainConfig is the chain parameters to run a node on the syssitia network.
 	SyssitiaChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(58),
+		ChainID:             big.NewInt(979),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        big.NewInt(0),
 		DAOForkSupport:      true,

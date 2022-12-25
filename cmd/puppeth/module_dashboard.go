@@ -116,7 +116,7 @@ var dashboardContent = `
 											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=1024 --gethcommandline=--syncmode=full{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitia.tech/en/download/" target="about:blank">https://syssitia.tech/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -134,7 +134,7 @@ var dashboardContent = `
 											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=512{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitia.tech/en/download/" target="about:blank">https://syssitia.tech/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -155,7 +155,7 @@ var dashboardContent = `
 											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitia.tech/en/download/" target="about:blank">https://syssitia.tech/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
@@ -173,7 +173,7 @@ var dashboardContent = `
 											<pre>syssitiad {{if eq .NetworkID 5700}}--testnet{{end}} --datadir=$HOME/.{{.Network}} --gethcommandline=--cache=16 --gethcommandline=--ethash.cachesinmem=1 --gethcommandline=--syncmode=light{{if .Ethstats}} --gethcommandline=--ethstats='{{.Ethstats}}'{{end}} --gethcommandline=--bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
-										<p>You can download Syssitia/NEVM from <a href="https://syssitiacore.org/en/download/" target="about:blank">https://syssitiacore.org/en/download/</a>.</p>
+										<p>You can download Syssitia/NEVM from <a href="https://syssitia.tech/en/download/" target="about:blank">https://syssitia.tech/en/download/</a>.</p>
 									</div>
 								</div>
 							</div>
